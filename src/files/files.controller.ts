@@ -8,7 +8,7 @@ import { contentType } from 'mime-types';
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
-  @Get()
+  @Get('/archive')
   async getAllFiles(@Response({ passthrough: true }) res) {
     if (this.filesService.isDirectory('')) {
       return this.filesService.getListFiles('');
@@ -19,7 +19,7 @@ export class FilesController {
     return this.filesService.getFile('');
   }
 
-  @Get('/*')
+  @Get('/archive/*')
   async getFiles(@Param() path: string[], @Response({ passthrough: true }) res) {
     const pathString = Object.keys(path)
       .map((key) => path[key])
