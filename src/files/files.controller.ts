@@ -27,8 +27,9 @@ export class FilesController {
     if (this.filesService.isDirectory(pathString)) {
       return this.filesService.getListFiles(pathString);
     }
+    const fileName = pathString.split('/').pop();
     res.set({
-      'Content-Type': contentType(pathString)
+      'Content-Type': contentType(fileName)
     });
     return new StreamableFile(await this.filesService.getFile(pathString));
   }

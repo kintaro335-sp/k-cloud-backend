@@ -3,11 +3,10 @@ import { ConfigService } from '@nestjs/config';
 // exceptions
 import { NotFoundException } from './exceptions/NotFound.exception';
 // interfaces
-import { ListFile } from './interfaces/list-file.interface';
+import { ListFile, File } from './interfaces/list-file.interface';
 // fs and path
 import { existsSync, readdirSync, createReadStream, ReadStream, lstatSync } from 'fs';
 import { join } from 'path';
-
 @Injectable()
 export class FilesService {
   private root: string = '~/';
@@ -28,20 +27,30 @@ export class FilesService {
     if (!existsSync(entirePath)) {
       throw new NotFoundException();
     }
-    const files: string[] = [];
-    const directories: string[] = [];
+    const list: File[] = [];
     const listFiles = readdirSync(entirePath);
 
     listFiles.forEach((file) => {
       const filePath = join(entirePath, file);
-      if (lstatSync(filePath).isDirectory()) {
-        directories.push(file);
+      const fileStat = lstatSync(filePath);
+      if (fileStat.isDirectory()) {
+        list.push({
+          name: file,
+          type: 'folder',
+          size: fileStat.size,
+          extension: ''
+        });
       } else {
-        files.push(file);
+        list.push({
+          name: file,
+          type: 'file',
+          size: fileStat.size,
+          extension: file.split('.').pop()
+        });
       }
     });
 
-    return { directories, files };
+    return { list };
   }
 
   async getFile(path: string): Promise<ReadStream> {
