@@ -5,9 +5,10 @@ import { AppService } from './app.service';
 import { FilesModule } from './files/files.module';
 import { UsersModule } from './users/users.module';
 import { PrismaService } from './prisma.service';
+import { CryptoModule } from './crypto/crypto.module';
 
 @Module({
-  imports: [FilesModule, ConfigModule.forRoot({ isGlobal: true }), UsersModule],
+  imports: [FilesModule, ConfigModule.forRoot({ isGlobal: true }), UsersModule, CryptoModule],
   controllers: [AppController],
   providers: [AppService, ConfigService, PrismaService]
 })
