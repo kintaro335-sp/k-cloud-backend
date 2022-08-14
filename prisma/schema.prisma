@@ -15,7 +15,6 @@ model User {
   username String @unique
   passwordu String
   files Sharedfile[]
-  tokens Tokens[]
 }
 
 model Sharedfile {
@@ -27,14 +26,5 @@ model Sharedfile {
   isdir Boolean
   expire DateTime
   createdAt DateTime
-  owner User @relation(fields: [userid], references: [id])
-}
-
-model Tokens {
-  id String @id
-  userid String
-  token String
-  expire Boolean
-  dateExpire String
   owner User @relation(fields: [userid], references: [id])
 }

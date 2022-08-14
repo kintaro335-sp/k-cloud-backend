@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+import { time } from 'uniqid';
 
 @Injectable()
 export class CryptoService {
@@ -19,5 +20,9 @@ export class CryptoService {
       return timingSafeEqual(hashedBuffer, keyBuffer);
     }
     return false;
+  }
+
+  createUserId(username: string) {
+    return `${username}-${time()}`;
   }
 }

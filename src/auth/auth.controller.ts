@@ -1,8 +1,12 @@
-import { Controller, Post, Get, UseGuards, Request, Body } from '@nestjs/common';
+import { Controller, Post, Get, UseGuards, Request, Body, Put } from '@nestjs/common';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { AuthService } from './auth.service';
 // dtos
-import { LoginDto } from './dtos/login.dto';
+import { LoginDTO } from './dtos/login.dto';
+import { RegisterDTO } from './dtos/Register.dto';
+import { PasswdDTO } from './dtos/passwd.dto';
+// interfaces
+import { UserPayload } from './interfaces/userPayload.interface';
 
 @Controller('auth')
 export class AuthController {
@@ -10,12 +14,24 @@ export class AuthController {
 
   @Get()
   @UseGuards(JwtAuthGuard)
-  async checkToken(@Request() req) {
-    return req.user;
+  async checkToken(@Request() req): Promise<UserPayload> {
+    return req.user
   }
 
   @Post('login')
-  async login(@Body() body: LoginDto): Promise<{ access_token: string }> {
-    return this.authService.login(body);
+  async login(@Body() body: LoginDTO): Promise<{ access_token: string }> {
+    return this.authService.login(body.username, body.password);
+  }
+
+  @Post('register')
+  async register(@Body() body: RegisterDTO): Promise<{ access_token: string }> {
+    return this.authService.register(body.username, body.password);
+  }
+
+  @Put('password')
+  @UseGuards(JwtAuthGuard)
+  async changePassword(@Request() req, @Body() body: PasswdDTO): Promise<{ message: string }> {
+    const user: UserPayload = req.user;
+    return this.authService.changePassword(user.userId, body.password, body.newPassword);
   }
 }
