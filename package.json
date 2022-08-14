@@ -29,12 +29,15 @@
     "@nestjs/platform-express": "^8.0.0",
     "@prisma/client": "^3.14.0",
     "@types/mime-types": "^2.1.1",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.13.2",
     "mime-types": "^2.1.35",
     "passport-jwt": "^4.0.0",
     "passport-local": "^1.0.0",
     "reflect-metadata": "^0.1.13",
     "rimraf": "^3.0.2",
-    "rxjs": "^7.2.0"
+    "rxjs": "^7.2.0",
+    "uniqid": "^5.4.0"
   },
   "devDependencies": {
     "@nestjs/cli": "^8.0.0",
@@ -78,5 +81,8 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
+  },
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
