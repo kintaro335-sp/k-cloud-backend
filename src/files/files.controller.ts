@@ -1,14 +1,17 @@
-import { Controller, Param, Get, StreamableFile, Response } from '@nestjs/common';
+import { Controller, Param, Get, StreamableFile, Response, Request, UseGuards } from '@nestjs/common';
 // services
 import { FilesService } from './files.service';
+// guards
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 // mime
 import { contentType } from 'mime-types';
 
+@UseGuards(JwtAuthGuard)
 @Controller('files')
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
-  @Get('/archive')
+  @Get()
   async getAllFiles(@Response({ passthrough: true }) res) {
     if (this.filesService.isDirectory('')) {
       return this.filesService.getListFiles('');
@@ -19,7 +22,7 @@ export class FilesController {
     return this.filesService.getFile('');
   }
 
-  @Get('/archive/*')
+  @Get('/*')
   async getFiles(@Param() path: string[], @Response({ passthrough: true }) res) {
     const pathString = Object.keys(path)
       .map((key) => path[key])

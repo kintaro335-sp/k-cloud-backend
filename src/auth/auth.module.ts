@@ -13,7 +13,7 @@ import { CryptoModule } from '../crypto/crypto.module';
     PassportModule,
     JwtModule.register({
       secret: jwtConstants.secret,
-      signOptions: { expiresIn: '1m' },
+      signOptions: { expiresIn: '30m' },
     }),
     CryptoModule
   ],
