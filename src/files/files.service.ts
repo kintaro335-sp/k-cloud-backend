@@ -4,8 +4,9 @@ import { ConfigService } from '@nestjs/config';
 import { NotFoundException } from './exceptions/NotFound.exception';
 // interfaces
 import { ListFile, File } from './interfaces/list-file.interface';
+import { UserPayload } from '../auth/interfaces/userPayload.interface';
 // fs and path
-import { existsSync, readdirSync, createReadStream, ReadStream, lstatSync } from 'fs';
+import { existsSync, readdirSync, createReadStream, ReadStream, lstatSync, mkdirSync } from 'fs';
 import { join } from 'path';
 @Injectable()
 export class FilesService {
@@ -14,16 +15,18 @@ export class FilesService {
     this.root = this.configService.get<string>('FILE_ROOT');
   }
 
-  isDirectory(path: string): boolean {
-    const entirePath = join(this.root, path);
+  isDirectory(path: string, userPayload: UserPayload): boolean {
+    const { userId } = userPayload;
+    const entirePath = join(this.root, userId, path);
     if (!existsSync(entirePath)) {
       throw new NotFoundException();
     }
     return lstatSync(entirePath).isDirectory();
   }
 
-  async getListFiles(path: string): Promise<ListFile> {
-    const entirePath = join(this.root, path);
+  async getListFiles(path: string, userPayload: UserPayload): Promise<ListFile> {
+    const { userId } = userPayload;
+    const entirePath = join(this.root, userId, path);
     if (!existsSync(entirePath)) {
       throw new NotFoundException();
     }
@@ -53,12 +56,23 @@ export class FilesService {
     return { list };
   }
 
-  async getFile(path: string): Promise<ReadStream> {
-    const entirePath = join(this.root, path);
+  async getFile(path: string, userPayload: UserPayload): Promise<ReadStream> {
+    const { userId } = userPayload;
+    const entirePath = join(this.root, userId, path);
     if (!existsSync(entirePath)) {
       throw new NotFoundException();
     }
     return createReadStream(entirePath);
+  }
+
+  async createFolder(path: string, userPayload: UserPayload): Promise<void> {
+    const { userId } = userPayload;
+    const entirePath = join(this.root, userId, path);
+    if (existsSync(entirePath)) {
+      throw new NotFoundException();
+    }
+    mkdirSync(entirePath, { recursive: false });
+    return Promise.resolve();
   }
 
   getRoot(): string {

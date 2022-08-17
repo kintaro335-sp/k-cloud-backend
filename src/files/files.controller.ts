@@ -12,28 +12,28 @@ export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
   @Get()
-  async getAllFiles(@Response({ passthrough: true }) res) {
-    if (this.filesService.isDirectory('')) {
-      return this.filesService.getListFiles('');
+  async getAllFiles(@Response({ passthrough: true }) res, @Request() req) {
+    if (this.filesService.isDirectory('', req.user)) {
+      return this.filesService.getListFiles('', req.user);
     }
     res.set({
       'Content-Type': contentType(this.filesService.getRoot())
     });
-    return this.filesService.getFile('');
+    return this.filesService.getFile('', req.user);
   }
 
   @Get('/*')
-  async getFiles(@Param() path: string[], @Response({ passthrough: true }) res) {
+  async getFiles(@Param() path: string[], @Response({ passthrough: true }) res, @Request() req) {
     const pathString = Object.keys(path)
       .map((key) => path[key])
       .join('/');
-    if (this.filesService.isDirectory(pathString)) {
-      return this.filesService.getListFiles(pathString);
+    if (this.filesService.isDirectory(pathString, req.user)) {
+      return this.filesService.getListFiles(pathString, req.user);
     }
     const fileName = pathString.split('/').pop();
     res.set({
       'Content-Type': contentType(fileName)
     });
-    return new StreamableFile(await this.filesService.getFile(pathString));
+    return new StreamableFile(await this.filesService.getFile(pathString, req.user));
   }
 }

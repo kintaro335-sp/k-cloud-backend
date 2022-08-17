@@ -2,12 +2,18 @@ import { Injectable, BadRequestException } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { CryptoService } from '../crypto/crypto.service';
+import { FilesService } from '../files/files.service';
 // interfaces
 import { UserPayload } from './interfaces/userPayload.interface';
 
 @Injectable()
 export class AuthService {
-  constructor(private usersService: UsersService, private jwtService: JwtService, private cryptoService: CryptoService) {}
+  constructor(
+    private usersService: UsersService,
+    private jwtService: JwtService,
+    private cryptoService: CryptoService,
+    private filesService: FilesService
+  ) {}
 
   async login(userName: string, pasword: string) {
     const user = await this.usersService.findOne({ username: userName });
@@ -34,6 +40,7 @@ export class AuthService {
       passwordu: this.cryptoService.createPassword(pasword)
     });
     const payload: UserPayload = { userId: newUser.id, username: newUser.username };
+    this.filesService.createFolder('', payload);
     return {
       access_token: this.jwtService.sign(payload)
     };
