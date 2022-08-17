@@ -8,6 +8,7 @@ import { UserPayload } from '../auth/interfaces/userPayload.interface';
 // fs and path
 import { existsSync, readdirSync, createReadStream, ReadStream, lstatSync, mkdirSync } from 'fs';
 import { join } from 'path';
+import { lookup } from 'mime-types';
 @Injectable()
 export class FilesService {
   private root: string = '~/';
@@ -41,14 +42,16 @@ export class FilesService {
           name: file,
           type: 'folder',
           size: fileStat.size,
-          extension: ''
+          extension: '',
+          mime_type: ''
         });
       } else {
         list.push({
           name: file,
           type: 'file',
           size: fileStat.size,
-          extension: file.split('.').pop()
+          extension: file.split('.').pop(),
+          mime_type: lookup(file.split('.').pop()) || ''
         });
       }
     });
