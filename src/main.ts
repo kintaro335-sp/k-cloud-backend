@@ -12,7 +12,7 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe());
   // app.use(cookieParser());
   // app.use(csurf({ cookie: { sameSite: true } }));
-  app.enableCors({ credentials: true, origin: ['http://192.168.50.181:3000', 'http://localhost:3000'] });
+  app.enableCors({ origin: '*' });
   await app.listen(5000);
 }
 bootstrap();
