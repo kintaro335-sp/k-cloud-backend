@@ -1,4 +1,19 @@
-import { Controller, Param, Get, StreamableFile, Response, Request, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Param,
+  Get,
+  StreamableFile,
+  Response,
+  Request,
+  UseGuards,
+  Post,
+  UseInterceptors,
+  UploadedFiles,
+  InternalServerErrorException,
+  Delete
+} from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { Express } from 'express';
 // services
 import { FilesService } from './files.service';
 // guards
@@ -12,28 +27,62 @@ export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
   @Get()
-  async getAllFiles(@Response({ passthrough: true }) res) {
-    if (this.filesService.isDirectory('')) {
-      return this.filesService.getListFiles('');
+  async getAllFiles(@Response({ passthrough: true }) res, @Request() req) {
+    if (this.filesService.isDirectory('', req.user)) {
+      return this.filesService.getListFiles('', req.user);
     }
     res.set({
       'Content-Type': contentType(this.filesService.getRoot())
     });
-    return this.filesService.getFile('');
+    return this.filesService.getFile('', req.user);
   }
 
   @Get('/*')
-  async getFiles(@Param() path: string[], @Response({ passthrough: true }) res) {
+  async getFiles(@Param() path: string[], @Response({ passthrough: true }) res, @Request() req) {
     const pathString = Object.keys(path)
       .map((key) => path[key])
       .join('/');
-    if (this.filesService.isDirectory(pathString)) {
-      return this.filesService.getListFiles(pathString);
+    if (this.filesService.isDirectory(pathString, req.user)) {
+      return this.filesService.getListFiles(pathString, req.user);
     }
     const fileName = pathString.split('/').pop();
     res.set({
       'Content-Type': contentType(fileName)
     });
-    return new StreamableFile(await this.filesService.getFile(pathString));
+    return new StreamableFile(await this.filesService.getFile(pathString, req.user));
+  }
+
+  @Post('/folder/*')
+  async createFolder(@Param() path: string[], @Request() req) {
+    const pathString = Object.keys(path)
+      .map((key) => path[key])
+      .join('/');
+    if (!this.filesService.exists(pathString, req.user)) {
+      return this.filesService.createFolder(pathString, req.user);
+    }
+    throw new InternalServerErrorException();
+  }
+
+  @Post('/*')
+  @UseInterceptors(FilesInterceptor('file'))
+  async uploadFile(@Param() path: string[], @Request() req, @UploadedFiles() file: Array<Express.Multer.File>) {
+    const pathString = Object.keys(path)
+      .map((key) => path[key])
+      .join('/');
+    return this.filesService.createFile(pathString, file[0], req.user);
+  }
+
+  @Post('/')
+  @UseInterceptors(FilesInterceptor('file'))
+  async uploadFileS(@Request() req, @UploadedFiles() file: Array<Express.Multer.File>) {
+    return this.filesService.createFile('', file[0], req.user);
+  }
+
+  @Delete('/*')
+  async deleteFile(@Param() path: string[], @Request() req) {
+    const pathString = Object.keys(path)
+      .map((key) => path[key])
+      .join('/');
+    return this.filesService.deleteFile(pathString, req.user);
   }
 }

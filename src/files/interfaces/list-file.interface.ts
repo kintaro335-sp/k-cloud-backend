@@ -3,6 +3,7 @@ export interface File {
   type: string;
   size: number;
   extension: string;
+  mime_type: string;
 }
 
 export interface ListFile {
