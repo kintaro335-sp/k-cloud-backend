@@ -1,4 +1,19 @@
-import { Controller, Param, Get, StreamableFile, Response, Request, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Param,
+  Get,
+  StreamableFile,
+  Response,
+  Request,
+  UseGuards,
+  Post,
+  UseInterceptors,
+  UploadedFiles,
+  InternalServerErrorException,
+  Delete
+} from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { Express } from 'express';
 // services
 import { FilesService } from './files.service';
 // guards
@@ -35,5 +50,39 @@ export class FilesController {
       'Content-Type': contentType(fileName)
     });
     return new StreamableFile(await this.filesService.getFile(pathString, req.user));
+  }
+
+  @Post('/folder/*')
+  async createFolder(@Param() path: string[], @Request() req) {
+    const pathString = Object.keys(path)
+      .map((key) => path[key])
+      .join('/');
+    if (!this.filesService.exists(pathString, req.user)) {
+      return this.filesService.createFolder(pathString, req.user);
+    }
+    throw new InternalServerErrorException();
+  }
+
+  @Post('/*')
+  @UseInterceptors(FilesInterceptor('file'))
+  async uploadFile(@Param() path: string[], @Request() req, @UploadedFiles() file: Array<Express.Multer.File>) {
+    const pathString = Object.keys(path)
+      .map((key) => path[key])
+      .join('/');
+    return this.filesService.createFile(pathString, file[0], req.user);
+  }
+
+  @Post('/')
+  @UseInterceptors(FilesInterceptor('file'))
+  async uploadFileS(@Request() req, @UploadedFiles() file: Array<Express.Multer.File>) {
+    return this.filesService.createFile('', file[0], req.user);
+  }
+
+  @Delete('/*')
+  async deleteFile(@Param() path: string[], @Request() req) {
+    const pathString = Object.keys(path)
+      .map((key) => path[key])
+      .join('/');
+    return this.filesService.deleteFile(pathString, req.user);
   }
 }

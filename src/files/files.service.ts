@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 // exceptions
 import { NotFoundException } from './exceptions/NotFound.exception';
@@ -6,14 +6,22 @@ import { NotFoundException } from './exceptions/NotFound.exception';
 import { ListFile, File } from './interfaces/list-file.interface';
 import { UserPayload } from '../auth/interfaces/userPayload.interface';
 // fs and path
-import { existsSync, readdirSync, createReadStream, ReadStream, lstatSync, mkdirSync } from 'fs';
+import { existsSync, readdirSync, createReadStream, ReadStream, lstatSync, mkdirSync, createWriteStream, rmSync, rmdirSync } from 'fs';
 import { join } from 'path';
 import { lookup } from 'mime-types';
+import { Express } from 'express';
+
 @Injectable()
 export class FilesService {
   private root: string = '~/';
   constructor(private readonly configService: ConfigService) {
     this.root = this.configService.get<string>('FILE_ROOT');
+  }
+
+  exists(path: string, userPayload: UserPayload): boolean {
+    const { userId } = userPayload;
+    const entirePath = join(this.root, userId, path);
+    return existsSync(entirePath);
   }
 
   isDirectory(path: string, userPayload: UserPayload): boolean {
@@ -68,14 +76,40 @@ export class FilesService {
     return createReadStream(entirePath);
   }
 
-  async createFolder(path: string, userPayload: UserPayload): Promise<void> {
+  async createFile(path: string, file: Express.Multer.File, userPayload: UserPayload) {
+    const { userId } = userPayload;
+    const entirePath = join(this.root, userId, path);
+    if (existsSync(`${entirePath}/${file.originalname}`)) {
+      throw new BadRequestException('File already exists');
+    }
+    const writeStream = createWriteStream(`${entirePath}/${file.originalname}`);
+    writeStream.write(file.buffer);
+    writeStream.close();
+    return Promise.resolve({ meesage: 'File created successfully' });
+  }
+
+  async deleteFile(path: string, userPayload: UserPayload): Promise<{ message: string }> {
+    const { userId } = userPayload;
+    const entirePath = join(this.root, userId, path);
+    if (!existsSync(entirePath)) {
+      throw new NotFoundException();
+    }
+    if (!lstatSync(entirePath).isDirectory()) {
+      rmSync(entirePath);
+      return Promise.resolve({ message: 'File deleted successfully' });
+    }
+    rmdirSync(entirePath, { recursive: true });
+    return Promise.resolve({ message: 'Folder deleted successfully' });
+  }
+
+  async createFolder(path: string, userPayload: UserPayload): Promise<{ meesage: string }> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
     if (existsSync(entirePath)) {
-      throw new NotFoundException();
+      throw new BadRequestException('Folder already exists');
     }
-    mkdirSync(entirePath, { recursive: false });
-    return Promise.resolve();
+    mkdirSync(entirePath, { recursive: true });
+    return Promise.resolve({ meesage: 'Folder created successfully' });
   }
 
   getRoot(): string {
