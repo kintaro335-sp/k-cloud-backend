@@ -5,6 +5,7 @@ import { CryptoService } from '../crypto/crypto.service';
 import { FilesService } from '../files/files.service';
 // interfaces
 import { UserPayload } from './interfaces/userPayload.interface';
+import { MessageResponse, AuthResponse } from './interfaces/response.interface';
 
 @Injectable()
 export class AuthService {
@@ -15,7 +16,7 @@ export class AuthService {
     private filesService: FilesService
   ) {}
 
-  async login(userName: string, pasword: string) {
+  async login(userName: string, pasword: string): Promise<AuthResponse> {
     const user = await this.usersService.findOne({ username: userName });
     if (!user) {
       throw new BadRequestException('Usuario o contraseña incorrectos');
@@ -29,7 +30,7 @@ export class AuthService {
     throw new BadRequestException('Usuario o contraseña incorrectos');
   }
 
-  async register(userName: string, pasword: string) {
+  async register(userName: string, pasword: string): Promise<AuthResponse> {
     const user = await this.usersService.findOne({ username: userName });
     if (user) {
       throw new BadRequestException('Usuario ya existe');
@@ -46,7 +47,7 @@ export class AuthService {
     };
   }
 
-  async changePassword(userId: string, password: string, newPassword: string) {
+  async changePassword(userId: string, password: string, newPassword: string): Promise<MessageResponse> {
     const user = await this.usersService.findOne({ id: userId });
     if (!user) {
       throw new BadRequestException('Usuario no existe');
