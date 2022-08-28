@@ -22,7 +22,7 @@ export class AuthService {
       throw new BadRequestException('Usuario o contraseña incorrectos');
     }
     if (this.cryptoService.comparePasswords(pasword, user.passwordu)) {
-      const payload: UserPayload = { userId: user.id, username: user.username };
+      const payload: UserPayload = { userId: user.id, username: user.username, isadmin: user.isadmin };
       return {
         access_token: this.jwtService.sign(payload)
       };
@@ -40,7 +40,7 @@ export class AuthService {
       username: userName,
       passwordu: this.cryptoService.createPassword(pasword)
     });
-    const payload: UserPayload = { userId: newUser.id, username: newUser.username };
+    const payload: UserPayload = { userId: newUser.id, username: newUser.username, isadmin: newUser.isadmin };
     this.filesService.createFolder('', payload);
     return {
       access_token: this.jwtService.sign(payload)
