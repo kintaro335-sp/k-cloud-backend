@@ -1,7 +1,8 @@
 
 
-type UnitByte = 'MB' | 'GB';
+export type UnitByte = 'MB' | 'GB';
 
+export type Categorie = 'core';
 interface CoreConfig  {
   dedicatedSpace: number
   unitType: UnitByte

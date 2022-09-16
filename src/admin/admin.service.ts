@@ -1,13 +1,13 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
 // interfaces
-import { Config } from './interfaces/config.interface';
+import { Config, UnitByte } from './interfaces/config.interface';
 // fs
 import { existsSync, createWriteStream, rmSync, readFile } from 'fs';
 @Injectable()
 export class AdminService implements OnModuleInit, OnModuleDestroy {
   constructor() {}
 
-  config: Config = {
+  private config: Config = {
     core: {
       dedicatedSpace: 1024,
       unitType: 'MB',
@@ -16,7 +16,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     }
   };
 
-  parseConfig(configString: string): Config {
+  private parseConfig(configString: string): Config {
     return JSON.parse(configString);
   }
 
@@ -24,7 +24,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     return existsSync('./settings.json');
   }
 
-  saveConfig() {
+  private saveConfig() {
     const stream = JSON.stringify(this.config);
     if (this.existsSettingsFile()) {
       rmSync('./settings.json');
@@ -34,7 +34,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     file.close();
   }
 
-  loadConfig() {
+  private loadConfig() {
     if (this.existsSettingsFile()) {
       readFile('./settings.json', (err, data) => {
         if (err) {
@@ -54,5 +54,33 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  onModuleDestroy() {}
+  onModuleDestroy() {
+    this.saveConfig();
+  }
+
+  setDedicatedSpace(quantity: number, unitType: UnitByte) {
+    this.config.core.unitType = unitType;
+    if (unitType === 'MB') {
+      this.config.core.dedicatedSpace = quantity;
+      this.config.core.dedicatedSpaceBytes = this.convertMBtoBytes(quantity);
+    }
+    if (unitType === 'GB') {
+      this.config.core.dedicatedSpace = quantity;
+      this.config.core.dedicatedSpaceBytes = this.convertGBtoBytes(quantity);
+    }
+  }
+
+  setUsedSpace(bytes: number) {
+    this.config.core.dedicatedSpace = bytes;
+  }
+
+  // convertions
+
+  private convertMBtoBytes(megasbytes: number): number {
+    return megasbytes * 1048576;
+  }
+
+  private convertGBtoBytes(gigaBytes: number): number {
+    return gigaBytes * 1073741824;
+  }
 }
