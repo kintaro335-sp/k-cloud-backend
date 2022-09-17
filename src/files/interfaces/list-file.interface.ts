@@ -11,3 +11,9 @@ export interface File {
 export interface ListFile {
   list: File[];
 }
+
+export interface Folder {
+  type: 'Folder';
+  name: string;
+  content: Array<Folder | File>
+}

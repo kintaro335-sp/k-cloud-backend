@@ -26,9 +26,9 @@ import { contentType } from 'mime-types';
 export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
-  @Get()
+  @Get('/list')
   async getAllFiles(@Response({ passthrough: true }) res, @Request() req) {
-    if (this.filesService.isDirectory('', req.user)) {
+    if (this.filesService.isDirectoryUser('', req.user)) {
       return this.filesService.getListFiles('', req.user);
     }
     res.set({
@@ -37,12 +37,12 @@ export class FilesController {
     return this.filesService.getFile('', req.user);
   }
 
-  @Get('/*')
+  @Get('/list/*')
   async getFiles(@Param() path: string[], @Response({ passthrough: true }) res, @Request() req) {
     const pathString = Object.keys(path)
       .map((key) => path[key])
       .join('/');
-    if (this.filesService.isDirectory(pathString, req.user)) {
+    if (this.filesService.isDirectoryUser(pathString, req.user)) {
       return this.filesService.getListFiles(pathString, req.user);
     }
     const fileName = pathString.split('/').pop();
@@ -84,5 +84,19 @@ export class FilesController {
       .map((key) => path[key])
       .join('/');
     return this.filesService.deleteFile(pathString, req.user);
+  }
+
+  @Get('/tree')
+  async getTreeRoot(@Request() req) {
+    return this.filesService.GenerateTree('', req.user, false);
+  }
+
+  @Get('/tree/*')
+  async GetTree(@Param() path: string[], @Request() req) {
+    const pathString = Object.keys(path)
+      .map((key) => path[key])
+      .join('/');
+
+    return this.filesService.GenerateTree(pathString, req.user, false);
   }
 }
