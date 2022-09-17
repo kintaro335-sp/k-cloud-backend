@@ -123,7 +123,6 @@ export class FilesService {
   async GenerateTree(path: string, userPayload: UserPayload, rec: boolean): Promise<Folder | File> {
     const { userId } = userPayload;
     const entirePath = rec ? path : join(this.root, userId, path);
-    console.log(entirePath);
     if (!this.isDirectory(path, !rec)) {
       const fileStat = await lstat(entirePath);
       return {
