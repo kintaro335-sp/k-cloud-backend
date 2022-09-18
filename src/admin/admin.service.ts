@@ -1,11 +1,13 @@
 import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+// services
+import { FilesService } from '../files/files.service';
 // interfaces
 import { Config, UnitByte } from './interfaces/config.interface';
 // fs
 import { existsSync, createWriteStream, rmSync, readFile } from 'fs';
 @Injectable()
 export class AdminService implements OnModuleInit, OnModuleDestroy {
-  constructor() {}
+  constructor(private readonly fileServ: FilesService) {}
 
   private config: Config = {
     core: {
@@ -70,8 +72,18 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     }
   }
 
-  setUsedSpace(bytes: number) {
-    this.config.core.dedicatedSpace = bytes;
+  async updateUsedSpace() {
+    const usedSpaceBytes = await this.fileServ.getUsedSpace();
+
+    this.config.core.usedSpaceBytes = usedSpaceBytes;
+
+    this.saveConfig();
+
+    return { total: this.config.core.dedicatedSpaceBytes, used: usedSpaceBytes };
+  }
+
+  async getUsedSpace() {
+    return { total: this.config.core.dedicatedSpaceBytes, used: this.config.core.usedSpaceBytes };
   }
 
   // convertions

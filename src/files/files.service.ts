@@ -120,9 +120,9 @@ export class FilesService {
     return Promise.resolve({ meesage: 'Folder created successfully' });
   }
 
-  async GenerateTree(path: string, userPayload: UserPayload, rec: boolean): Promise<Folder | File> {
-    const { userId } = userPayload;
-    const entirePath = rec ? path : join(this.root, userId, path);
+  async GenerateTree(path: string, userPayload: UserPayload | null, rec: boolean): Promise<Folder | File> {
+    const pathWithUser = userPayload !== null ? join(this.root, userPayload.userId, path) : join(this.root, path);
+    const entirePath = rec ? path : pathWithUser;
     if (!this.isDirectory(path, !rec)) {
       const fileStat = await lstat(entirePath);
       return {
@@ -166,6 +166,25 @@ export class FilesService {
       )
     };
     return folder;
+  }
+
+  async getUsedSpace() {
+    const filesTree = await this.GenerateTree('', null, false);
+    const usedSpace = { value: 0 };
+    if (filesTree.type === 'Folder') {
+      const onForEach = (file: File | Folder) => {
+        if (file.type === 'Folder') {
+          file.content.forEach(onForEach);
+        }
+        if (file.type === 'file') {
+          usedSpace.value = usedSpace.value + file.size;
+        }
+      };
+      filesTree.content.forEach(onForEach);
+      return usedSpace.value;
+    } else {
+      return 0;
+    }
   }
 
   getRoot(): string {
