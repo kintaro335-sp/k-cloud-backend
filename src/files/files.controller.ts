@@ -46,10 +46,22 @@ export class FilesController {
       return this.filesService.getListFiles(pathString, req.user);
     }
     const fileName = pathString.split('/').pop();
+    const properties = await this.filesService.getFilePropertiesUser(pathString, req.user);
     res.set({
-      'Content-Type': contentType(fileName)
+      'Content-Type': contentType(fileName),
+      'Content-Disposition': `attachment; filename="${fileName}";`,
+      'Content-Length': properties.size
     });
     return new StreamableFile(await this.filesService.getFile(pathString, req.user));
+  }
+
+  @Get('/properties/*')
+  async getFileProperties(@Param() path: string[], @Request() req) {
+    const pathString = Object.keys(path)
+      .map((key) => path[key])
+      .join('/');
+
+    return this.filesService.getFileProperties(pathString, req.user);
   }
 
   @Post('/folder/*')

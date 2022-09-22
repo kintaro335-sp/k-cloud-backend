@@ -41,6 +41,28 @@ export class FilesService {
     return lstatSync(entirePath).isDirectory();
   }
 
+  async getFileProperties(path: string, injectRoot = true): Promise<File> {
+    const entirePath = injectRoot ? join(this.root, path) : path;
+    if (this.isDirectory(entirePath, false)) {
+      throw new BadRequestException('Es una Carpeta');
+    }
+    const fileStat = await lstat(entirePath);
+    const file = entirePath.split('/').pop();
+
+    return { name: file, type: 'file', size: fileStat.size, extension: file.split('.').pop(), mime_type: lookup(file.split('.').pop()) || '' };
+  }
+
+  async getFilePropertiesUser(path: string, userPayload: UserPayload): Promise<File> {
+    const { userId } = userPayload;
+    const entirePath = join(this.root, userId, path);
+    if (this.isDirectory(entirePath, false)) {
+      throw new BadRequestException('Es una Carpeta');
+    }
+    const fileStat = await lstat(entirePath);
+    const file = entirePath.split('/').pop();
+    return { name: file, type: 'file', size: fileStat.size, extension: file.split('.').pop(), mime_type: lookup(file.split('.').pop()) || '' };
+  }
+
   async getListFiles(path: string, userPayload: UserPayload): Promise<ListFile> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
