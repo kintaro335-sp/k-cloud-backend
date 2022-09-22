@@ -5,6 +5,7 @@ import { CryptoService } from '../crypto/crypto.service';
 import { FilesService } from '../files/files.service';
 // interfaces
 import { UserPayload } from './interfaces/userPayload.interface';
+import { MessageResponse, AuthResponse } from './interfaces/response.interface';
 
 @Injectable()
 export class AuthService {
@@ -15,13 +16,13 @@ export class AuthService {
     private filesService: FilesService
   ) {}
 
-  async login(userName: string, pasword: string) {
+  async login(userName: string, pasword: string): Promise<AuthResponse> {
     const user = await this.usersService.findOne({ username: userName });
     if (!user) {
       throw new BadRequestException('Usuario o contraseña incorrectos');
     }
     if (this.cryptoService.comparePasswords(pasword, user.passwordu)) {
-      const payload: UserPayload = { userId: user.id, username: user.username };
+      const payload: UserPayload = { userId: user.id, username: user.username, isadmin: user.isadmin };
       return {
         access_token: this.jwtService.sign(payload)
       };
@@ -29,7 +30,7 @@ export class AuthService {
     throw new BadRequestException('Usuario o contraseña incorrectos');
   }
 
-  async register(userName: string, pasword: string) {
+  async register(userName: string, pasword: string): Promise<AuthResponse> {
     const user = await this.usersService.findOne({ username: userName });
     if (user) {
       throw new BadRequestException('Usuario ya existe');
@@ -39,14 +40,14 @@ export class AuthService {
       username: userName,
       passwordu: this.cryptoService.createPassword(pasword)
     });
-    const payload: UserPayload = { userId: newUser.id, username: newUser.username };
+    const payload: UserPayload = { userId: newUser.id, username: newUser.username, isadmin: newUser.isadmin };
     this.filesService.createFolder('', payload);
     return {
       access_token: this.jwtService.sign(payload)
     };
   }
 
-  async changePassword(userId: string, password: string, newPassword: string) {
+  async changePassword(userId: string, password: string, newPassword: string): Promise<MessageResponse> {
     const user = await this.usersService.findOne({ id: userId });
     if (!user) {
       throw new BadRequestException('Usuario no existe');
