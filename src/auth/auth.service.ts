@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { CryptoService } from '../crypto/crypto.service';
@@ -6,6 +6,7 @@ import { FilesService } from '../files/files.service';
 // interfaces
 import { UserPayload } from './interfaces/userPayload.interface';
 import { MessageResponse, AuthResponse } from './interfaces/response.interface';
+import { UserL } from '../users/interfaces/userl.interface';
 
 @Injectable()
 export class AuthService {
@@ -47,6 +48,15 @@ export class AuthService {
     };
   }
 
+  async deleteUser(userid: string): Promise<MessageResponse> {
+    const user = this.usersService.findOne({ id: userid });
+    if (!user) {
+      throw new NotFoundException('usuario no encontrado');
+    }
+    await this.usersService.delete({ id: userid });
+    return { message: 'user deleted' };
+  }
+
   async changePassword(userId: string, password: string, newPassword: string): Promise<MessageResponse> {
     const user = await this.usersService.findOne({ id: userId });
     if (!user) {
@@ -57,5 +67,29 @@ export class AuthService {
       return { message: 'password changed' };
     }
     throw new BadRequestException('Contraseña incorrecta');
+  }
+
+  async setPaswword(userId: string, newPassword: string) {
+    const user = await this.usersService.findOne({ id: userId });
+    if (!user) {
+      throw new BadRequestException('Usuario no existe');
+    }
+    await this.usersService.update({ id: userId }, { passwordu: this.cryptoService.createPassword(newPassword) });
+    return { message: 'password changed' };
+  }
+
+  async setAdmin(userId: string, admin: boolean) {
+    const user = await this.usersService.findOne({ id: userId });
+    if (!user) {
+      throw new BadRequestException('Usuario no existe');
+    }
+    await this.usersService.update({ id: userId }, { isadmin: admin });
+    return { message: 'user type changed' };
+  }
+
+  async userList(): Promise<UserL[]> {
+    const users = await this.usersService.findAll();
+
+    return users.map((u) => ({ id: u.id, username: u.username, admin: u.isadmin }));
   }
 }

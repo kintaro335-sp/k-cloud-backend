@@ -19,6 +19,7 @@ import { FilesModule } from '../files/files.module';
     CryptoModule,
     FilesModule
   ],
+  exports: [AuthService],
   providers: [AuthService, JwtStrategyHeader, JwtStrategyQuery],
   controllers: [AuthController]
 })
