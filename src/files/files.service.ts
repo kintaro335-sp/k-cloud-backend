@@ -6,8 +6,8 @@ import { NotFoundException } from './exceptions/NotFound.exception';
 import { ListFile, File, Folder } from './interfaces/list-file.interface';
 import { UserPayload } from '../auth/interfaces/userPayload.interface';
 // fs and path
-import { existsSync, readdirSync, createReadStream, ReadStream, lstatSync, mkdirSync, createWriteStream, rmSync, rmdirSync } from 'fs';
-import { readdir, lstat } from 'fs/promises';
+import { existsSync, readdirSync, createReadStream, ReadStream, createWriteStream } from 'fs';
+import { readdir, lstat, mkdir, rm, rmdir } from 'fs/promises';
 import { join } from 'path';
 import { lookup } from 'mime-types';
 
@@ -24,21 +24,21 @@ export class FilesService {
     return existsSync(entirePath);
   }
 
-  isDirectoryUser(path: string, userPayload: UserPayload): boolean {
+  async isDirectoryUser(path: string, userPayload: UserPayload): Promise<boolean> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
     if (!existsSync(entirePath)) {
       throw new NotFoundException(entirePath);
     }
-    return lstatSync(entirePath).isDirectory();
+    return (await lstat(entirePath)).isDirectory();
   }
 
-  isDirectory(path: string, injectRoot = true): boolean {
+  async isDirectory(path: string, injectRoot = true): Promise<boolean> {
     const entirePath = injectRoot ? join(this.root, path) : path;
     if (!existsSync(entirePath)) {
       throw new NotFoundException(entirePath);
     }
-    return lstatSync(entirePath).isDirectory();
+    return (await lstat(entirePath)).isDirectory();
   }
 
   async getFileProperties(path: string, injectRoot = true): Promise<File> {
@@ -72,9 +72,9 @@ export class FilesService {
     const list: File[] = [];
     const listFiles = readdirSync(entirePath);
 
-    listFiles.forEach((file) => {
+    listFiles.forEach(async (file) => {
       const filePath = join(entirePath, file);
-      const fileStat = lstatSync(filePath);
+      const fileStat = await lstat(filePath);
       if (fileStat.isDirectory()) {
         list.push({
           name: file,
@@ -124,11 +124,11 @@ export class FilesService {
     if (!existsSync(entirePath)) {
       throw new NotFoundException();
     }
-    if (!lstatSync(entirePath).isDirectory()) {
-      rmSync(entirePath);
+    if (!(await lstat(entirePath)).isDirectory()) {
+      await rm(entirePath);
       return Promise.resolve({ message: 'File deleted successfully' });
     }
-    rmdirSync(entirePath, { recursive: true });
+    await rmdir(entirePath, { recursive: true });
     return Promise.resolve({ message: 'Folder deleted successfully' });
   }
 
@@ -138,7 +138,7 @@ export class FilesService {
     if (existsSync(entirePath)) {
       throw new BadRequestException('Folder already exists');
     }
-    mkdirSync(entirePath, { recursive: true });
+    await mkdir(entirePath, { recursive: true });
     return Promise.resolve({ meesage: 'Folder created successfully' });
   }
 
