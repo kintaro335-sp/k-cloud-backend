@@ -6,7 +6,7 @@ import { NotFoundException } from './exceptions/NotFound.exception';
 import { ListFile, File, Folder } from './interfaces/list-file.interface';
 import { UserPayload } from '../auth/interfaces/userPayload.interface';
 // fs and path
-import { existsSync, readdirSync, createReadStream, ReadStream, createWriteStream } from 'fs';
+import { existsSync, readdirSync, createReadStream, ReadStream, createWriteStream, lstatSync } from 'fs';
 import { readdir, lstat, mkdir, rm, rmdir } from 'fs/promises';
 import { join } from 'path';
 import { lookup } from 'mime-types';
@@ -30,7 +30,8 @@ export class FilesService {
     if (!existsSync(entirePath)) {
       throw new NotFoundException(entirePath);
     }
-    return (await lstat(entirePath)).isDirectory();
+    const statFile = await lstat(entirePath);
+    return statFile.isDirectory();
   }
 
   async isDirectory(path: string, injectRoot = true): Promise<boolean> {
@@ -43,7 +44,7 @@ export class FilesService {
 
   async getFileProperties(path: string, injectRoot = true): Promise<File> {
     const entirePath = injectRoot ? join(this.root, path) : path;
-    if (this.isDirectory(entirePath, false)) {
+    if (await this.isDirectory(entirePath, false)) {
       throw new BadRequestException('Es una Carpeta');
     }
     const fileStat = await lstat(entirePath);
@@ -55,7 +56,7 @@ export class FilesService {
   async getFilePropertiesUser(path: string, userPayload: UserPayload): Promise<File> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
-    if (this.isDirectory(entirePath, false)) {
+    if (await this.isDirectory(entirePath, false)) {
       throw new BadRequestException('Es una Carpeta');
     }
     const fileStat = await lstat(entirePath);
@@ -72,9 +73,9 @@ export class FilesService {
     const list: File[] = [];
     const listFiles = readdirSync(entirePath);
 
-    listFiles.forEach(async (file) => {
+    listFiles.forEach((file) => {
       const filePath = join(entirePath, file);
-      const fileStat = await lstat(filePath);
+      const fileStat = lstatSync(filePath);
       if (fileStat.isDirectory()) {
         list.push({
           name: file,

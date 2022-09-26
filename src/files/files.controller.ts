@@ -13,11 +13,12 @@ import {
   Delete
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { Express } from 'express';
 // services
 import { FilesService } from './files.service';
 // guards
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+// interfaces
+import { ListFile } from './interfaces/list-file.interface';
 // mime
 import { contentType } from 'mime-types';
 
@@ -27,14 +28,11 @@ export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
   @Get('/list')
-  async getAllFiles(@Response({ passthrough: true }) res, @Request() req) {
-    if (this.filesService.isDirectoryUser('', req.user)) {
+  async getAllFiles(@Response({ passthrough: true }) res, @Request() req): Promise<ListFile> {
+    if (await this.filesService.isDirectoryUser('', req.user)) {
       return this.filesService.getListFiles('', req.user);
     }
-    res.set({
-      'Content-Type': contentType(this.filesService.getRoot())
-    });
-    return this.filesService.getFile('', req.user);
+    return { list: [] };
   }
 
   @Get('/list/*')
@@ -42,7 +40,7 @@ export class FilesController {
     const pathString = Object.keys(path)
       .map((key) => path[key])
       .join('/');
-    if (this.filesService.isDirectoryUser(pathString, req.user)) {
+    if (await this.filesService.isDirectoryUser(pathString, req.user)) {
       return this.filesService.getListFiles(pathString, req.user);
     }
     const fileName = pathString.split('/').pop();
