@@ -13,8 +13,8 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     core: {
       dedicatedSpace: 1024,
       unitType: 'MB',
-      dedicatedSpaceBytes: 1073741824,
-      usedSpaceBytes: 0
+      dedicatedSpaceBytes: BigInt(1073741824),
+      usedSpaceBytes: BigInt(0)
     }
   };
 
@@ -88,11 +88,11 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
 
   // convertions
 
-  private convertMBtoBytes(megasbytes: number): number {
-    return megasbytes * 1048576;
+  private convertMBtoBytes(megasbytes: number): bigint {
+    return BigInt(megasbytes * 1048576);
   }
 
-  private convertGBtoBytes(gigaBytes: number): number {
-    return gigaBytes * 1073741824;
+  private convertGBtoBytes(gigaBytes: number): bigint {
+    return BigInt(gigaBytes * 1073741824);
   }
 }
