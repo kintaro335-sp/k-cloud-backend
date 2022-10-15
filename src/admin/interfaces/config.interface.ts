@@ -6,8 +6,8 @@ export type Categorie = 'core';
 interface CoreConfig  {
   dedicatedSpace: number
   unitType: UnitByte
-  dedicatedSpaceBytes: bigint
-  usedSpaceBytes: bigint
+  dedicatedSpaceBytes: number
+  usedSpaceBytes: number
 }
 
 export interface Config {

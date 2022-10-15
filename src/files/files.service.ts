@@ -47,7 +47,7 @@ export class FilesService {
     if (await this.isDirectory(entirePath, false)) {
       throw new BadRequestException('Es una Carpeta');
     }
-    const fileStat = await lstat(entirePath, { bigint: true });
+    const fileStat = await lstat(entirePath, { bigint: false });
     const file = entirePath.split('/').pop();
 
     return { name: file, type: 'file', size: fileStat.size, extension: file.split('.').pop(), mime_type: lookup(file.split('.').pop()) || '' };
@@ -59,7 +59,7 @@ export class FilesService {
     if (await this.isDirectory(entirePath, false)) {
       throw new BadRequestException('Es una Carpeta');
     }
-    const fileStat = await lstat(entirePath, { bigint: true });
+    const fileStat = await lstat(entirePath, { bigint: false });
     const file = entirePath.split('/').pop();
     return { name: file, type: 'file', size: fileStat.size, extension: file.split('.').pop(), mime_type: lookup(file.split('.').pop()) || '' };
   }
@@ -75,7 +75,7 @@ export class FilesService {
 
     listFiles.forEach((file) => {
       const filePath = join(entirePath, file);
-      const fileStat = lstatSync(filePath, { bigint: true });
+      const fileStat = lstatSync(filePath, { bigint: false });
       if (fileStat.isDirectory()) {
         list.push({
           name: file,
@@ -147,7 +147,7 @@ export class FilesService {
     const pathWithUser = userPayload !== null ? join(this.root, userPayload.userId, path) : join(this.root, path);
     const entirePath = rec ? path : pathWithUser;
     if (!this.isDirectory(path, !rec)) {
-      const fileStat = await lstat(entirePath, { bigint: true });
+      const fileStat = await lstat(entirePath, { bigint: false });
       return {
         type: 'file',
         name: path.split('/').pop(),
@@ -165,7 +165,7 @@ export class FilesService {
         files.map(async (f): Promise<File | Folder> => {
           const filePath = join(entirePath, f);
           try {
-            const fileStat = await lstat(filePath, { bigint: true });
+            const fileStat = await lstat(filePath, { bigint: false });
 
             if (fileStat.isDirectory()) {
               return {
@@ -193,7 +193,7 @@ export class FilesService {
 
   async getUsedSpace() {
     const filesTree = await this.GenerateTree('', null, false);
-    const usedSpace = { value: BigInt(0) };
+    const usedSpace = { value: 0 };
     if (filesTree.type === 'Folder') {
       const onForEach = (file: File | Folder) => {
         if (file.type === 'Folder') {
@@ -206,7 +206,7 @@ export class FilesService {
       filesTree.content.forEach(onForEach);
       return usedSpace.value;
     } else {
-      return BigInt(0);
+      return 0;
     }
   }
 
