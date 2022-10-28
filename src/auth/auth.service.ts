@@ -69,7 +69,7 @@ export class AuthService {
     throw new BadRequestException('Contraseña incorrecta');
   }
 
-  async setPaswword(userId: string, newPassword: string) {
+  async setPaswword(userId: string, newPassword: string): Promise<MessageResponse> {
     const user = await this.usersService.findOne({ id: userId });
     if (!user) {
       throw new BadRequestException('Usuario no existe');
@@ -78,7 +78,7 @@ export class AuthService {
     return { message: 'password changed' };
   }
 
-  async setAdmin(userId: string, admin: boolean) {
+  async setAdmin(userId: string, admin: boolean): Promise<MessageResponse> {
     const user = await this.usersService.findOne({ id: userId });
     if (!user) {
       throw new BadRequestException('Usuario no existe');

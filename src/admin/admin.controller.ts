@@ -3,6 +3,8 @@ import { Controller, Post, Get, Delete, Body, UseGuards, Param } from '@nestjs/c
 // services
 import { AdminService } from './admin.service';
 import { AuthService } from '../auth/auth.service';
+// inetrfaces
+import { MessageResponse } from '../auth/interfaces/response.interface';
 // dto
 import { DedicatedSpaceDTO } from './dto/dedicated-space-dto';
 import { SetPasswordDTO } from './dto/set-password.dto';
@@ -49,25 +51,26 @@ export class AdminController {
 
   @RequireAdmin(true)
   @Post('/users/password/:userid')
-  async setUserPasword(@Param('userid') userid: string, @Body() body: SetPasswordDTO) {
+  async setUserPasword(@Param('userid') userid: string, @Body() body: SetPasswordDTO): Promise<MessageResponse>{
     return this.authServ.setPaswword(userid, body.password);
   }
 
   @RequireAdmin(true)
   @Post('/users/admin/:userid')
-  async setUserType(@Param('userid') userid: string, @Body() body: SetAdminDTO) {
+  async setUserType(@Param('userid') userid: string, @Body() body: SetAdminDTO): Promise<MessageResponse> {
     return this.authServ.setAdmin(userid, body.admin);
   }
 
   @RequireAdmin(true)
   @Post('/users/create')
-  async createUser(@Body() body: RegisterDTO) {
-    return this.authServ.register(body.username, body.password);
+  async createUser(@Body() body: RegisterDTO): Promise<MessageResponse> {
+    this.authServ.register(body.username, body.password);
+    return { message: 'Usuario Creado' };
   }
 
   @RequireAdmin(true)
   @Delete('/users/delete/:userid')
-  async deleteUser(@Param('userid') userid: string) {
+  async deleteUser(@Param('userid') userid: string): Promise<MessageResponse> {
     return this.authServ.deleteUser(userid);
   }
 }
