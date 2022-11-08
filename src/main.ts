@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { AppClusterService } from './app-cluster.service';
 import * as compression from 'compression';
 import * as cookieParser from 'cookie-parser';
 import * as csurf from 'csurf';
@@ -14,4 +15,5 @@ async function bootstrap() {
   app.use(compression());
   await app.listen(5000);
 }
-bootstrap();
+
+AppClusterService.clustersize(bootstrap)
