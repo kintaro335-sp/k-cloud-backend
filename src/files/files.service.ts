@@ -5,6 +5,7 @@ import { NotFoundException } from './exceptions/NotFound.exception';
 // interfaces
 import { ListFile, File, Folder } from './interfaces/list-file.interface';
 import { UserPayload } from '../auth/interfaces/userPayload.interface';
+import { MessageResponse } from '../auth/interfaces/response.interface';
 // fs and path
 import { existsSync, readdirSync, createReadStream, ReadStream, createWriteStream, lstatSync } from 'fs';
 import { readdir, lstat, mkdir, rm, rmdir } from 'fs/promises';
@@ -34,6 +35,12 @@ export class FilesService {
     return statFile.isDirectory();
   }
 
+  /**
+   * Determinar a partir de una direccion si es directorio o fichero
+   * @param {string} path Directorio
+   * @param {boolean} injectRoot injectar la raiz del directorio (valo por defecto `true`)
+   * @returns 
+   */
   async isDirectory(path: string, injectRoot = true): Promise<boolean> {
     const entirePath = injectRoot ? join(this.root, path) : path;
     if (!existsSync(entirePath)) {
@@ -42,7 +49,13 @@ export class FilesService {
     return (await lstat(entirePath)).isDirectory();
   }
 
-  async getFileProperties(path: string, injectRoot = true): Promise<File> {
+  /**
+   * Obtener la Propiedades de un Archivo (autenticacion no requerida) 
+   * @param {string} path directorio del archivo
+   * @param {boolean} injectRoot injectar la raiz del directorio (valo por defecto `true`) 
+   * @returns {Promise<File>}
+   */
+  async getFileProperties(path: string, injectRoot:boolean = true): Promise<File> {
     const entirePath = injectRoot ? join(this.root, path) : path;
     if (await this.isDirectory(entirePath, false)) {
       throw new BadRequestException('Es una Carpeta');
@@ -53,6 +66,12 @@ export class FilesService {
     return { name: file, type: 'file', size: fileStat.size, extension: file.split('.').pop(), mime_type: lookup(file.split('.').pop()) || '' };
   }
 
+  /**
+   * Obtener las propiedades de un Archivo cuando el usuario esta autenticado 
+   * @param {string} path Directorio
+   * @param {UserPayload} userPayload Datos de usuario autenticado 
+   * @returns {Promise<File>}
+   */
   async getFilePropertiesUser(path: string, userPayload: UserPayload): Promise<File> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
@@ -64,6 +83,12 @@ export class FilesService {
     return { name: file, type: 'file', size: fileStat.size, extension: file.split('.').pop(), mime_type: lookup(file.split('.').pop()) || '' };
   }
 
+  /**
+   * Obtener la Lista de archivo que hay en un directorio
+   * @param {string} path Directorio
+   * @param {UserPayload}  userPayload Datos de usuario autenticado
+   * @returns {Promise<ListFile>}
+   */
   async getListFiles(path: string, userPayload: UserPayload): Promise<ListFile> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
@@ -98,6 +123,12 @@ export class FilesService {
     return { list };
   }
 
+  /**
+   * Obtener el `ReadStream` de un archivo para entregaro
+   * @param {string} path Directorio
+   * @param {UserPayload} userPayload Datos de usuario autenticado
+   * @returns {Promise<ReadStream>} Readstream del archivo en cuestion
+   */
   async getFile(path: string, userPayload: UserPayload): Promise<ReadStream> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
@@ -107,7 +138,14 @@ export class FilesService {
     return createReadStream(entirePath);
   }
 
-  async createFile(path: string, file: Express.Multer.File, userPayload: UserPayload) {
+  /**
+   * Guardar un archivo que se haya recibido
+   * @param {string} path directorio
+   * @param {Express.Multer.File} file Archivo a guardar
+   * @param {UserPayload} userPayload Datos de usuario atenticado
+   * @returns {Promise<MessageResponse>} Respuesta de la accion
+   */
+  async createFile(path: string, file: Express.Multer.File, userPayload: UserPayload): Promise<MessageResponse> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
     if (existsSync(`${entirePath}/${file.originalname}`)) {
@@ -116,10 +154,16 @@ export class FilesService {
     const writeStream = createWriteStream(`${entirePath}/${file.originalname}`);
     writeStream.write(file.buffer);
     writeStream.close();
-    return Promise.resolve({ meesage: 'File created successfully' });
+    return { message: 'File created successfully' };
   }
 
-  async deleteFile(path: string, userPayload: UserPayload): Promise<{ message: string }> {
+  /**
+   * Eliminar un archivo
+   * @param {string} path directorio
+   * @param {UserPayload} userPayload datos de usuario autenticado 
+   * @returns {Promise<MessageResponse>}
+   */
+  async deleteFile(path: string, userPayload: UserPayload): Promise<MessageResponse> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
     if (!existsSync(entirePath)) {
@@ -130,19 +174,32 @@ export class FilesService {
       return Promise.resolve({ message: 'File deleted successfully' });
     }
     await rmdir(entirePath, { recursive: true });
-    return Promise.resolve({ message: 'Folder deleted successfully' });
+    return { message: 'Folder deleted successfully' };
   }
 
-  async createFolder(path: string, userPayload: UserPayload): Promise<{ meesage: string }> {
+  /**
+   * Creatr una carpeta a partir de una direccion
+   * @param {string} path directorio
+   * @param {UserPayload} userPayload Datos de usuario autenticado
+   * @returns {Promise<MessageResponse>} mensaje de la accion
+   */
+  async createFolder(path: string, userPayload: UserPayload): Promise<MessageResponse> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
     if (existsSync(entirePath)) {
       throw new BadRequestException('Folder already exists');
     }
     await mkdir(entirePath, { recursive: true });
-    return Promise.resolve({ meesage: 'Folder created successfully' });
+    return { message: 'Folder created successfully' };
   }
 
+  /**
+   * Obtener un arbol de como estan lo archivos
+   * @param {string} path el directorio para crear el arbol
+   * @param {UserPayload | null} userPayload 
+   * @param {boolean} rec incluir el user
+   * @returns {Promise<Folder | File>} File si se detecta que el roor es File y el arbol si el carpeta
+   */
   async GenerateTree(path: string, userPayload: UserPayload | null, rec: boolean): Promise<Folder | File> {
     const pathWithUser = userPayload !== null ? join(this.root, userPayload.userId, path) : join(this.root, path);
     const entirePath = rec ? path : pathWithUser;
@@ -191,7 +248,11 @@ export class FilesService {
     return folder;
   }
 
-  async getUsedSpace() {
+  /**
+   * Obtener El espacio usado
+   * @returns {Promise<number>} Espacio usado en Bytes
+   */
+  async getUsedSpace(): Promise<number> {
     const filesTree = await this.GenerateTree('', null, false);
     const usedSpace = { value: 0 };
     if (filesTree.type === 'Folder') {
@@ -210,6 +271,10 @@ export class FilesService {
     }
   }
 
+  /**
+   * Obtener el directorio Raiz donde estan alojados los archivos
+   * @returns {string}
+   */
   getRoot(): string {
     return this.root;
   }
