@@ -1,13 +1,16 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+// services
+import { TempStorageService } from '../temp-storage/temp-storage.service';
 // exceptions
 import { NotFoundException } from './exceptions/NotFound.exception';
 // interfaces
 import { ListFile, File, Folder } from './interfaces/list-file.interface';
 import { UserPayload } from '../auth/interfaces/userPayload.interface';
 import { MessageResponse } from '../auth/interfaces/response.interface';
+import { BlobFTemp } from '../temp-storage/interfaces/filep.interface';
 // fs and path
-import { existsSync, readdirSync, createReadStream, ReadStream, createWriteStream, lstatSync } from 'fs';
+import { existsSync, readdirSync, createReadStream, ReadStream, createWriteStream, lstatSync, write } from 'fs';
 import { readdir, lstat, mkdir, rm, rmdir } from 'fs/promises';
 import { join } from 'path';
 import { lookup } from 'mime-types';
@@ -15,16 +18,51 @@ import { lookup } from 'mime-types';
 @Injectable()
 export class FilesService {
   private root: string = '~/';
-  constructor(private readonly configService: ConfigService) {
+  constructor(private readonly configService: ConfigService, private readonly storageService: TempStorageService) {
     this.root = this.configService.get<string>('FILE_ROOT');
   }
 
+  /**
+   * Escfibir un blolb de un fichero que provenga de tempStorageService
+   * @param path Direccion del archivo
+   * @param blobp Blob a escribir
+   * @returns {number}  Numbero de Bytes escritos
+   */
+  async escribirBlob(path: string, blobp: BlobFTemp): Promise<number> {
+    const writeStreamF = createWriteStream(path, { start: blobp.position });
+    const writeBytesF = async (): Promise<number> => {
+      return new Promise((res) => {
+        writeStreamF.write(blobp.blob, (err) => {
+          res(writeStreamF.bytesWritten);
+        });
+      });
+    };
+    const bytesWritten = writeBytesF();
+    return new Promise((resolve) => {
+      writeStreamF.close((_err) => {
+        resolve(bytesWritten);
+      });
+    });
+  }
+
+  /**
+   * verificar si un archivo existe
+   * @param {string} path
+   * @param {UserPayload} userPayload
+   * @returns {boolean}
+   */
   exists(path: string, userPayload: UserPayload): boolean {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
     return existsSync(entirePath);
   }
 
+  /**
+   * Verificar si es un directorio
+   * @param {string} path Direccion
+   * @param {UserPayload} userPayload Datos de usuario autenticado
+   * @returns {Promise<boolean>}
+   */
   async isDirectoryUser(path: string, userPayload: UserPayload): Promise<boolean> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
@@ -39,7 +77,7 @@ export class FilesService {
    * Determinar a partir de una direccion si es directorio o fichero
    * @param {string} path Directorio
    * @param {boolean} injectRoot injectar la raiz del directorio (valo por defecto `true`)
-   * @returns 
+   * @returns {Promise<boolean>} `true` si es un directorio
    */
   async isDirectory(path: string, injectRoot = true): Promise<boolean> {
     const entirePath = injectRoot ? join(this.root, path) : path;
@@ -50,12 +88,12 @@ export class FilesService {
   }
 
   /**
-   * Obtener la Propiedades de un Archivo (autenticacion no requerida) 
+   * Obtener la Propiedades de un Archivo (autenticacion no requerida)
    * @param {string} path directorio del archivo
-   * @param {boolean} injectRoot injectar la raiz del directorio (valo por defecto `true`) 
+   * @param {boolean} injectRoot injectar la raiz del directorio (valo por defecto `true`)
    * @returns {Promise<File>}
    */
-  async getFileProperties(path: string, injectRoot:boolean = true): Promise<File> {
+  async getFileProperties(path: string, injectRoot: boolean = true): Promise<File> {
     const entirePath = injectRoot ? join(this.root, path) : path;
     if (await this.isDirectory(entirePath, false)) {
       throw new BadRequestException('Es una Carpeta');
@@ -67,9 +105,9 @@ export class FilesService {
   }
 
   /**
-   * Obtener las propiedades de un Archivo cuando el usuario esta autenticado 
+   * Obtener las propiedades de un Archivo cuando el usuario esta autenticado
    * @param {string} path Directorio
-   * @param {UserPayload} userPayload Datos de usuario autenticado 
+   * @param {UserPayload} userPayload Datos de usuario autenticado
    * @returns {Promise<File>}
    */
   async getFilePropertiesUser(path: string, userPayload: UserPayload): Promise<File> {
@@ -160,7 +198,7 @@ export class FilesService {
   /**
    * Eliminar un archivo
    * @param {string} path directorio
-   * @param {UserPayload} userPayload datos de usuario autenticado 
+   * @param {UserPayload} userPayload datos de usuario autenticado
    * @returns {Promise<MessageResponse>}
    */
   async deleteFile(path: string, userPayload: UserPayload): Promise<MessageResponse> {
@@ -196,7 +234,7 @@ export class FilesService {
   /**
    * Obtener un arbol de como estan lo archivos
    * @param {string} path el directorio para crear el arbol
-   * @param {UserPayload | null} userPayload 
+   * @param {UserPayload | null} userPayload
    * @param {boolean} rec incluir el user
    * @returns {Promise<Folder | File>} File si se detecta que el roor es File y el arbol si el carpeta
    */
