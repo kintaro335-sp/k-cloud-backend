@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { FilesModule } from './files/files.module';
@@ -12,7 +13,17 @@ import { TokenFilesModule } from './token-files/token-files.module';
 import { UtilsModule } from './utils/utils.module';
 
 @Module({
-  imports: [FilesModule, ConfigModule.forRoot({ isGlobal: true }), UsersModule, AuthModule, AdminModule, TempStorageModule, TokenFilesModule, UtilsModule],
+  imports: [
+    FilesModule,
+    ConfigModule.forRoot({ isGlobal: true }),
+    UsersModule,
+    AuthModule,
+    AdminModule,
+    TempStorageModule,
+    TokenFilesModule,
+    UtilsModule,
+    ScheduleModule.forRoot()
+  ],
   controllers: [AppController],
   providers: [AppService, ConfigService, PrismaService]
 })

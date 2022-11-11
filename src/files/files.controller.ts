@@ -11,6 +11,7 @@ import {
   UploadedFiles,
   InternalServerErrorException,
   BadRequestException,
+  NotFoundException,
   Delete,
   Body
 } from '@nestjs/common';
@@ -109,10 +110,10 @@ export class FilesController {
     const userId = req.user.userId;
     const pathStringC = join(userId, pathString);
     if (this.filesService.exists(pathString, req.user)) {
-      throw new BadRequestException('ya existe');
+      throw new BadRequestException('archivo ya existe');
     }
     if (this.storageService.existsFile(pathStringC)) {
-      throw new BadRequestException('Ya inicializado');
+      throw new BadRequestException('Archivo ya inicializado');
     }
     this.storageService.createFileTemp(pathStringC, body.size);
     return { message: 'Inicializado' };
@@ -129,8 +130,7 @@ export class FilesController {
       this.storageService.allocateBlob(pathStringC, body.position, this.utils.base64ToBuffer(body.blob));
       return { message: 'Blob Recived' };
     }
-
-    return { message: 'Archivo no existe' };
+    throw new NotFoundException('Archivo no encontrado');
   }
 
   @Delete('/*')

@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Cron } from '@nestjs/schedule';
 // services
 import { TempStorageService } from '../temp-storage/temp-storage.service';
 // exceptions
@@ -10,7 +11,7 @@ import { UserPayload } from '../auth/interfaces/userPayload.interface';
 import { MessageResponse } from '../auth/interfaces/response.interface';
 import { BlobFTemp } from '../temp-storage/interfaces/filep.interface';
 // fs and path
-import { existsSync, readdirSync, createReadStream, ReadStream, createWriteStream, lstatSync, write } from 'fs';
+import { existsSync, readdirSync, createReadStream, ReadStream, createWriteStream, lstatSync } from 'fs';
 import { readdir, lstat, mkdir, rm, rmdir } from 'fs/promises';
 import { join } from 'path';
 import { lookup } from 'mime-types';
@@ -23,26 +24,41 @@ export class FilesService {
   }
 
   /**
+   * mandar a Escribir numerosos blobs de los archivos
+   */
+  @Cron('* * * * *')
+  async writeBlobs() {
+    console.log('comienzo de escritura');
+    this.storageService.getFilesDirectories().forEach(async (dir) => {
+      while (this.storageService.getBlobsLength(dir) !== 0) {
+        const blob = this.storageService.deallocateBlob(dir);
+        if (blob !== undefined) {
+          try {
+            const realPath = join(this.root, dir);
+            const bytesw = await this.onWriteBlob(realPath, blob);
+            this.storageService.updateBytesWriten(dir, bytesw);
+            this.storageService.isCompleted(dir);
+            console.log(`Escribiendo: ${dir}`);
+            console.log(`position: ${blob.position}, bytes: ${blob.blob.length}`);
+          } catch (err) {
+            this.storageService.allocateBlob(dir, blob.position, blob.blob);
+            console.error(err);
+          }
+        }
+      }
+    });
+  }
+
+  /**
    * Escfibir un blolb de un fichero que provenga de tempStorageService
-   * @param path Direccion del archivo
-   * @param blobp Blob a escribir
+   * @param {string} path Direccion del archivo
+   * @param {BlobFTemp} blobp Blob a escribir
    * @returns {number}  Numbero de Bytes escritos
    */
-  async escribirBlob(path: string, blobp: BlobFTemp): Promise<number> {
+  private async onWriteBlob(path: string, blobp: BlobFTemp): Promise<number> {
     const writeStreamF = createWriteStream(path, { start: blobp.position });
-    const writeBytesF = async (): Promise<number> => {
-      return new Promise((res) => {
-        writeStreamF.write(blobp.blob, (err) => {
-          res(writeStreamF.bytesWritten);
-        });
-      });
-    };
-    const bytesWritten = writeBytesF();
-    return new Promise((resolve) => {
-      writeStreamF.close((_err) => {
-        resolve(bytesWritten);
-      });
-    });
+    writeStreamF.write(blobp.blob);
+    return blobp.blob.length
   }
 
   /**
