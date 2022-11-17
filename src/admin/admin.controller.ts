@@ -3,8 +3,9 @@ import { Controller, Post, Get, Delete, Body, UseGuards, Param } from '@nestjs/c
 // services
 import { AdminService } from './admin.service';
 import { AuthService } from '../auth/auth.service';
-// inetrfaces
+// ineterfaces
 import { MessageResponse } from '../auth/interfaces/response.interface';
+import { SpaceUsed } from './interfaces/spaceused.interface';
 // dto
 import { DedicatedSpaceDTO } from './dto/dedicated-space-dto';
 import { SetPasswordDTO } from './dto/set-password.dto';
@@ -31,13 +32,13 @@ export class AdminController {
 
   @RequireAdmin(true)
   @Get('/used-space/update')
-  async updateUsedSpace() {
+  async updateUsedSpace(): Promise<SpaceUsed> {
     return this.adminServ.updateUsedSpace();
   }
 
   @RequireAdmin(true)
   @Get('/used-space')
-  async getUsedSpace() {
+  async getUsedSpace(): Promise<SpaceUsed> {
     return this.adminServ.getUsedSpace();
   }
 
