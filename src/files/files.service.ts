@@ -56,8 +56,9 @@ export class FilesService {
    * @returns {number}  Numbero de Bytes escritos
    */
   private async onWriteBlob(path: string, blobp: BlobFTemp): Promise<number> {
-    const writeStreamF = createWriteStream(path, { start: blobp.position });
+    const writeStreamF = createWriteStream(path, { start: blobp.position, flags: 'w' });
     writeStreamF.write(blobp.blob);
+    writeStreamF.close()
     return blobp.blob.length
   }
 

@@ -133,6 +133,18 @@ export class FilesController {
     throw new NotFoundException('Archivo no encontrado');
   }
 
+  @Post('close/*')
+  async closeFile(@Param() path: string[], @Request() req) {
+    const pathString = Object.keys(path)
+      .map((key) => path[key])
+      .join('/');
+    if (this.storageService.isCompleted(pathString)) {
+      this.storageService.delFile(pathString);
+      return { message: 'closed File' };
+    }
+    return { message: 'not found' };
+  }
+
   @Delete('/*')
   async deleteFile(@Param() path: string[], @Request() req) {
     const pathString = Object.keys(path)

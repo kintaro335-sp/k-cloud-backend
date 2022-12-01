@@ -27,10 +27,10 @@ export class TempStorageService {
   /**
    * Actualizar lo Bytes Escritos
    * @param {string} path direccion de archivo
-   * @param {number} numBytes numero de bytes a sumar
+   * @param {number} numBytes numero de bytes grabados
    */
   updateBytesWriten(path: string, numBytes: number) {
-    this.storage[path].size += numBytes;
+    this.storage[path].size = numBytes;
   }
 
   /**
@@ -46,6 +46,8 @@ export class TempStorageService {
       name,
       size,
       saved: 0,
+      received: 0,
+      bytesWritten: [],
       completed: false,
       blobs: []
     };
@@ -56,7 +58,7 @@ export class TempStorageService {
    * @param {string} path direccion del archivo
    */
   isCompleted(path: string) {
-    if (!this.existsFile(path)) {
+    if (this.existsFile(path)) {
       return false;
     }
     const file = this.storage[path];
@@ -91,6 +93,7 @@ export class TempStorageService {
    */
   allocateBlob(path: string, position: number, blob: Buffer) {
     this.storage[path].blobs.unshift({ position, blob });
+    this.storage[path].received += blob.length;
   }
 
   /**
@@ -99,6 +102,25 @@ export class TempStorageService {
    * @returns {BlobFTemp} Buffer a escribir
    */
   deallocateBlob(path: string): BlobFTemp {
-    return this.storage[path].blobs.pop();
+    const blobR = this.storage[path].blobs.pop();
+    const bytesWritten = { from: blobR.position, to: blobR.position + blobR.blob.length };
+
+    this.storage[path].bytesWritten.push(bytesWritten);
+    this.storage[path].saved = this.getBytesWritten(path);
+
+    return blobR;
+  }
+
+  /**
+   * Obtiene cuanto bytes han sido escritos
+   * @param path Path del archivo
+   * @returns Numero de Bytes
+   */
+  private getBytesWritten(path: string): number {
+    let size = 0;
+    this.storage[path].bytesWritten.forEach((binfo, i) => {
+      size += binfo.to - binfo.from;
+    });
+    return size;
   }
 }
