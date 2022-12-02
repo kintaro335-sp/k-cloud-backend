@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 // interfaces
-import { FilePTemp, BlobFTemp } from './interfaces/filep.interface';
+import { FilePTemp, BlobFTemp, FilePTempResponse } from './interfaces/filep.interface';
 
 @Injectable()
 export class TempStorageService {
@@ -83,6 +83,22 @@ export class TempStorageService {
    */
   existsFile(path: string): boolean {
     return Boolean(this.storage[path]);
+  }
+
+  /**
+   *
+   */
+  getFileStatus(path: string): FilePTempResponse {
+    const { name, bytesWritten, completed, received, saved, size } = this.storage[path];
+
+    return {
+      name,
+      bytesWritten,
+      completed,
+      received,
+      saved,
+      size
+    };
   }
 
   /**

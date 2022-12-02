@@ -14,3 +14,12 @@ export interface FilePTemp {
   completed: boolean;
   blobs: BlobFTemp[];
 }
+
+export interface FilePTempResponse {
+  name: string;
+  size: number;
+  received: number;
+  saved: number;
+  bytesWritten:Array<BytesWritten>;
+  completed: boolean;
+}

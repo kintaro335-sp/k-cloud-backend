@@ -258,8 +258,8 @@ export class FilesService {
   async GenerateTree(path: string, userPayload: UserPayload | null, rec: boolean): Promise<Folder | File> {
     const pathWithUser = userPayload !== null ? join(this.root, userPayload.userId, path) : join(this.root, path);
     const entirePath = rec ? path : pathWithUser;
-    if (!this.isDirectory(path, !rec)) {
-      const fileStat = await lstat(entirePath, { bigint: false });
+    const fileStat = await lstat(entirePath, { bigint: false });
+    if (!fileStat.isDirectory()) {
       return {
         type: 'file',
         name: path.split('/').pop(),

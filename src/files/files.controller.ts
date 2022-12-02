@@ -27,10 +27,14 @@ import { FileInitDTO } from './dtos/fileInit.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 // interfaces
 import { MessageResponse } from '../auth/interfaces/response.interface';
-import { ListFile } from './interfaces/list-file.interface';
+import { ListFile, File, Folder } from './interfaces/list-file.interface';
+import { FilePTempResponse } from '../temp-storage/interfaces/filep.interface';
 // mime
 import { contentType } from 'mime-types';
 import { join } from 'path';
+// RXJS
+import { Observable, pipe } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 @UseGuards(JwtAuthGuard)
 @Controller('files')
@@ -134,7 +138,7 @@ export class FilesController {
   }
 
   @Post('close/*')
-  async closeFile(@Param() path: string[], @Request() req) {
+  async closeFile(@Param() path: string[]) {
     const pathString = Object.keys(path)
       .map((key) => path[key])
       .join('/');
@@ -143,6 +147,20 @@ export class FilesController {
       return { message: 'closed File' };
     }
     return { message: 'not found' };
+  }
+
+  @Get('status/*')
+  async getFileStatusUpload(@Param() path: string[], @Request() req): Promise<FilePTempResponse> {
+    const pathString = Object.keys(path)
+      .map((key) => path[key])
+      .join('/');
+    const userId = req.user.userId;
+    const pathStringC = join(userId, pathString);
+
+    if (!this.storageService.existsFile(pathStringC)) {
+      throw new NotFoundException('File No encontrado');
+    }
+    return this.storageService.getFileStatus(pathStringC);
   }
 
   @Delete('/*')
@@ -159,11 +177,35 @@ export class FilesController {
   }
 
   @Get('/tree/*')
-  async GetTree(@Param() path: string[], @Request() req) {
+  async GetTree(@Param() path: string[], @Request() req): Promise<File | Folder> {
     const pathString = Object.keys(path)
       .map((key) => path[key])
       .join('/');
 
     return this.filesService.GenerateTree(pathString, req.user, false);
+  }
+
+  @Get('obs/tree')
+  async getTreeRootObs(@Request() req): Promise<Observable<File | Folder>> {
+    return new Observable((subs) => {
+      this.filesService.GenerateTree('', req.user, false).then((arbol) => {
+        subs.next(arbol);
+      });
+    });
+  }
+
+  @Get('obs/tree/*')
+  async GetTreeObs(@Param() path: string[], @Request() req): Promise<Observable<File | Folder>> {
+    const pathString = Object.keys(path)
+      .map((key) => path[key])
+      .join('/');
+
+    return new Observable((subs) => {
+      this.filesService.GenerateTree(pathString, req.user, false).then((arbol) => {
+        subs.next(arbol);
+      });
+    });
+
+    //return this.filesService.GenerateTree(pathString, req.user, false);
   }
 }
