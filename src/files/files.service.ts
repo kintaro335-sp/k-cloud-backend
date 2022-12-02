@@ -28,7 +28,6 @@ export class FilesService {
    */
   @Cron('* * * * *')
   async writeBlobs() {
-    console.log('comienzo de escritura');
     this.storageService.getFilesDirectories().forEach(async (dir) => {
       while (this.storageService.getBlobsLength(dir) !== 0) {
         const blob = this.storageService.deallocateBlob(dir);
@@ -38,8 +37,6 @@ export class FilesService {
             const bytesw = await this.onWriteBlob(realPath, blob);
             this.storageService.updateBytesWriten(dir, bytesw);
             this.storageService.isCompleted(dir);
-            console.log(`Escribiendo: ${dir}`);
-            console.log(`position: ${blob.position}, bytes: ${blob.blob.length}`);
           } catch (err) {
             this.storageService.allocateBlob(dir, blob.position, blob.blob);
             console.error(err);
