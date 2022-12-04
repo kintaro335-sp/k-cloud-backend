@@ -33,8 +33,7 @@ import { FilePTempResponse } from '../temp-storage/interfaces/filep.interface';
 import { contentType } from 'mime-types';
 import { join } from 'path';
 // RXJS
-import { Observable, pipe } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { Observable } from 'rxjs';
 
 @UseGuards(JwtAuthGuard)
 @Controller('files')
@@ -149,7 +148,7 @@ export class FilesController {
     return { message: 'not found' };
   }
 
-  @Get('status/*')
+  @Get('/status/*')
   async getFileStatusUpload(@Param() path: string[], @Request() req): Promise<FilePTempResponse> {
     const pathString = Object.keys(path)
       .map((key) => path[key])
@@ -161,6 +160,23 @@ export class FilesController {
       throw new NotFoundException('File No encontrado');
     }
     return this.storageService.getFileStatus(pathStringC);
+  }
+
+  @Get('/obs/status/*')
+  getFileStatusUploadObs(@Param() path: string[], @Request() req): Observable<FilePTempResponse> {
+    const pathString = Object.keys(path)
+      .map((key) => path[key])
+      .join('/');
+    const userId = req.user.userId;
+    const pathStringC = join(userId, pathString);
+
+    if (!this.storageService.existsFile(pathStringC)) {
+      throw new NotFoundException('File No encontrado');
+    }
+
+    return new Observable((subs) => {
+      subs.next(this.storageService.getFileStatus(pathStringC));
+    });
   }
 
   @Delete('/*')
@@ -186,7 +202,7 @@ export class FilesController {
   }
 
   @Get('obs/tree')
-  async getTreeRootObs(@Request() req): Promise<Observable<File | Folder>> {
+  getTreeRootObs(@Request() req): Observable<File | Folder> {
     return new Observable((subs) => {
       this.filesService.GenerateTree('', req.user, false).then((arbol) => {
         subs.next(arbol);
@@ -195,7 +211,7 @@ export class FilesController {
   }
 
   @Get('obs/tree/*')
-  async GetTreeObs(@Param() path: string[], @Request() req): Promise<Observable<File | Folder>> {
+  GetTreeObs(@Param() path: string[], @Request() req): Observable<File | Folder> {
     const pathString = Object.keys(path)
       .map((key) => path[key])
       .join('/');
@@ -205,7 +221,5 @@ export class FilesController {
         subs.next(arbol);
       });
     });
-
-    //return this.filesService.GenerateTree(pathString, req.user, false);
   }
 }
