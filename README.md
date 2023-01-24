@@ -17,7 +17,7 @@ the diretory where the files will be stored
 
 - *DATABASE_URL* 
 
-location and name of the data base
+location and name of the data base start with *file:*
 
 ### prisma
 
