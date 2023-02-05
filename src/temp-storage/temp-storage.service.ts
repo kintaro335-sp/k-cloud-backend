@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 // interfaces
 import { FilePTemp, BlobFTemp, FilePTempResponse } from './interfaces/filep.interface';
+import { createWriteStream, writeFileSync, existsSync } from 'fs';
+import { join } from 'path';
 
 @Injectable()
 export class TempStorageService {
@@ -37,9 +39,11 @@ export class TempStorageService {
    * Inicializar un Archivo para cargarlo en RAM
    * @param {string} path Direccion del archivo
    * @param {number} size Tamaño del archivo en Bytes
+   * @param {string} root raiz
    */
-  createFileTemp(path: string, size: number) {
+  createFileTemp(path: string, size: number, root: string) {
     const name = path.split('/').pop();
+    const completePath = join(root, path);
 
     this.filesDirectories.push(path);
     this.storage[path] = {
@@ -53,14 +57,37 @@ export class TempStorageService {
     };
   }
 
+  writeBlob(path: string, blob: BlobFTemp): Promise<void> {
+    if (existsSync(path)) {
+      const writeStream = createWriteStream(path, { start: blob.position, flags: 'r+', autoClose: true });
+      return new Promise((res) => {
+        if (!writeStream.write(blob.blob)) {
+          writeStream.once('drain', () => {
+            res();
+          });
+        } else {
+          res();
+        }
+      });
+    } else {
+      const writeStream = createWriteStream(path, { start: blob.position, flags: 'w', autoClose: true });
+      return new Promise((res) => {
+        if (!writeStream.write(blob.blob)) {
+          writeStream.once('drain', () => {
+            res();
+          });
+        } else {
+          res();
+        }
+      });
+    }
+  }
+
   /**
    * Veririfcar si esta completo
    * @param {string} path direccion del archivo
    */
   isCompleted(path: string) {
-    if (this.existsFile(path)) {
-      return false;
-    }
     const file = this.storage[path];
     const isCompleted = file.size === file.saved;
     this.storage[path].completed = isCompleted;

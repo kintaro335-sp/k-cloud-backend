@@ -1,3 +1,5 @@
+import { WriteStream } from "fs";
+
 type BytesWritten = { from: number; to: number };
 
 export interface BlobFTemp {
@@ -10,7 +12,7 @@ export interface FilePTemp {
   size: number;
   received: number;
   saved: number;
-  bytesWritten:Array<BytesWritten>;
+  bytesWritten: Array<BytesWritten>;
   completed: boolean;
   blobs: BlobFTemp[];
 }
@@ -20,6 +22,6 @@ export interface FilePTempResponse {
   size: number;
   received: number;
   saved: number;
-  bytesWritten:Array<BytesWritten>;
+  bytesWritten: Array<BytesWritten>;
   completed: boolean;
 }

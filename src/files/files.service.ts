@@ -18,7 +18,7 @@ import { lookup } from 'mime-types';
 
 @Injectable()
 export class FilesService {
-  private root: string = '~/';
+  public root: string = '~/';
   constructor(private readonly configService: ConfigService, private readonly storageService: TempStorageService) {
     this.root = this.configService.get<string>('FILE_ROOT');
   }
@@ -34,9 +34,11 @@ export class FilesService {
         if (blob !== undefined) {
           try {
             const realPath = join(this.root, dir);
-            const bytesw = await this.onWriteBlob(realPath, blob);
-            this.storageService.updateBytesWriten(dir, bytesw);
-            this.storageService.isCompleted(dir);
+            await this.storageService.writeBlob(realPath, blob);
+            this.storageService.updateBytesWriten(dir, blob.blob.length);
+            if (this.storageService.isCompleted(dir)) {
+              //this.storageService
+            }
           } catch (err) {
             this.storageService.allocateBlob(dir, blob.position, blob.blob);
             console.error(err);
@@ -55,8 +57,8 @@ export class FilesService {
   private async onWriteBlob(path: string, blobp: BlobFTemp): Promise<number> {
     const writeStreamF = createWriteStream(path, { start: blobp.position, flags: 'w' });
     writeStreamF.write(blobp.blob);
-    writeStreamF.close()
-    return blobp.blob.length
+    writeStreamF.close();
+    return blobp.blob.length;
   }
 
   /**

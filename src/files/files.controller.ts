@@ -14,7 +14,9 @@ import {
   NotFoundException,
   Delete,
   Body,
-  Query
+  Query,
+  ParseIntPipe,
+  HttpStatus
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 // services
@@ -119,7 +121,7 @@ export class FilesController {
     if (this.storageService.existsFile(pathStringC)) {
       throw new BadRequestException('Archivo ya inicializado');
     }
-    this.storageService.createFileTemp(pathStringC, body.size);
+    this.storageService.createFileTemp(pathStringC, body.size, this.filesService.root);
     return { message: 'Inicializado' };
   }
 
@@ -138,17 +140,17 @@ export class FilesController {
   }
 
   @Post('write/*')
-  @UseInterceptors(FilesInterceptor('file', 1, { limits: { fileSize: 4096 * 20 } }))
-  async allocateBlob(
+  @UseInterceptors(FilesInterceptor('file'))
+  async reciveBlob(
     @Param() path: string[],
-    @UploadedFiles() file: Array<Express.Multer.File>,
+    @UploadedFiles() files: Array<Express.Multer.File>,
     @Request() req,
-    @Query('pos') position: number
+    @Query('pos', new ParseIntPipe({ errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) position: number
   ): Promise<MessageResponse> {
-    if (!position) {
-      throw new BadRequestException('position required');
+    if (files === undefined) {
+      throw new BadRequestException('no file');
     }
-    const fileM = file[0];
+    const fileM = files[0];
     const pathString = Object.keys(path)
       .map((key) => path[key])
       .join('/');
