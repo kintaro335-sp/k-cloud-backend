@@ -6,7 +6,7 @@ const ipSegs2 = ['168'];
 
 const ipSegs3 = ['50', '5'];
 
-const ipSegs4 = ['181', '37'];
+const ipSegs4 = ['181', '37', '239'];
 
 const port = [':3000'];
 

@@ -13,7 +13,8 @@ import {
   BadRequestException,
   NotFoundException,
   Delete,
-  Body
+  Body,
+  Query
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 // services
@@ -122,7 +123,7 @@ export class FilesController {
     return { message: 'Inicializado' };
   }
 
-  @Post('write/*')
+  @Post('writebase64/*')
   async allocateBase64Blob(@Param() path: string[], @Body() body: BlobFPDTO, @Request() req): Promise<MessageResponse> {
     const pathString = Object.keys(path)
       .map((key) => path[key])
@@ -131,6 +132,30 @@ export class FilesController {
     const pathStringC = join(userId, pathString);
     if (this.storageService.existsFile(pathStringC)) {
       this.storageService.allocateBlob(pathStringC, body.position, this.utils.base64ToBuffer(body.blob));
+      return { message: 'Blob Recived' };
+    }
+    throw new NotFoundException('Archivo no encontrado');
+  }
+
+  @Post('write/*')
+  @UseInterceptors(FilesInterceptor('file', 1, { limits: { fileSize: 4096 * 20 } }))
+  async allocateBlob(
+    @Param() path: string[],
+    @UploadedFiles() file: Array<Express.Multer.File>,
+    @Request() req,
+    @Query('pos') position: number
+  ): Promise<MessageResponse> {
+    if (!position) {
+      throw new BadRequestException('position required');
+    }
+    const fileM = file[0];
+    const pathString = Object.keys(path)
+      .map((key) => path[key])
+      .join('/');
+    const userId = req.user.userId;
+    const pathStringC = join(userId, pathString);
+    if (this.storageService.existsFile(pathStringC)) {
+      this.storageService.allocateBlob(pathStringC, position, fileM.buffer);
       return { message: 'Blob Recived' };
     }
     throw new NotFoundException('Archivo no encontrado');
