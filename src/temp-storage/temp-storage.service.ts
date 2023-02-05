@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 // interfaces
 import { FilePTemp, BlobFTemp, FilePTempResponse } from './interfaces/filep.interface';
-import { createWriteStream, writeFileSync, existsSync } from 'fs';
+import { createWriteStream, existsSync } from 'fs';
 import { join } from 'path';
 
 @Injectable()
