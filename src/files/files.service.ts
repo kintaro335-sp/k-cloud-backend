@@ -15,6 +15,7 @@ import { existsSync, readdirSync, createReadStream, ReadStream, createWriteStrea
 import { readdir, lstat, mkdir, rm, rmdir } from 'fs/promises';
 import { join } from 'path';
 import { lookup } from 'mime-types';
+import { orderBy } from 'lodash';
 
 @Injectable()
 export class FilesService {
@@ -173,8 +174,8 @@ export class FilesService {
         });
       }
     });
-
-    return { list };
+    const ordenedList = orderBy<File>(list, ['type', 'name'], ['desc', 'asc']);
+    return { list: ordenedList };
   }
 
   /**
