@@ -1,6 +1,10 @@
 
 # K-Cloud-Backend
 
+## Why
+
+I DO NOT WANT TO USE NEXT CLOUD
+
 ## Setup
 
 ### install dependencies
