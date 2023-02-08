@@ -7,6 +7,7 @@ import { RegisterDTO } from './dtos/Register.dto';
 import { PasswdDTO } from './dtos/passwd.dto';
 // interfaces
 import { UserPayload } from './interfaces/userPayload.interface';
+import { AuthResponse, MessageResponse } from './interfaces/response.interface';
 
 @Controller('auth')
 export class AuthController {
@@ -19,18 +20,18 @@ export class AuthController {
   }
 
   @Post('login')
-  async login(@Body() body: LoginDTO): Promise<{ access_token: string }> {
+  async login(@Body() body: LoginDTO): Promise<AuthResponse> {
     return this.authService.login(body.username, body.password);
   }
 
   @Post('register')
-  async register(@Body() body: RegisterDTO): Promise<{ access_token: string }> {
+  async register(@Body() body: RegisterDTO): Promise<AuthResponse> {
     return this.authService.register(body.username, body.password);
   }
 
   @Put('password')
   @UseGuards(JwtAuthGuard)
-  async changePassword(@Request() req, @Body() body: PasswdDTO): Promise<{ message: string }> {
+  async changePassword(@Request() req, @Body() body: PasswdDTO): Promise<MessageResponse> {
     const user: UserPayload = req.user;
     return this.authService.changePassword(user.userId, body.password, body.newPassword);
   }
