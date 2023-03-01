@@ -11,6 +11,7 @@ import { AdminModule } from './admin/admin.module';
 import { TempStorageModule } from './temp-storage/temp-storage.module';
 import { TokenFilesModule } from './token-files/token-files.module';
 import { UtilsModule } from './utils/utils.module';
+import { SharedFileModule } from './shared-file/shared-file.module';
 
 @Module({
   imports: [
@@ -22,7 +23,8 @@ import { UtilsModule } from './utils/utils.module';
     TempStorageModule,
     TokenFilesModule,
     UtilsModule,
-    ScheduleModule.forRoot()
+    ScheduleModule.forRoot(),
+    SharedFileModule
   ],
   controllers: [AppController],
   providers: [AppService, ConfigService, PrismaService]

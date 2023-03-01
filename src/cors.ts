@@ -24,6 +24,5 @@ ipSegs1.forEach((i1) => {
 
 const other = ['http://localhost:3000'];
 
-console.log(whiteList);
 
 export default [...other, ...whiteList];

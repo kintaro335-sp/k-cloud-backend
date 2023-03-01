@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { UtilsService } from '../utils/utils.service';
 // interfaces
 import { FilePTemp, BlobFTemp, FilePTempResponse } from './interfaces/filep.interface';
 import { createWriteStream, existsSync } from 'fs';
@@ -6,6 +7,8 @@ import { join } from 'path';
 
 @Injectable()
 export class TempStorageService {
+  constructor(private readonly utilsService: UtilsService) {}
+
   private filesDirectories: string[] = [];
   private storage: Record<string, FilePTemp | null> = {};
 
@@ -29,10 +32,13 @@ export class TempStorageService {
   /**
    * Actualizar lo Bytes Escritos
    * @param {string} path direccion de archivo
-   * @param {number} numBytes numero de bytes grabados
+   * @param {BlobFTemp} blob blob escrito
    */
-  updateBytesWriten(path: string, numBytes: number) {
-    this.storage[path].size = numBytes;
+  updateBytesWriten(path: string, blob: BlobFTemp) {
+    this.storage[path].bytesWritten;
+    this.storage[path].bytesWritten.push({ from: blob.position, to: blob.position + blob.blob.length });
+    const total = this.storage[path].bytesWritten.map((b) => b.to - b.from);
+    this.storage[path].saved = this.utilsService.arraySum(total);
   }
 
   /**

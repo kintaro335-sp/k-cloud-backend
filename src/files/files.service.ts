@@ -13,7 +13,7 @@ import { BlobFTemp } from '../temp-storage/interfaces/filep.interface';
 // fs and path
 import { existsSync, readdirSync, createReadStream, ReadStream, createWriteStream, lstatSync } from 'fs';
 import { readdir, lstat, mkdir, rm, rmdir } from 'fs/promises';
-import { join } from 'path';
+import path, { join } from 'path';
 import { lookup } from 'mime-types';
 import { orderBy } from 'lodash';
 
@@ -36,9 +36,9 @@ export class FilesService {
           try {
             const realPath = join(this.root, dir);
             await this.storageService.writeBlob(realPath, blob);
-            this.storageService.updateBytesWriten(dir, blob.blob.length);
+            this.storageService.updateBytesWriten(dir, blob);
             if (this.storageService.isCompleted(dir)) {
-              //this.storageService
+              this.storageService.delFile(dir);
             }
           } catch (err) {
             this.storageService.allocateBlob(dir, blob.position, blob.blob);
