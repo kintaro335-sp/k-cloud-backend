@@ -6,4 +6,9 @@ import { TokenFilesService } from '../token-files/token-files.service';
 @Injectable()
 export class SharedFileService {
   constructor(private readonly filesService: FilesService, private readonly tokenService: TokenFilesService) {}
+
+  share(path:string, userid: string){}
+
+
+
 }

@@ -1,8 +1,9 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
 // services
 import { TempStorageService } from '../temp-storage/temp-storage.service';
+import { AdminService } from '../admin/admin.service';
 // exceptions
 import { NotFoundException } from './exceptions/NotFound.exception';
 // interfaces
@@ -13,14 +14,18 @@ import { BlobFTemp } from '../temp-storage/interfaces/filep.interface';
 // fs and path
 import { existsSync, readdirSync, createReadStream, ReadStream, createWriteStream, lstatSync } from 'fs';
 import { readdir, lstat, mkdir, rm, rmdir } from 'fs/promises';
-import path, { join } from 'path';
+import { join } from 'path';
 import { lookup } from 'mime-types';
 import { orderBy } from 'lodash';
 
 @Injectable()
 export class FilesService {
   public root: string = '~/';
-  constructor(private readonly configService: ConfigService, private readonly storageService: TempStorageService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly storageService: TempStorageService,
+    @Inject(forwardRef(() => AdminService)) private readonly adminServ: AdminService
+  ) {
     this.root = this.configService.get<string>('FILE_ROOT');
   }
 
@@ -39,6 +44,7 @@ export class FilesService {
             this.storageService.updateBytesWriten(dir, blob);
             if (this.storageService.isCompleted(dir)) {
               this.storageService.delFile(dir);
+              this.adminServ.updateUsedSpace()
             }
           } catch (err) {
             this.storageService.allocateBlob(dir, blob.position, blob.blob);
@@ -278,20 +284,15 @@ export class FilesService {
           const filePath = join(entirePath, f);
           try {
             const fileStat = await lstat(filePath, { bigint: false });
-
             if (fileStat.isDirectory()) {
               return {
                 type: 'Folder',
                 name: f,
-                content: await Promise.all((await readdir(filePath)).map(async (fi) => this.GenerateTree(join(filePath, fi), userPayload, true)))
-              };
-            } else {
-              return {
-                name: f,
-                type: 'file',
-                size: fileStat.size,
-                extension: f.split('.').pop(),
-                mime_type: lookup(f.split('.').pop()) || ''
+                content: await Promise.all(
+                  (await readdir(filePath))
+                    .map(async (fi) => await this.GenerateTree(join(filePath, fi), userPayload, true))
+                    .filter((f) => f !== null)
+                )
               };
             }
           } catch (err) {

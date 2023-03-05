@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, forwardRef, Inject } from '@nestjs/common';
 // services
 import { FilesService } from '../files/files.service';
 // interfaces
@@ -8,7 +8,7 @@ import { Config, UnitByte } from './interfaces/config.interface';
 import { existsSync, createWriteStream, rmSync, readFile } from 'fs';
 @Injectable()
 export class AdminService implements OnModuleInit, OnModuleDestroy {
-  constructor(private readonly fileServ: FilesService) {}
+  constructor(@Inject(forwardRef(() => FilesService)) private readonly fileServ: FilesService) {}
 
   private config: Config = {
     core: {
@@ -112,7 +112,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
    * Obtener espacio usado
    * @returns {Promise<SpaceUsed>}
    */
-  async getUsedSpace() :Promise<SpaceUsed> {
+  getUsedSpace() {
     return { total: this.config.core.dedicatedSpaceBytes, used: this.config.core.usedSpaceBytes };
   }
 

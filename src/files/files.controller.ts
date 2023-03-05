@@ -28,6 +28,7 @@ import { BlobFPDTO } from './dtos/blobfp.dto';
 import { FileInitDTO } from './dtos/fileInit.dto';
 // guards
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { SpaceGuard } from './guards/space.guard';
 // interfaces
 import { MessageResponse } from '../auth/interfaces/response.interface';
 import { ListFile, File, Folder } from './interfaces/list-file.interface';
@@ -108,6 +109,7 @@ export class FilesController {
     return this.filesService.createFile('', file[0], req.user);
   }
 
+  @UseGuards(SpaceGuard)
   @Post('initialize/*')
   async initializeFile(@Param() path: string[], @Body() body: FileInitDTO, @Request() req): Promise<MessageResponse> {
     const pathString = Object.keys(path)
@@ -164,11 +166,13 @@ export class FilesController {
   }
 
   @Post('close/*')
-  async closeFile(@Param() path: string[]) {
+  async closeFile(@Param() path: string[], @Request() req) {
     const pathString = Object.keys(path)
       .map((key) => path[key])
       .join('/');
-    if (this.storageService.isCompleted(pathString)) {
+    const userId = req.user.userId;
+    const pathStringC = join(userId, pathString);
+    if (this.storageService.isCompleted(pathStringC)) {
       this.storageService.delFile(pathString);
       return { message: 'closed File' };
     }
