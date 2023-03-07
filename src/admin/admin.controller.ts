@@ -23,11 +23,17 @@ export class AdminController {
   constructor(private readonly adminServ: AdminService, private readonly authServ: AuthService) {}
 
   @RequireAdmin(true)
-  @Post('/set-dedicated-space')
+  @Post('/dedicated-space')
   async setDedicatedSpace(@Body() body: DedicatedSpaceDTO) {
     this.adminServ.setDedicatedSpace(body.quantity, body.unitTipe);
 
     return { message: 'capacity setted' };
+  }
+
+  @RequireAdmin(true)
+  @Get('/dedicated-space')
+  getDedicatedSpace() {
+    return this.adminServ.getSpaceConfig();
   }
 
   @RequireAdmin(true)
@@ -52,7 +58,7 @@ export class AdminController {
 
   @RequireAdmin(true)
   @Post('/users/password/:userid')
-  async setUserPasword(@Param('userid') userid: string, @Body() body: SetPasswordDTO): Promise<MessageResponse>{
+  async setUserPasword(@Param('userid') userid: string, @Body() body: SetPasswordDTO): Promise<MessageResponse> {
     return this.authServ.setPaswword(userid, body.password);
   }
 

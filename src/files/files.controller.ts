@@ -220,7 +220,7 @@ export class FilesController {
 
   @Get('/tree')
   async getTreeRoot(@Request() req) {
-    return this.filesService.GenerateTree('', req.user, false);
+    return this.filesService.GenerateTree('', req.user, false, false);
   }
 
   @Get('/tree/*')
@@ -229,7 +229,7 @@ export class FilesController {
       .map((key) => path[key])
       .join('/');
 
-    return this.filesService.GenerateTree(pathString, req.user, false);
+    return this.filesService.GenerateTree(pathString, req.user, false, false);
   }
 
   @Get('obs/tree')

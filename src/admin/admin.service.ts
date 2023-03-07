@@ -3,7 +3,7 @@ import { Injectable, OnModuleInit, OnModuleDestroy, forwardRef, Inject } from '@
 import { FilesService } from '../files/files.service';
 // interfaces
 import { SpaceUsed } from './interfaces/spaceused.interface';
-import { Config, UnitByte } from './interfaces/config.interface';
+import { Config, UnitByte, SpaceConfig } from './interfaces/config.interface';
 // fs
 import { existsSync, createWriteStream, rmSync, readFile } from 'fs';
 @Injectable()
@@ -78,7 +78,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Cambiar el espacio dedicado 
+   * Cambiar el espacio dedicado
    * @param {number} quantity Numero de MB o GB
    * @param {UnitByte} unitType solo pueder ser `GB` o `MB`
    */
@@ -98,7 +98,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
    * Actualizar el espacio usado
    * @returns {Promise<SpaceUsed>}
    */
-  async updateUsedSpace():Promise<SpaceUsed>  {
+  async updateUsedSpace(): Promise<SpaceUsed> {
     const usedSpaceBytes = await this.fileServ.getUsedSpace();
 
     this.config.core.usedSpaceBytes = usedSpaceBytes;
@@ -116,6 +116,10 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     return { total: this.config.core.dedicatedSpaceBytes, used: this.config.core.usedSpaceBytes };
   }
 
+  getSpaceConfig(): SpaceConfig {
+    return { unitType: this.config.core.unitType, dedicatedSpace: this.config.core.dedicatedSpace };
+  }
+
   // convertions
 
   /**
@@ -129,7 +133,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Convertitr GigaBytes a Bytes
-   * @param {number} gigaBytes  
+   * @param {number} gigaBytes
    * @returns {number}  Cantidad en Bytes
    */
   private convertGBtoBytes(gigaBytes: number): number {

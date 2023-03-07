@@ -44,7 +44,7 @@ export class FilesService {
             this.storageService.updateBytesWriten(dir, blob);
             if (this.storageService.isCompleted(dir)) {
               this.storageService.delFile(dir);
-              this.adminServ.updateUsedSpace()
+              this.adminServ.updateUsedSpace();
             }
           } catch (err) {
             this.storageService.allocateBlob(dir, blob.position, blob.blob);
@@ -261,7 +261,7 @@ export class FilesService {
    * @param {boolean} rec incluir el user
    * @returns {Promise<Folder | File>} File si se detecta que el roor es File y el arbol si el carpeta
    */
-  async GenerateTree(path: string, userPayload: UserPayload | null, rec: boolean): Promise<Folder | File> {
+  async GenerateTree(path: string, userPayload: UserPayload | null, rec: boolean, showFiles = true): Promise<Folder | File> {
     const pathWithUser = userPayload !== null ? join(this.root, userPayload.userId, path) : join(this.root, path);
     const entirePath = rec ? path : pathWithUser;
     const fileStat = await lstat(entirePath, { bigint: false });
@@ -293,6 +293,14 @@ export class FilesService {
                     .map(async (fi) => await this.GenerateTree(join(filePath, fi), userPayload, true))
                     .filter((f) => f !== null)
                 )
+              };
+            } else if (showFiles) {
+              return {
+                type: 'file',
+                name: f,
+                size: fileStat.size,
+                mime_type: lookup(f.split('.').pop()) || '',
+                extension: f.split('.').pop()
               };
             }
           } catch (err) {
