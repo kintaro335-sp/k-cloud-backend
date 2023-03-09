@@ -4,9 +4,10 @@ import { SharedFileService } from './shared-file.service';
 // module
 import { FilesModule } from '../files/files.module';
 import { TokenFilesModule } from '../token-files/token-files.module';
+import { UtilsModule } from '../utils/utils.module';
 
 @Module({
-  imports: [FilesModule, TokenFilesModule],
+  imports: [FilesModule, TokenFilesModule, UtilsModule],
   controllers: [SharedFileController],
   providers: [SharedFileService]
 })

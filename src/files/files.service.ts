@@ -342,4 +342,12 @@ export class FilesService {
   getRoot(): string {
     return this.root;
   }
+
+  /**
+   * Obtener el path real de un archivo
+   * @returns {string}
+   */
+  getRealPath(path: string, user: UserPayload) {
+    return join(this.root, user.userId, path);
+  }
 }

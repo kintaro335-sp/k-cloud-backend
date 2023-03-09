@@ -9,7 +9,7 @@ export class TokenFilesService {
   constructor(private readonly prismaService: PrismaService) {}
 
   addSharedFile(sharedFile: Prisma.SharedfileCreateInput) {
-    this.prismaService.sharedfile.create({ data: sharedFile });
+    return this.prismaService.sharedfile.create({ data: sharedFile });
   }
 
   async getSharedFiles(page: number): Promise<Sharedfile[]> {

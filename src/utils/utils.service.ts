@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+// uniqid
+import { v1 } from 'uuid';
 
 @Injectable()
 export class UtilsService {
@@ -12,5 +14,9 @@ export class UtilsService {
       result += n;
     });
     return result;
+  }
+
+  createIDSF() {
+    return v1();
   }
 }

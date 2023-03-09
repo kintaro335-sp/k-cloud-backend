@@ -1,8 +1,8 @@
-import { IsString, IsBoolean } from 'class-validator';
+import { IsNumber, IsBoolean } from 'class-validator';
 
 export class ShareFileDTO {
   @IsBoolean()
   expires: boolean;
-  @IsString()
-  expire: string;
+  @IsNumber()
+  expire: number;
 }
