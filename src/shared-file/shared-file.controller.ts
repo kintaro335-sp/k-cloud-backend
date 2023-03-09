@@ -5,11 +5,11 @@ import { ShareFileDTO } from './dtos/sharefile.dto';
 // services
 import { SharedFileService } from './shared-file.service';
 
-@UseGuards(JwtAuthGuard)
 @Controller('shared-file')
 export class SharedFileController {
   constructor(private readonly SFService: SharedFileService) {}
 
+  @UseGuards(JwtAuthGuard)
   @Post('share/*')
   async share(@Param() path: string[], @Body() body: ShareFileDTO, @Request() req) {
     const pathString = Object.keys(path)
