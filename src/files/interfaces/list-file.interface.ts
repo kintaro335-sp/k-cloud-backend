@@ -1,4 +1,4 @@
-type FileType = 'folder' | 'file'
+export type FileType = 'folder' | 'file'
 
 export interface File {
   name: string;

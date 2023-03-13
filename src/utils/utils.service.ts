@@ -16,7 +16,7 @@ export class UtilsService {
     return result;
   }
 
-  createIDSF() {
+  createIDSF(): string {
     return v1();
   }
 }

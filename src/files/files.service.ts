@@ -90,7 +90,7 @@ export class FilesService {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
     if (!existsSync(entirePath)) {
-      throw new NotFoundException(entirePath);
+      throw new NotFoundException(path);
     }
     const statFile = await lstat(entirePath);
     return statFile.isDirectory();
