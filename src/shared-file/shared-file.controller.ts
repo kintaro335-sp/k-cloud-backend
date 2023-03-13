@@ -1,4 +1,6 @@
-import { Controller, Get, Post, Put, Param, UseGuards, Request, Body, NotFoundException, Response, StreamableFile } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, UseGuards, Request, Body, NotFoundException, Response, StreamableFile } from '@nestjs/common';
+// guards
+import { OwnerShipGuard } from './ownership.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 // dto
 import { ShareFileDTO } from './dtos/sharefile.dto';
@@ -30,6 +32,12 @@ export class SharedFileController {
   @Get('info/:id')
   async getSFInfo(@Param('id') id: string) {
     return this.SFService.getSFInfo(id);
+  }
+
+  @UseGuards(JwtAuthGuard, OwnerShipGuard)
+  @Delete(':id')
+  async deleteToken(@Param('id') id: string) {
+    return this.SFService.deleteToken(id);
   }
 
   @Get('content/:id')

@@ -103,4 +103,9 @@ export class SharedFileService {
     const pseudoPath = join(SFReg.path, path);
     return this.filesService.getFilePropertiesUser(pseudoPath, user);
   }
+
+  async deleteToken(id: string) {
+    await this.tokenService.removeSharedFile(id);
+    return { message: 'deleted' };
+  }
 }
