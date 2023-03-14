@@ -4,6 +4,7 @@ import { ShareFileDTO } from './dtos/sharefile.dto';
 // interfaces
 import { UserPayload } from 'src/auth/interfaces/userPayload.interface';
 import { SFInfoResponse } from './interfaces/SFInfo.interface';
+import { TokenElement } from './interfaces/TokenElement.interface';
 // services
 import { FilesService } from '../files/files.service';
 import { TokenFilesService } from '../token-files/token-files.service';
@@ -104,8 +105,29 @@ export class SharedFileService {
     return this.filesService.getFilePropertiesUser(pseudoPath, user);
   }
 
+  async removeTokensByPath(path: string, user: UserPayload) {
+    await this.tokenService.deleteTokensByPath(path, user.userId);
+    return { message: 'deleted tokens' };
+  }
+
   async deleteToken(id: string) {
     await this.tokenService.removeSharedFile(id);
     return { message: 'deleted' };
+  }
+
+  async getTokensList(page: number): Promise<TokenElement[]> {
+    const sharedFiles = await this.tokenService.getSharedFiles(page);
+
+    return sharedFiles.map((sf) => ({
+      id: sf.id,
+      type: sf.isdir ? 'folder' : 'file',
+      name: sf.name,
+      expire: sf.doesexpires,
+      expires: sf.expire.getTime()
+    }));
+  }
+
+  async getTokensPages(): Promise<number> {
+    return this.tokenService.getCountSharedPages();
   }
 }

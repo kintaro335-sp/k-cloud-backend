@@ -14,6 +14,7 @@ export class OwnerShipGuard implements CanActivate {
     }
 
     if (SFReg.userid !== request.user.id) {
+      throw new NotFoundException('No encntrado');
     }
 
     return true;

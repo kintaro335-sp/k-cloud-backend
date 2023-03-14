@@ -5,7 +5,7 @@ import { join } from 'path';
 
 @Injectable()
 export class TokenFilesService {
-  group = 15;
+  private group = 16;
   constructor(private readonly prismaService: PrismaService) {}
 
   addSharedFile(sharedFile: Prisma.SharedfileCreateInput) {
@@ -33,6 +33,10 @@ export class TokenFilesService {
 
   async removeSharedFile(id: string) {
     await this.prismaService.sharedfile.delete({ where: { id } });
+  }
+
+  async deleteTokensByPath(path: string, userid: string) {
+    await this.prismaService.sharedfile.deleteMany({ where: { path, userid } });
   }
 
   async updateSF(id: string, newData: Prisma.SharedfileUpdateInput) {

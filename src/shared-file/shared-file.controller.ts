@@ -1,7 +1,22 @@
-import { Controller, Get, Post, Put, Delete, Param, UseGuards, Request, Body, NotFoundException, Response, StreamableFile } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Param,
+  UseGuards,
+  Request,
+  Body,
+  NotFoundException,
+  Response,
+  StreamableFile,
+  Query,
+  ParseIntPipe
+} from '@nestjs/common';
 // guards
 import { OwnerShipGuard } from './ownership.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { ExpireGuard } from './expire.guard';
 // dto
 import { ShareFileDTO } from './dtos/sharefile.dto';
 // services
@@ -40,6 +55,7 @@ export class SharedFileController {
     return this.SFService.deleteToken(id);
   }
 
+  @UseGuards(ExpireGuard)
   @Get('content/:id')
   async getSFcontent(@Param('id') id: string, @Response({ passthrough: true }) res) {
     const SFReg = await this.SFService.getSFAllInfo(id);
@@ -58,6 +74,7 @@ export class SharedFileController {
     }
   }
 
+  @UseGuards(ExpireGuard)
   @Get('content/:id/*')
   async getSFcontentPath(@Param('id') id: string, @Param() path: string[], @Response({ passthrough: true }) res) {
     const pathString = Object.keys(path)
@@ -78,5 +95,24 @@ export class SharedFileController {
       });
       return new StreamableFile(await this.SFService.getContentSFFile(SFReg, ''));
     }
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('tokens/path/*')
+  async deleteTokensPath(@Param() path: string, @Response({ passthrough: true }) req) {
+    const pathString = Object.keys(path)
+      .map((key) => path[key])
+      .join('/');
+    return this.SFService.removeTokensByPath(pathString, req.user);
+  }
+
+  @Get('tokens/list')
+  async getTokensList(@Query('page', ParseIntPipe) page: number) {
+    return this.SFService.getTokensList(page);
+  }
+
+  @Get('tokens/pages')
+  async getTokensPages() {
+    return { pages: await this.SFService.getTokensPages() };
   }
 }
