@@ -115,6 +115,17 @@ export class SharedFileService {
     return { message: 'deleted' };
   }
 
+  async getTokensByPath(path: string, user: UserPayload): Promise<TokenElement[]> {
+    const tokens = await this.tokenService.getSharedFilesByPathUserID(path, user.userId);
+    return tokens.map((sf) => ({
+      id: sf.id,
+      name: sf.name,
+      type: sf.isdir ? 'folder' : 'file',
+      expire: sf.doesexpires,
+      expires: sf.expire.getTime()
+    }));
+  }
+
   async getTokensList(page: number): Promise<TokenElement[]> {
     const sharedFiles = await this.tokenService.getSharedFiles(page);
 

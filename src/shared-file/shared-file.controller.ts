@@ -36,14 +36,7 @@ export class SharedFileController {
     return this.SFService.share(pathString, req.user, body);
   }
 
-  @UseGuards(JwtAuthGuard)
-  @Get('share/*')
-  async GetTokens(@Param() path: string[], @Body() body: ShareFileDTO, @Request() req) {
-    const pathString = Object.keys(path)
-      .map((key) => path[key])
-      .join('/');
-  }
-
+  @UseGuards(ExpireGuard)
   @Get('info/:id')
   async getSFInfo(@Param('id') id: string) {
     return this.SFService.getSFInfo(id);
@@ -104,6 +97,15 @@ export class SharedFileController {
       .map((key) => path[key])
       .join('/');
     return this.SFService.removeTokensByPath(pathString, req.user);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('tokens/path/*')
+  async getTokensByPath(@Param() path: string, @Response({ passthrough: true }) req) {
+    const pathString = Object.keys(path)
+      .map((key) => path[key])
+      .join('/');
+    return this.SFService.getTokensByPath(pathString, req.user);
   }
 
   @Get('tokens/list')

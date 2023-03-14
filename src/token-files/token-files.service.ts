@@ -26,9 +26,8 @@ export class TokenFilesService {
     return Math.ceil(count / this.group);
   }
 
-  async getSahredFiles(path: string, userid: string): Promise<Sharedfile[]> {
-    const entirePath = join(userid, path);
-    return this.prismaService.sharedfile.findMany({ where: { path: entirePath } });
+  async getSharedFilesByPathUserID(path: string, userid: string): Promise<Sharedfile[]> {
+    return this.prismaService.sharedfile.findMany({ where: { path, userid } });
   }
 
   async removeSharedFile(id: string) {
