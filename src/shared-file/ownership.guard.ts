@@ -10,11 +10,11 @@ export class OwnerShipGuard implements CanActivate {
     const id = request.params.id;
     const SFReg = await this.tokensServ.getSharedFileByID(id);
     if (SFReg === null) {
-      throw new NotFoundException('No encntrado');
+      throw new NotFoundException('No encontrado');
     }
 
-    if (SFReg.userid !== request.user.id) {
-      throw new NotFoundException('No encntrado');
+    if (SFReg.userid !== request.user.userId) {
+      throw new NotFoundException('No encontrado');
     }
 
     return true;
