@@ -92,7 +92,7 @@ export class SharedFileController {
 
   @UseGuards(JwtAuthGuard)
   @Delete('tokens/path/*')
-  async deleteTokensPath(@Param() path: string, @Response({ passthrough: true }) req) {
+  async deleteTokensPath(@Param() path: string, @Request() req) {
     const pathString = Object.keys(path)
       .map((key) => path[key])
       .join('/');
@@ -101,7 +101,7 @@ export class SharedFileController {
 
   @UseGuards(JwtAuthGuard)
   @Get('tokens/path/*')
-  async getTokensByPath(@Param() path: string, @Response({ passthrough: true }) req) {
+  async getTokensByPath(@Param() path: string, @Request() req) {
     const pathString = Object.keys(path)
       .map((key) => path[key])
       .join('/');
