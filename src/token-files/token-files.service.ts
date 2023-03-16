@@ -16,6 +16,10 @@ export class TokenFilesService {
     return this.prismaService.sharedfile.findUnique({ where: { id } });
   }
 
+  async getCountByPath(path: string): Promise<number> {
+    return this.prismaService.sharedfile.count({ where: { path } });
+  }
+
   async getSharedFiles(page: number): Promise<Sharedfile[]> {
     const skip = page * this.group;
     return this.prismaService.sharedfile.findMany({ take: this.group, skip, where: { doesexpires: false } });

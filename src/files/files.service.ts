@@ -4,6 +4,7 @@ import { Cron } from '@nestjs/schedule';
 // services
 import { TempStorageService } from '../temp-storage/temp-storage.service';
 import { AdminService } from '../admin/admin.service';
+import { TokenFilesService } from '../token-files/token-files.service';
 // exceptions
 import { NotFoundException } from './exceptions/NotFound.exception';
 // interfaces
@@ -24,7 +25,8 @@ export class FilesService {
   constructor(
     private readonly configService: ConfigService,
     private readonly storageService: TempStorageService,
-    @Inject(forwardRef(() => AdminService)) private readonly adminServ: AdminService
+    @Inject(forwardRef(() => AdminService)) private readonly adminServ: AdminService,
+    private readonly tokenServ: TokenFilesService
   ) {
     this.root = this.configService.get<string>('FILE_ROOT');
   }
@@ -123,8 +125,16 @@ export class FilesService {
     }
     const fileStat = await lstat(entirePath, { bigint: false });
     const file = entirePath.split('/').pop();
+    const tokens = await this.tokenServ.getCountByPath(path);
 
-    return { name: file, type: 'file', size: fileStat.size, extension: file.split('.').pop(), mime_type: lookup(file.split('.').pop()) || '' };
+    return {
+      name: file,
+      type: 'file',
+      size: fileStat.size,
+      tokens,
+      extension: file.split('.').pop(),
+      mime_type: lookup(file.split('.').pop()) || ''
+    };
   }
 
   /**
@@ -141,7 +151,15 @@ export class FilesService {
     }
     const fileStat = await lstat(entirePath, { bigint: false });
     const file = entirePath.split('/').pop();
-    return { name: file, type: 'file', size: fileStat.size, extension: file.split('.').pop(), mime_type: lookup(file.split('.').pop()) || '' };
+    const tokens = await this.tokenServ.getCountByPath(path);
+    return {
+      name: file,
+      type: 'file',
+      size: fileStat.size,
+      tokens,
+      extension: file.split('.').pop(),
+      mime_type: lookup(file.split('.').pop()) || ''
+    };
   }
 
   /**
@@ -158,6 +176,7 @@ export class FilesService {
     }
     const list: File[] = [];
     const listFiles = readdirSync(entirePath);
+    const tokens = await this.tokenServ.getCountByPath(path);
 
     listFiles.forEach((file) => {
       const filePath = join(entirePath, file);
@@ -167,6 +186,7 @@ export class FilesService {
           name: file,
           type: 'folder',
           size: fileStat.size,
+          tokens,
           extension: '',
           mime_type: ''
         });
@@ -175,6 +195,7 @@ export class FilesService {
           name: file,
           type: 'file',
           size: fileStat.size,
+          tokens,
           extension: file.split('.').pop(),
           mime_type: lookup(file.split('.').pop()) || ''
         });
@@ -265,11 +286,13 @@ export class FilesService {
     const pathWithUser = userPayload !== null ? join(this.root, userPayload.userId, path) : join(this.root, path);
     const entirePath = rec ? path : pathWithUser;
     const fileStat = await lstat(entirePath, { bigint: false });
+    const tokens = await this.tokenServ.getCountByPath(path);
     if (!fileStat.isDirectory()) {
       return {
         type: 'file',
         name: path.split('/').pop(),
         extension: path.split('.').pop(),
+        tokens,
         mime_type: lookup(path.split('.').pop()) || '',
         size: fileStat.size
       };
@@ -299,6 +322,7 @@ export class FilesService {
                 type: 'file',
                 name: f,
                 size: fileStat.size,
+                tokens,
                 mime_type: lookup(f.split('.').pop()) || '',
                 extension: f.split('.').pop()
               };
