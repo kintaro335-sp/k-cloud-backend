@@ -127,7 +127,7 @@ export class SharedFileService {
   }
 
   async getTokensList(page: number): Promise<TokenElement[]> {
-    const sharedFiles = await this.tokenService.getSharedFiles(page);
+    const sharedFiles = await this.tokenService.getSharedFiles(page-1);
 
     return sharedFiles.map((sf) => ({
       id: sf.id,
