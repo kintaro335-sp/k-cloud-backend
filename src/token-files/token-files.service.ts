@@ -18,11 +18,11 @@ export class TokenFilesService {
 
   async getSharedFiles(page: number): Promise<Sharedfile[]> {
     const skip = page * this.group;
-    return this.prismaService.sharedfile.findMany({ take: this.group, skip });
+    return this.prismaService.sharedfile.findMany({ take: this.group, skip, where: { doesexpires: false } });
   }
 
   async getCountSharedPages(): Promise<number> {
-    const count = await this.prismaService.sharedfile.count();
+    const count = await this.prismaService.sharedfile.count({ where: { doesexpires: false } });
     return Math.ceil(count / this.group);
   }
 
