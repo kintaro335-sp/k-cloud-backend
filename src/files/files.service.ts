@@ -174,33 +174,34 @@ export class FilesService {
     if (!existsSync(entirePath)) {
       throw new NotFoundException();
     }
-    const list: File[] = [];
-    const listFiles = readdirSync(entirePath);
-    const tokens = await this.tokenServ.getCountByPath(path);
 
-    listFiles.forEach((file) => {
-      const filePath = join(entirePath, file);
-      const fileStat = lstatSync(filePath, { bigint: false });
-      if (fileStat.isDirectory()) {
-        list.push({
-          name: file,
-          type: 'folder',
-          size: fileStat.size,
-          tokens,
-          extension: '',
-          mime_type: ''
-        });
-      } else {
-        list.push({
+    const listFiles = readdirSync(entirePath);
+
+    const list: File[] = await Promise.all(
+      listFiles.map(async (file) => {
+        const filePath = join(entirePath, file);
+        const fileStat = lstatSync(filePath, { bigint: false });
+        const tokens = await this.tokenServ.getCountByPath(join(path, file));
+        if (fileStat.isDirectory()) {
+          return {
+            name: file,
+            type: 'folder',
+            size: fileStat.size,
+            tokens,
+            extension: '',
+            mime_type: ''
+          };
+        }
+        return {
           name: file,
           type: 'file',
           size: fileStat.size,
           tokens,
           extension: file.split('.').pop(),
           mime_type: lookup(file.split('.').pop()) || ''
-        });
-      }
-    });
+        };
+      })
+    );
     const ordenedList = orderBy<File>(list, ['type', 'name'], ['desc', 'asc']);
     return { list: ordenedList };
   }
@@ -286,13 +287,12 @@ export class FilesService {
     const pathWithUser = userPayload !== null ? join(this.root, userPayload.userId, path) : join(this.root, path);
     const entirePath = rec ? path : pathWithUser;
     const fileStat = await lstat(entirePath, { bigint: false });
-    const tokens = await this.tokenServ.getCountByPath(path);
     if (!fileStat.isDirectory()) {
       return {
         type: 'file',
         name: path.split('/').pop(),
         extension: path.split('.').pop(),
-        tokens,
+        tokens: 0,
         mime_type: lookup(path.split('.').pop()) || '',
         size: fileStat.size
       };
@@ -322,7 +322,7 @@ export class FilesService {
                 type: 'file',
                 name: f,
                 size: fileStat.size,
-                tokens,
+                tokens: 0,
                 mime_type: lookup(f.split('.').pop()) || '',
                 extension: f.split('.').pop()
               };
