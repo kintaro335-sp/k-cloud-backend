@@ -86,7 +86,7 @@ export class SharedFileController {
         'Content-Disposition': `attachment; filename="${SFReg.name}";`,
         'Content-Length': fileProps.size
       });
-      return new StreamableFile(await this.SFService.getContentSFFile(SFReg, ''));
+      return new StreamableFile(await this.SFService.getContentSFFile(SFReg, pathString));
     }
   }
 
