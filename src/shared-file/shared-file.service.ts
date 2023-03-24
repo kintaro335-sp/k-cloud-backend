@@ -11,6 +11,7 @@ import { TokenFilesService } from '../token-files/token-files.service';
 import { UtilsService } from '../utils/utils.service';
 import { Sharedfile } from '@prisma/client';
 import { join } from 'path';
+import { lookup } from 'mime-types';
 
 @Injectable()
 export class SharedFileService {
@@ -60,6 +61,7 @@ export class SharedFileService {
     return {
       type: SFReg.isdir ? 'folder' : 'file',
       name: SFReg.name,
+      mime_type: lookup(SFReg.name) || '',
       expire: SFReg.doesexpires,
       expires: SFReg.expire.getTime()
     };
@@ -127,7 +129,7 @@ export class SharedFileService {
   }
 
   async getTokensList(page: number): Promise<TokenElement[]> {
-    const sharedFiles = await this.tokenService.getSharedFiles(page-1);
+    const sharedFiles = await this.tokenService.getSharedFiles(page - 1);
 
     return sharedFiles.map((sf) => ({
       id: sf.id,
