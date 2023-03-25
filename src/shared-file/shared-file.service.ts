@@ -58,10 +58,15 @@ export class SharedFileService {
       throw new NotFoundException('File not found');
     }
 
+    const realPath = join(SFReg.userid, SFReg.path);
+
+    const size = await this.filesService.getFileSize(realPath, true);
+
     return {
       type: SFReg.isdir ? 'folder' : 'file',
       name: SFReg.name,
       mime_type: lookup(SFReg.name) || '',
+      size,
       expire: SFReg.doesexpires,
       expires: SFReg.expire.getTime()
     };

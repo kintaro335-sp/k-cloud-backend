@@ -5,5 +5,6 @@ export interface SFInfoResponse {
   name: string;
   expire: boolean;
   expires: number;
+  size: number;
   mime_type: string;
 }
