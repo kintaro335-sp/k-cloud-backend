@@ -263,6 +263,7 @@ export class FilesService {
       return Promise.resolve({ message: 'File deleted successfully' });
     }
     await rmdir(entirePath, { recursive: true });
+    this.tokenServ.deleteTokensByPath(path, userId);
     return { message: 'Folder deleted successfully' };
   }
 
