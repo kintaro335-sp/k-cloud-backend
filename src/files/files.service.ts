@@ -164,9 +164,6 @@ export class FilesService {
 
   async getFileSize(path: string, injectRoot: boolean = true): Promise<number> {
     const entirePath = injectRoot ? join(this.root, path) : path;
-    if (await this.isDirectory(entirePath, false)) {
-      throw new BadRequestException('Es una Carpeta');
-    }
     const fileStat = await lstat(entirePath, { bigint: false });
     return fileStat.size;
   }
