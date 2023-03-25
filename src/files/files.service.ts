@@ -13,7 +13,7 @@ import { UserPayload } from '../auth/interfaces/userPayload.interface';
 import { MessageResponse } from '../auth/interfaces/response.interface';
 import { BlobFTemp } from '../temp-storage/interfaces/filep.interface';
 // fs and path
-import { existsSync, readdirSync, createReadStream, ReadStream, createWriteStream, lstatSync } from 'fs';
+import { existsSync, createReadStream, ReadStream, createWriteStream } from 'fs';
 import { readdir, lstat, mkdir, rm, rmdir } from 'fs/promises';
 import { join } from 'path';
 import { lookup } from 'mime-types';
@@ -186,7 +186,7 @@ export class FilesService {
     const list: File[] = await Promise.all(
       listFiles.map(async (file) => {
         const filePath = join(entirePath, file);
-        const fileStat = lstatSync(filePath, { bigint: false });
+        const fileStat = await lstat(filePath, { bigint: false });
         const tokens = await this.tokenServ.getCountByPath(join(path, file));
         if (fileStat.isDirectory()) {
           return {
