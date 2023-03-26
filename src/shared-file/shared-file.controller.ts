@@ -50,7 +50,7 @@ export class SharedFileController {
 
   @UseGuards(ExpireGuard)
   @Get('content/:id')
-  async getSFcontent(@Param('id') id: string, @Response({ passthrough: true }) res) {
+  async getSFcontent(@Param('id') id: string, @Response({ passthrough: true }) res, @Query('d') downloadOpc: number) {
     const SFReg = await this.SFService.getSFAllInfo(id);
     if (SFReg === null) throw new NotFoundException('not found');
 
@@ -58,9 +58,10 @@ export class SharedFileController {
       return this.SFService.getContentSFList(SFReg, '');
     } else {
       const fileProps = await this.SFService.getPropsSFFile(SFReg, '');
+      const CD = downloadOpc ? 'attachment' : 'inline';
       res.set({
         'Content-Type': contentType(SFReg.name),
-        'Content-Disposition': `attachment; filename="${SFReg.name}";`,
+        'Content-Disposition': `${CD}; filename="${SFReg.name}";`,
         'Content-Length': fileProps.size
       });
       return new StreamableFile(await this.SFService.getContentSFFile(SFReg, ''));
@@ -69,7 +70,7 @@ export class SharedFileController {
 
   @UseGuards(ExpireGuard)
   @Get('content/:id/*')
-  async getSFcontentPath(@Param('id') id: string, @Param() path: string[], @Response({ passthrough: true }) res) {
+  async getSFcontentPath(@Param('id') id: string, @Param() path: string[], @Response({ passthrough: true }) res, @Query('d') downloadOpc: number) {
     const pathString = Object.keys(path)
       .filter((v) => v !== 'id')
       .map((key) => path[key])
@@ -81,9 +82,10 @@ export class SharedFileController {
       return this.SFService.getContentSFList(SFReg, pathString);
     } else {
       const fileProps = await this.SFService.getPropsSFFile(SFReg, pathString);
+      const CD = downloadOpc ? 'attachment' : 'inline';
       res.set({
         'Content-Type': contentType(SFReg.name),
-        'Content-Disposition': `attachment; filename="${SFReg.name}";`,
+        'Content-Disposition': `${CD}; filename="${SFReg.name}";`,
         'Content-Length': fileProps.size
       });
       return new StreamableFile(await this.SFService.getContentSFFile(SFReg, pathString));

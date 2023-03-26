@@ -57,7 +57,7 @@ export class FilesController {
   }
 
   @Get('/list/*')
-  async getFiles(@Param() path: string[], @Response({ passthrough: true }) res, @Request() req) {
+  async getFiles(@Param() path: string[], @Response({ passthrough: true }) res, @Request() req, @Query('d') downloadOpc) {
     const pathString = Object.keys(path)
       .map((key) => path[key])
       .join('/');
@@ -66,9 +66,10 @@ export class FilesController {
     }
     const fileName = pathString.split('/').pop();
     const properties = await this.filesService.getFilePropertiesUser(pathString, req.user);
+    const CD = downloadOpc ? 'attachment' : 'inline';
     res.set({
       'Content-Type': contentType(fileName),
-      'Content-Disposition': `attachment; filename="${fileName}";`,
+      'Content-Disposition': `${CD}; filename="${fileName}";`,
       'Content-Length': properties.size
     });
     return new StreamableFile(await this.filesService.getFile(pathString, req.user));
