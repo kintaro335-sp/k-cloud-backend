@@ -14,7 +14,7 @@ import { MessageResponse } from '../auth/interfaces/response.interface';
 import { BlobFTemp } from '../temp-storage/interfaces/filep.interface';
 // fs and path
 import { existsSync, createReadStream, ReadStream, createWriteStream } from 'fs';
-import { readdir, lstat, mkdir, rm, rmdir } from 'fs/promises';
+import { readdir, lstat, mkdir, rm } from 'fs/promises';
 import { join } from 'path';
 import { lookup } from 'mime-types';
 import { orderBy } from 'lodash';
@@ -262,7 +262,7 @@ export class FilesService {
       await rm(entirePath);
       return Promise.resolve({ message: 'File deleted successfully' });
     }
-    await rmdir(entirePath, { recursive: true });
+    await rm(entirePath, { recursive: true });
     this.tokenServ.deleteTokensByPath(path, userId);
     return { message: 'Folder deleted successfully' };
   }
