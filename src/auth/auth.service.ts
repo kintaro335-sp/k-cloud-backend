@@ -22,7 +22,7 @@ export class AuthService {
 
   /**
    * Crear un usuario con un usuario y contraseña
-   * @param {string} userName Nombre del usuario 
+   * @param {string} userName Nombre del usuario
    * @param {string} pasword contraseña en texto plano
    * @returns {Promise<AuthResponse>} Token de Auth por JWT
    */
@@ -42,7 +42,7 @@ export class AuthService {
 
   /**
    * Crear un nuevo usuario
-   * @param {string} userName Nombre del usuario nuevo 
+   * @param {string} userName Nombre del usuario nuevo
    * @param {string} pasword Contraseña en texto plano
    * @returns {Promise<AuthResponse>} el Access Token del Usuario
    */
@@ -64,8 +64,31 @@ export class AuthService {
   }
 
   /**
+   * Crear un nuevo usuario con admin
+   * @param {string} userName Nombre del usuario nuevo
+   * @param {string} pasword Contraseña en texto plano
+   * @returns {Promise<AuthResponse>} el Access Token del Usuario
+   */
+  async registerAdmin(userName: string, pasword: string): Promise<AuthResponse> {
+    const user = await this.usersService.findOne({ username: userName });
+    if (user) {
+      throw new BadRequestException('Usuario ya existe');
+    }
+    const newUser = await this.usersService.create({
+      id: this.cryptoService.createUserId(userName),
+      username: userName,
+      passwordu: this.cryptoService.createPassword(pasword),
+      isadmin: true
+    });
+    const payload: UserPayload = { userId: newUser.id, username: newUser.username, isadmin: newUser.isadmin };
+    this.filesService.createFolder('', payload);
+    return {
+      access_token: this.jwtService.sign(payload)
+    };
+  }
+  /**
    * Eliminar un Usuario Por userId
-   * @param userid 
+   * @param userid
    * @returns {Promise<MessageResponse>}
    */
   async deleteUser(userid: string): Promise<MessageResponse> {
@@ -82,7 +105,7 @@ export class AuthService {
    * @param {string} userId Id de Usuario
    * @param {string} password contraseña actual
    * @param {string} newPassword nueva contraseña
-   * @returns {Promise<MessageResponse>} 
+   * @returns {Promise<MessageResponse>}
    */
   async changePassword(userId: string, password: string, newPassword: string): Promise<MessageResponse> {
     const user = await this.usersService.findOne({ id: userId });
@@ -97,7 +120,7 @@ export class AuthService {
   }
 
   /**
-   * Cambiar contraseña de un Usuario 
+   * Cambiar contraseña de un Usuario
    * Agregar Validacion
    * @param userId Id de Usuario
    * @param newPassword Nueva Contraseña

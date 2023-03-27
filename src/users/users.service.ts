@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { User, Prisma } from '@prisma/client';
+import { zip } from 'lodash';
 
 @Injectable()
 export class UsersService {
@@ -43,7 +44,7 @@ export class UsersService {
 
   /**
    * Actualizar los datos de un usuario
-   * @param {Prisma.UserWhereUniqueInput} userWhereUnique Where para encontrar un unico registro 
+   * @param {Prisma.UserWhereUniqueInput} userWhereUnique Where para encontrar un unico registro
    * @param {User} user usuario a guardar
    * @returns {User}
    */
@@ -60,4 +61,7 @@ export class UsersService {
     return this.prisma.user.delete({ where: userWhereUnique });
   }
 
+  async countAdminUsers(): Promise<number> {
+    return this.prisma.user.count({ where: { isadmin: true } });
+  }
 }
