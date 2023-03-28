@@ -13,7 +13,7 @@ import { SetAdminDTO } from './dto/set-admin.dto';
 import { RegisterDTO } from '../auth/dtos/Register.dto';
 // guards
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { AdminGuard } from './admin.guard';
+import { AdminGuard } from './guards/admin.guard';
 // decorators
 import { RequireAdmin } from './decorators/admin.decorator';
 
