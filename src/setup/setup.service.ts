@@ -2,10 +2,11 @@ import { Injectable } from '@nestjs/common';
 // service
 import { UsersService } from '../users/users.service';
 import { AuthService } from '../auth/auth.service';
+import { AdminService } from '../admin/admin.service';
 
 @Injectable()
 export class SetupService {
-  constructor(private readonly usersServ: UsersService, private readonly authServ: AuthService) {}
+  constructor(private readonly usersServ: UsersService, private readonly authServ: AuthService, private readonly adminServ: AdminService) {}
 
   async isConfigured(): Promise<boolean> {
     const count = await this.usersServ.countAdminUsers();
@@ -13,6 +14,7 @@ export class SetupService {
   }
 
   async createFirstUser(userName: string, password: string) {
-    await this.authServ.registerAdmin(userName, password);
+    const newUser = await this.authServ.registerAdmin(userName, password);
+    this.adminServ.setFirstUser(newUser.idUser);
   }
 }

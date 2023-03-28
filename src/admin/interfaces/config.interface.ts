@@ -13,6 +13,11 @@ export interface SpaceConfig {
   unitType: UnitByte;
 }
 
+interface UsersConfig {
+  firstUser: string | null;
+}
+
 export interface Config {
   core: CoreConfig;
+  users: UsersConfig;
 }

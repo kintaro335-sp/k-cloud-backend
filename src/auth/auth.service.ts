@@ -69,13 +69,14 @@ export class AuthService {
    * @param {string} pasword Contraseña en texto plano
    * @returns {Promise<AuthResponse>} el Access Token del Usuario
    */
-  async registerAdmin(userName: string, pasword: string): Promise<AuthResponse> {
+  async registerAdmin(userName: string, pasword: string): Promise<AuthResponse & { idUser: string }> {
     const user = await this.usersService.findOne({ username: userName });
     if (user) {
       throw new BadRequestException('Usuario ya existe');
     }
+    const idUser = this.cryptoService.createUserId(userName);
     const newUser = await this.usersService.create({
-      id: this.cryptoService.createUserId(userName),
+      id: idUser,
       username: userName,
       passwordu: this.cryptoService.createPassword(pasword),
       isadmin: true
@@ -83,7 +84,8 @@ export class AuthService {
     const payload: UserPayload = { userId: newUser.id, username: newUser.username, isadmin: newUser.isadmin };
     this.filesService.createFolder('', payload);
     return {
-      access_token: this.jwtService.sign(payload)
+      access_token: this.jwtService.sign(payload),
+      idUser
     };
   }
   /**

@@ -16,6 +16,9 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
       unitType: 'MB',
       dedicatedSpaceBytes: 1073741824,
       usedSpaceBytes: 0
+    },
+    users: {
+      firstUser: null
     }
   };
 
@@ -138,5 +141,14 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
    */
   private convertGBtoBytes(gigaBytes: number): number {
     return gigaBytes * 1073741824;
+  }
+
+  setFirstUser(userid: string) {
+    this.config.users.firstUser = userid;
+    this.saveConfig();
+  }
+
+  getfirstUser(): string | null {
+    return this.config.users.firstUser
   }
 }
