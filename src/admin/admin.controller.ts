@@ -14,6 +14,7 @@ import { RegisterDTO } from '../auth/dtos/Register.dto';
 // guards
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from './guards/admin.guard';
+import { FirstUserGuard } from './guards/first-user-guard';
 // decorators
 import { RequireAdmin } from './decorators/admin.decorator';
 
@@ -76,6 +77,7 @@ export class AdminController {
   }
 
   @RequireAdmin(true)
+  @UseGuards(FirstUserGuard)
   @Delete('/users/delete/:userid')
   async deleteUser(@Param('userid') userid: string): Promise<MessageResponse> {
     return this.authServ.deleteUser(userid);
