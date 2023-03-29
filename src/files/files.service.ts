@@ -1,102 +1,223 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Cron } from '@nestjs/schedule';
+// services
+import { TempStorageService } from '../temp-storage/temp-storage.service';
+import { AdminService } from '../admin/admin.service';
+import { TokenFilesService } from '../token-files/token-files.service';
 // exceptions
 import { NotFoundException } from './exceptions/NotFound.exception';
 // interfaces
 import { ListFile, File, Folder } from './interfaces/list-file.interface';
 import { UserPayload } from '../auth/interfaces/userPayload.interface';
+import { MessageResponse } from '../auth/interfaces/response.interface';
+import { BlobFTemp } from '../temp-storage/interfaces/filep.interface';
 // fs and path
-import { existsSync, readdirSync, createReadStream, ReadStream, lstatSync, mkdirSync, createWriteStream, rmSync, rmdirSync } from 'fs';
-import { readdir, lstat } from 'fs/promises';
+import { existsSync, createReadStream, ReadStream, createWriteStream } from 'fs';
+import { readdir, lstat, mkdir, rm } from 'fs/promises';
 import { join } from 'path';
 import { lookup } from 'mime-types';
+import { orderBy } from 'lodash';
 
 @Injectable()
 export class FilesService {
-  private root: string = '~/';
-  constructor(private readonly configService: ConfigService) {
+  public root: string = '~/';
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly storageService: TempStorageService,
+    @Inject(forwardRef(() => AdminService)) private readonly adminServ: AdminService,
+    private readonly tokenServ: TokenFilesService
+  ) {
     this.root = this.configService.get<string>('FILE_ROOT');
   }
 
+  /**
+   * mandar a Escribir numerosos blobs de los archivos
+   */
+  @Cron('* * * * *')
+  async writeBlobs() {
+    this.storageService.getFilesDirectories().forEach(async (dir) => {
+      while (this.storageService.getBlobsLength(dir) !== 0) {
+        const blob = this.storageService.deallocateBlob(dir);
+        if (blob !== undefined) {
+          try {
+            const realPath = join(this.root, dir);
+            await this.storageService.writeBlob(realPath, blob);
+            this.storageService.updateBytesWriten(dir, blob);
+            if (this.storageService.isCompleted(dir)) {
+              this.storageService.delFile(dir);
+              this.adminServ.updateUsedSpace();
+            }
+          } catch (err) {
+            this.storageService.allocateBlob(dir, blob.position, blob.blob);
+            console.error(err);
+          }
+        }
+      }
+    });
+  }
+
+  /**
+   * Escfibir un blolb de un fichero que provenga de tempStorageService
+   * @param {string} path Direccion del archivo
+   * @param {BlobFTemp} blobp Blob a escribir
+   * @returns {number}  Numbero de Bytes escritos
+   */
+  private async onWriteBlob(path: string, blobp: BlobFTemp): Promise<number> {
+    const writeStreamF = createWriteStream(path, { start: blobp.position, flags: 'w' });
+    writeStreamF.write(blobp.blob);
+    writeStreamF.close();
+    return blobp.blob.length;
+  }
+
+  /**
+   * verificar si un archivo existe
+   * @param {string} path
+   * @param {UserPayload} userPayload
+   * @returns {boolean}
+   */
   exists(path: string, userPayload: UserPayload): boolean {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
     return existsSync(entirePath);
   }
 
-  isDirectoryUser(path: string, userPayload: UserPayload): boolean {
+  /**
+   * Verificar si es un directorio
+   * @param {string} path Direccion
+   * @param {UserPayload} userPayload Datos de usuario autenticado
+   * @returns {Promise<boolean>}
+   */
+  async isDirectoryUser(path: string, userPayload: UserPayload): Promise<boolean> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
     if (!existsSync(entirePath)) {
-      throw new NotFoundException(entirePath);
+      throw new NotFoundException(path);
     }
-    return lstatSync(entirePath).isDirectory();
+    const statFile = await lstat(entirePath);
+    return statFile.isDirectory();
   }
 
-  isDirectory(path: string, injectRoot = true): boolean {
+  /**
+   * Determinar a partir de una direccion si es directorio o fichero
+   * @param {string} path Directorio
+   * @param {boolean} injectRoot injectar la raiz del directorio (valo por defecto `true`)
+   * @returns {Promise<boolean>} `true` si es un directorio
+   */
+  async isDirectory(path: string, injectRoot = true): Promise<boolean> {
     const entirePath = injectRoot ? join(this.root, path) : path;
     if (!existsSync(entirePath)) {
       throw new NotFoundException(entirePath);
     }
-    return lstatSync(entirePath).isDirectory();
+    return (await lstat(entirePath)).isDirectory();
   }
 
-  async getFileProperties(path: string, injectRoot = true): Promise<File> {
+  /**
+   * Obtener la Propiedades de un Archivo (autenticacion no requerida)
+   * @param {string} path directorio del archivo
+   * @param {boolean} injectRoot injectar la raiz del directorio (valo por defecto `true`)
+   * @returns {Promise<File>}
+   */
+  async getFileProperties(path: string, injectRoot: boolean = true): Promise<File> {
     const entirePath = injectRoot ? join(this.root, path) : path;
-    if (this.isDirectory(entirePath, false)) {
+    if (await this.isDirectory(entirePath, false)) {
       throw new BadRequestException('Es una Carpeta');
     }
-    const fileStat = await lstat(entirePath);
+    const fileStat = await lstat(entirePath, { bigint: false });
     const file = entirePath.split('/').pop();
+    const tokens = await this.tokenServ.getCountByPath(path);
 
-    return { name: file, type: 'file', size: fileStat.size, extension: file.split('.').pop(), mime_type: lookup(file.split('.').pop()) || '' };
+    return {
+      name: file,
+      type: 'file',
+      size: fileStat.size,
+      tokens,
+      extension: file.split('.').pop(),
+      mime_type: lookup(file.split('.').pop()) || ''
+    };
   }
 
+  /**
+   * Obtener las propiedades de un Archivo cuando el usuario esta autenticado
+   * @param {string} path Directorio
+   * @param {UserPayload} userPayload Datos de usuario autenticado
+   * @returns {Promise<File>}
+   */
   async getFilePropertiesUser(path: string, userPayload: UserPayload): Promise<File> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
-    if (this.isDirectory(entirePath, false)) {
+    if (await this.isDirectory(entirePath, false)) {
       throw new BadRequestException('Es una Carpeta');
     }
-    const fileStat = await lstat(entirePath);
+    const fileStat = await lstat(entirePath, { bigint: false });
     const file = entirePath.split('/').pop();
-    return { name: file, type: 'file', size: fileStat.size, extension: file.split('.').pop(), mime_type: lookup(file.split('.').pop()) || '' };
+    const tokens = await this.tokenServ.getCountByPath(path);
+    return {
+      name: file,
+      type: 'file',
+      size: fileStat.size,
+      tokens,
+      extension: file.split('.').pop(),
+      mime_type: lookup(file.split('.').pop()) || ''
+    };
   }
 
+  async getFileSize(path: string, injectRoot: boolean = true): Promise<number> {
+    const entirePath = injectRoot ? join(this.root, path) : path;
+    const fileStat = await lstat(entirePath, { bigint: false });
+    return fileStat.size;
+  }
+
+  /**
+   * Obtener la Lista de archivo que hay en un directorio
+   * @param {string} path Directorio
+   * @param {UserPayload}  userPayload Datos de usuario autenticado
+   * @returns {Promise<ListFile>}
+   */
   async getListFiles(path: string, userPayload: UserPayload): Promise<ListFile> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
     if (!existsSync(entirePath)) {
       throw new NotFoundException();
     }
-    const list: File[] = [];
-    const listFiles = readdirSync(entirePath);
 
-    listFiles.forEach((file) => {
-      const filePath = join(entirePath, file);
-      const fileStat = lstatSync(filePath);
-      if (fileStat.isDirectory()) {
-        list.push({
-          name: file,
-          type: 'folder',
-          size: fileStat.size,
-          extension: '',
-          mime_type: ''
-        });
-      } else {
-        list.push({
+    const listFiles = await readdir(entirePath);
+
+    const list: File[] = await Promise.all(
+      listFiles.map(async (file) => {
+        const filePath = join(entirePath, file);
+        const fileStat = await lstat(filePath, { bigint: false });
+        const tokens = await this.tokenServ.getCountByPath(join(path, file));
+        if (fileStat.isDirectory()) {
+          return {
+            name: file,
+            type: 'folder',
+            size: fileStat.size,
+            tokens,
+            extension: '',
+            mime_type: ''
+          };
+        }
+        return {
           name: file,
           type: 'file',
           size: fileStat.size,
+          tokens,
           extension: file.split('.').pop(),
           mime_type: lookup(file.split('.').pop()) || ''
-        });
-      }
-    });
-
-    return { list };
+        };
+      })
+    );
+    const ordenedList = orderBy<File>(list, ['type', 'name'], ['desc', 'asc']);
+    return { list: ordenedList };
   }
 
+  /**
+   * Obtener el `ReadStream` de un archivo para entregaro
+   * @param {string} path Directorio
+   * @param {UserPayload} userPayload Datos de usuario autenticado
+   * @returns {Promise<ReadStream>} Readstream del archivo en cuestion
+   */
   async getFile(path: string, userPayload: UserPayload): Promise<ReadStream> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
@@ -106,7 +227,14 @@ export class FilesService {
     return createReadStream(entirePath);
   }
 
-  async createFile(path: string, file: Express.Multer.File, userPayload: UserPayload) {
+  /**
+   * Guardar un archivo que se haya recibido
+   * @param {string} path directorio
+   * @param {Express.Multer.File} file Archivo a guardar
+   * @param {UserPayload} userPayload Datos de usuario atenticado
+   * @returns {Promise<MessageResponse>} Respuesta de la accion
+   */
+  async createFile(path: string, file: Express.Multer.File, userPayload: UserPayload): Promise<MessageResponse> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
     if (existsSync(`${entirePath}/${file.originalname}`)) {
@@ -115,42 +243,63 @@ export class FilesService {
     const writeStream = createWriteStream(`${entirePath}/${file.originalname}`);
     writeStream.write(file.buffer);
     writeStream.close();
-    return Promise.resolve({ meesage: 'File created successfully' });
+    return { message: 'File created successfully' };
   }
 
-  async deleteFile(path: string, userPayload: UserPayload): Promise<{ message: string }> {
+  /**
+   * Eliminar un archivo
+   * @param {string} path directorio
+   * @param {UserPayload} userPayload datos de usuario autenticado
+   * @returns {Promise<MessageResponse>}
+   */
+  async deleteFile(path: string, userPayload: UserPayload): Promise<MessageResponse> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
     if (!existsSync(entirePath)) {
       throw new NotFoundException();
     }
-    if (!lstatSync(entirePath).isDirectory()) {
-      rmSync(entirePath);
+    if (!(await lstat(entirePath)).isDirectory()) {
+      await rm(entirePath);
       return Promise.resolve({ message: 'File deleted successfully' });
     }
-    rmdirSync(entirePath, { recursive: true });
-    return Promise.resolve({ message: 'Folder deleted successfully' });
+    await rm(entirePath, { recursive: true });
+    this.tokenServ.deleteTokensByPath(path, userId);
+    return { message: 'Folder deleted successfully' };
   }
 
-  async createFolder(path: string, userPayload: UserPayload): Promise<{ meesage: string }> {
+  /**
+   * Creatr una carpeta a partir de una direccion
+   * @param {string} path directorio
+   * @param {UserPayload} userPayload Datos de usuario autenticado
+   * @returns {Promise<MessageResponse>} mensaje de la accion
+   */
+  async createFolder(path: string, userPayload: UserPayload): Promise<MessageResponse> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
     if (existsSync(entirePath)) {
       throw new BadRequestException('Folder already exists');
     }
-    mkdirSync(entirePath, { recursive: true });
-    return Promise.resolve({ meesage: 'Folder created successfully' });
+    await mkdir(entirePath, { recursive: true });
+    return { message: 'Folder created successfully' };
   }
 
-  async GenerateTree(path: string, userPayload: UserPayload | null, rec: boolean): Promise<Folder | File> {
+  /**
+   * Obtener un arbol de como estan lo archivos
+   * @param {string} path el directorio para crear el arbol
+   * @param {UserPayload | null} userPayload
+   * @param {boolean} rec incluir el user
+   * @returns {Promise<Folder | File>} File si se detecta que el roor es File y el arbol si el carpeta
+   */
+  async GenerateTree(path: string, userPayload: UserPayload | null, rec: boolean, showFiles = true): Promise<Folder | File> {
     const pathWithUser = userPayload !== null ? join(this.root, userPayload.userId, path) : join(this.root, path);
     const entirePath = rec ? path : pathWithUser;
-    if (!this.isDirectory(path, !rec)) {
-      const fileStat = await lstat(entirePath);
+    const fileStat = await lstat(entirePath, { bigint: false });
+    if (!fileStat.isDirectory()) {
       return {
         type: 'file',
         name: path.split('/').pop(),
         extension: path.split('.').pop(),
+        tokens: 0,
         mime_type: lookup(path.split('.').pop()) || '',
         size: fileStat.size
       };
@@ -164,21 +313,25 @@ export class FilesService {
         files.map(async (f): Promise<File | Folder> => {
           const filePath = join(entirePath, f);
           try {
-            const fileStat = await lstat(filePath);
-
+            const fileStat = await lstat(filePath, { bigint: false });
             if (fileStat.isDirectory()) {
               return {
                 type: 'Folder',
                 name: f,
-                content: await Promise.all((await readdir(filePath)).map(async (fi) => this.GenerateTree(join(filePath, fi), userPayload, true)))
+                content: await Promise.all(
+                  (await readdir(filePath))
+                    .map(async (fi) => await this.GenerateTree(join(filePath, fi), userPayload, true))
+                    .filter((f) => f !== null)
+                )
               };
-            } else {
+            } else if (showFiles) {
               return {
-                name: f,
                 type: 'file',
+                name: f,
                 size: fileStat.size,
-                extension: f.split('.').pop(),
-                mime_type: lookup(f.split('.').pop()) || ''
+                tokens: 0,
+                mime_type: lookup(f.split('.').pop()) || '',
+                extension: f.split('.').pop()
               };
             }
           } catch (err) {
@@ -190,7 +343,11 @@ export class FilesService {
     return folder;
   }
 
-  async getUsedSpace() {
+  /**
+   * Obtener El espacio usado
+   * @returns {Promise<number>} Espacio usado en Bytes
+   */
+  async getUsedSpace(): Promise<number> {
     const filesTree = await this.GenerateTree('', null, false);
     const usedSpace = { value: 0 };
     if (filesTree.type === 'Folder') {
@@ -209,7 +366,19 @@ export class FilesService {
     }
   }
 
+  /**
+   * Obtener el directorio Raiz donde estan alojados los archivos
+   * @returns {string}
+   */
   getRoot(): string {
     return this.root;
+  }
+
+  /**
+   * Obtener el path real de un archivo
+   * @returns {string}
+   */
+  getRealPath(path: string, user: UserPayload) {
+    return join(this.root, user.userId, path);
   }
 }

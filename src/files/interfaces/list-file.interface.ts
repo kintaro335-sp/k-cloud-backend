@@ -1,9 +1,10 @@
-type FileType = 'folder' | 'file'
+export type FileType = 'folder' | 'file'
 
 export interface File {
   name: string;
   type: FileType;
   size: number;
+  tokens: number;
   extension: string;
   mime_type: string;
 }
