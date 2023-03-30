@@ -84,8 +84,8 @@ export class SharedFileController {
       const fileProps = await this.SFService.getPropsSFFile(SFReg, pathString);
       const CD = downloadOpc ? 'attachment' : 'inline';
       res.set({
-        'Content-Type': contentType(SFReg.name),
-        'Content-Disposition': `${CD}; filename="${SFReg.name}";`,
+        'Content-Type': contentType(fileProps.name),
+        'Content-Disposition': `${CD}; filename="${fileProps.name}";`,
         'Content-Length': fileProps.size
       });
       return new StreamableFile(await this.SFService.getContentSFFile(SFReg, pathString));
