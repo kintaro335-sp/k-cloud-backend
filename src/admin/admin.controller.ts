@@ -72,7 +72,7 @@ export class AdminController {
   @RequireAdmin(true)
   @Post('/users/create')
   async createUser(@Body() body: RegisterDTO): Promise<MessageResponse> {
-    this.authServ.register(body.username, body.password);
+    await this.authServ.register(body.username, body.password);
     return { message: 'Usuario Creado' };
   }
 
