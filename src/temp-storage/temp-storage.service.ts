@@ -121,10 +121,9 @@ export class TempStorageService {
    *
    */
   getFileStatus(path: string): FilePTempResponse {
-    const { name, bytesWritten, completed, received, saved, size, blobs } = this.storage[path];
+    const { name, completed, received, saved, size, blobs } = this.storage[path];
     return {
       name,
-      bytesWritten,
       completed,
       received,
       saved,

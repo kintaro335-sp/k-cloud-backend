@@ -23,7 +23,6 @@ export interface FilePTempResponse {
   size: number;
   received: number;
   saved: number;
-  bytesWritten: Array<BytesWritten>;
   completed: boolean;
   blobsNum: number;
 }
