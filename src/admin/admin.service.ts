@@ -1,11 +1,12 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, forwardRef, Inject } from '@nestjs/common';
 // services
 import { FilesService } from '../files/files.service';
+import { Cron, CronExpression } from '@nestjs/schedule';
 // interfaces
 import { SpaceUsed } from './interfaces/spaceused.interface';
 import { Config, UnitByte, SpaceConfig } from './interfaces/config.interface';
 // fs
-import { existsSync, createWriteStream, rmSync, readFile } from 'fs';
+import { existsSync, createWriteStream, rmSync, readFile, readFileSync } from 'fs';
 @Injectable()
 export class AdminService implements OnModuleInit, OnModuleDestroy {
   constructor(@Inject(forwardRef(() => FilesService)) private readonly fileServ: FilesService) {}
@@ -21,6 +22,15 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
       firstUser: null
     }
   };
+
+  @Cron(CronExpression.EVERY_10_MINUTES)
+  private async updateUsedSpaceCron() {
+    const usedSpaceBytes = await this.fileServ.getUsedSpace();
+    if (this.config.core.usedSpaceBytes !== usedSpaceBytes) {
+      this.config.core.usedSpaceBytes = usedSpaceBytes;
+      this.saveConfig();
+    }
+  }
 
   /**
    * Hacer Json Parse a un `string`
@@ -58,13 +68,13 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
    */
   private loadConfig() {
     if (this.existsSettingsFile()) {
-      readFile('./settings.json', (err, data) => {
-        if (err) {
-          console.error(err);
-        }
+      try {
+        const data = readFileSync('./settings.json');
         const configString = data.toString();
         this.config = this.parseConfig(configString);
-      });
+      } catch (err) {
+        console.error(err);
+      }
     }
   }
 
@@ -103,10 +113,10 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
    */
   async updateUsedSpace(): Promise<SpaceUsed> {
     const usedSpaceBytes = await this.fileServ.getUsedSpace();
-
-    this.config.core.usedSpaceBytes = usedSpaceBytes;
-
-    this.saveConfig();
+    if (this.config.core.usedSpaceBytes !== usedSpaceBytes) {
+      this.config.core.usedSpaceBytes = usedSpaceBytes;
+      this.saveConfig();
+    }
 
     return { total: this.config.core.dedicatedSpaceBytes, used: usedSpaceBytes };
   }
@@ -149,6 +159,6 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
   }
 
   getfirstUser(): string | null {
-    return this.config.users.firstUser
+    return this.config.users.firstUser;
   }
 }

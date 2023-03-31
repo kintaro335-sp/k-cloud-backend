@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Cron } from '@nestjs/schedule';
+import { Interval } from '@nestjs/schedule';
 // services
 import { TempStorageService } from '../temp-storage/temp-storage.service';
 import { AdminService } from '../admin/admin.service';
@@ -34,7 +34,7 @@ export class FilesService {
   /**
    * mandar a Escribir numerosos blobs de los archivos
    */
-  @Cron('* * * * *')
+  @Interval(10000)
   async writeBlobs() {
     this.storageService.getFilesDirectories().forEach(async (dir) => {
       if (this.storageService.getWritting(dir)) return;
