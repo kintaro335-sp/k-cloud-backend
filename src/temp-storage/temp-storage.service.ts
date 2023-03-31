@@ -18,6 +18,10 @@ export class TempStorageService {
    * @returns {number} cantidad de blobs
    */
   getBlobsLength(path: string): number {
+    if (this.storage[path] === null || this.storage[path] === undefined) {
+      return 0;
+    }
+
     return this.storage[path].blobs.length;
   }
 
