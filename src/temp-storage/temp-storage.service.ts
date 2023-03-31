@@ -35,7 +35,6 @@ export class TempStorageService {
    * @param {BlobFTemp} blob blob escrito
    */
   updateBytesWriten(path: string, blob: BlobFTemp) {
-    this.storage[path].bytesWritten;
     this.storage[path].bytesWritten.push({ from: blob.position, to: blob.position + blob.blob.length });
     const total = this.storage[path].bytesWritten.map((b) => b.to - b.from);
     this.storage[path].saved = this.utilsService.arraySum(total);
@@ -49,7 +48,6 @@ export class TempStorageService {
    */
   createFileTemp(path: string, size: number, root: string) {
     const name = path.split('/').pop();
-    const completePath = join(root, path);
 
     this.filesDirectories.push(path);
     this.storage[path] = {
@@ -59,7 +57,8 @@ export class TempStorageService {
       received: 0,
       bytesWritten: [],
       completed: false,
-      blobs: []
+      blobs: [],
+      writting: false
     };
   }
 
@@ -95,7 +94,7 @@ export class TempStorageService {
    */
   isCompleted(path: string) {
     const file = this.storage[path];
-    const isCompleted = file.size === file.saved;
+    const isCompleted = file.size === file.saved || file.size < file.saved;
     this.storage[path].completed = isCompleted;
     return isCompleted;
   }
@@ -122,15 +121,15 @@ export class TempStorageService {
    *
    */
   getFileStatus(path: string): FilePTempResponse {
-    const { name, bytesWritten, completed, received, saved, size } = this.storage[path];
-
+    const { name, bytesWritten, completed, received, saved, size, blobs } = this.storage[path];
     return {
       name,
       bytesWritten,
       completed,
       received,
       saved,
-      size
+      size,
+      blobsNum: blobs.length
     };
   }
 
@@ -152,11 +151,6 @@ export class TempStorageService {
    */
   deallocateBlob(path: string): BlobFTemp {
     const blobR = this.storage[path].blobs.pop();
-    const bytesWritten = { from: blobR.position, to: blobR.position + blobR.blob.length };
-
-    this.storage[path].bytesWritten.push(bytesWritten);
-    this.storage[path].saved = this.getBytesWritten(path);
-
     return blobR;
   }
 
@@ -171,5 +165,13 @@ export class TempStorageService {
       size += binfo.to - binfo.from;
     });
     return size;
+  }
+
+  setWritting(path: string, newValue: boolean) {
+    this.storage[path].writting = newValue;
+  }
+
+  getWritting(path: string): boolean {
+    return this.storage[path].writting;
   }
 }

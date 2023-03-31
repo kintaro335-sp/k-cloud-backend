@@ -37,7 +37,10 @@ export class FilesService {
   @Cron('* * * * *')
   async writeBlobs() {
     this.storageService.getFilesDirectories().forEach(async (dir) => {
+      if (this.storageService.getWritting(dir)) return;
+
       while (this.storageService.getBlobsLength(dir) !== 0) {
+        this.storageService.setWritting(dir, true);
         const blob = this.storageService.deallocateBlob(dir);
         if (blob !== undefined) {
           try {
@@ -54,6 +57,7 @@ export class FilesService {
           }
         }
       }
+      this.storageService.setWritting(dir, false);
     });
   }
 
