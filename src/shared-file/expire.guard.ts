@@ -12,7 +12,7 @@ export class ExpireGuard implements CanActivate {
       throw new NotFoundException('Not found');
     }
     const today = new Date();
-    if (SFReg.expire > today && !SFReg.doesexpires) {
+    if (today < SFReg.expire && !SFReg.doesexpires) {
       throw new UnauthorizedException('token expired');
     }
     return true;
