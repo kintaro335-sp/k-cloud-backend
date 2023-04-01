@@ -153,8 +153,12 @@ export class TempStorageService {
    * @returns {BlobFTemp} Buffer a escribir
    */
   deallocateBlob(path: string): BlobFTemp {
-    const blobR = this.storage[path].blobs.pop();
-    return blobR;
+    try {
+      const blobR = this.storage[path].blobs.pop();
+      return blobR;
+    } catch (err) {
+      return;
+    }
   }
 
   /**
@@ -171,10 +175,13 @@ export class TempStorageService {
   }
 
   setWritting(path: string, newValue: boolean) {
+    if (this.storage[path] === null || this.storage[path] === undefined) return;
     this.storage[path].writting = newValue;
   }
 
   getWritting(path: string): boolean {
+    if (this.storage[path] === null || this.storage[path] === undefined) return false;
+
     return this.storage[path].writting;
   }
 }
