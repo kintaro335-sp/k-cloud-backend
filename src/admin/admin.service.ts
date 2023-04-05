@@ -154,11 +154,16 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
   }
 
   setFirstUser(userid: string) {
+    if (this.config.users === undefined) {
+      this.config.users = {
+        firstUser: null
+      };
+    }
     this.config.users.firstUser = userid;
     this.saveConfig();
   }
 
   getfirstUser(): string | null {
-    return this.config.users.firstUser;
+    return this.config?.users?.firstUser || null;
   }
 }

@@ -259,6 +259,11 @@ export class FilesService {
   async deleteFile(path: string, userPayload: UserPayload): Promise<MessageResponse> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
+    const storagePath = join(userId, path);
+    if (this.storageService.existsFile(storagePath)) {
+      this.storageService.delFile(storagePath);
+    }
+
     if (!existsSync(entirePath)) {
       throw new NotFoundException();
     }

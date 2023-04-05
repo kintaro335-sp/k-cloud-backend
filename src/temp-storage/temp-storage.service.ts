@@ -98,6 +98,9 @@ export class TempStorageService {
    */
   isCompleted(path: string) {
     const file = this.storage[path];
+    if (file === null || file === undefined) {
+      return true;
+    }
     const isCompleted = file.size === file.saved || file.size < file.saved;
     this.storage[path].completed = isCompleted;
     return isCompleted;

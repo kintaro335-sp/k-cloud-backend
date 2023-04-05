@@ -8,6 +8,6 @@ export class UserSetupGuard implements CanActivate {
   constructor(private readonly setupServ: SetupService, private readonly adminServ: AdminService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
-    return !await this.setupServ.isConfigured() && this.adminServ.getfirstUser() === null;
+    return !(await this.setupServ.isConfigured());
   }
 }
