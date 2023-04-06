@@ -36,7 +36,6 @@ export class SharedFileController {
     return this.SFService.share(pathString, req.user, body);
   }
 
-  @UseGuards(ExpireGuard)
   @Get('info/:id')
   async getSFInfo(@Param('id') id: string) {
     return this.SFService.getSFInfo(id);

@@ -68,7 +68,8 @@ export class SharedFileService {
       mime_type: lookup(SFReg.name) || '',
       size,
       expire: SFReg.doesexpires,
-      expires: SFReg.expire.getTime()
+      expires: SFReg.expire.getTime(),
+      createdAt: SFReg.createdAt.getTime()
     };
   }
 
