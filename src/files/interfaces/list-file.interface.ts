@@ -1,4 +1,4 @@
-export type FileType = 'folder' | 'file'
+export type FileType = 'folder' | 'file';
 
 export interface File {
   name: string;
@@ -16,5 +16,10 @@ export interface ListFile {
 export interface Folder {
   type: 'Folder';
   name: string;
-  content: Array<Folder | File>
+  content: Array<Folder | File>;
+}
+
+export interface UsedSpaceType {
+  type: string;
+  used: number;
 }
