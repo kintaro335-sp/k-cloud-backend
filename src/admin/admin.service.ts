@@ -1,15 +1,16 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, forwardRef, Inject } from '@nestjs/common';
 // services
 import { FilesService } from '../files/files.service';
+import { UsersService } from '../users/users.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
 // interfaces
-import { SpaceUsed } from './interfaces/spaceused.interface';
+import { SpaceUsed, UsedSpaceUser } from './interfaces/spaceused.interface';
 import { Config, UnitByte, SpaceConfig } from './interfaces/config.interface';
 // fs
-import { existsSync, createWriteStream, rmSync, readFile, readFileSync } from 'fs';
+import { existsSync, createWriteStream, rmSync, readFileSync } from 'fs';
 @Injectable()
 export class AdminService implements OnModuleInit, OnModuleDestroy {
-  constructor(@Inject(forwardRef(() => FilesService)) private readonly fileServ: FilesService) {}
+  constructor(@Inject(forwardRef(() => FilesService)) private readonly fileServ: FilesService, private readonly usersServ: UsersService) {}
 
   private config: Config = {
     core: {
@@ -127,6 +128,20 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
    */
   getUsedSpace() {
     return { total: this.config.core.dedicatedSpaceBytes, used: this.config.core.usedSpaceBytes };
+  }
+
+  async getUsedSpaceByUsers(): Promise<UsedSpaceUser[]> {
+    const users = await this.usersServ.findAll();
+    const usersSpaceUsed: Array<Promise<UsedSpaceUser>> = users.map(async (u) => ({
+      id: u.id,
+      username: u.username,
+      usedSpace: await this.fileServ.getUsedSpaceUser(u.id)
+    }));
+    return Promise.all(usersSpaceUsed);
+  }
+
+  getUsedSpaceByFileType() {
+    return this.fileServ.getUsedSpaceByFileType();
   }
 
   getSpaceConfig(): SpaceConfig {

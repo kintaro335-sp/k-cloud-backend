@@ -8,7 +8,7 @@ import { TokenFilesService } from '../token-files/token-files.service';
 // exceptions
 import { NotFoundException } from './exceptions/NotFound.exception';
 // interfaces
-import { ListFile, File, Folder } from './interfaces/list-file.interface';
+import { ListFile, File, Folder, UsedSpaceType } from './interfaces/list-file.interface';
 import { UserPayload } from '../auth/interfaces/userPayload.interface';
 import { MessageResponse } from '../auth/interfaces/response.interface';
 import { BlobFTemp } from '../temp-storage/interfaces/filep.interface';
@@ -372,6 +372,65 @@ export class FilesService {
       return usedSpace.value;
     } else {
       return 0;
+    }
+  }
+
+  /**
+   * Obtener el espacio usado de un usuario
+   * @param {string} userId id de usuario
+   * @returns {Promise<number>} espacio usado por el usuario
+   */
+  async getUsedSpaceUser(userId: string): Promise<number> {
+    if (!this.exists('', { isadmin: false, userId, username: '' })) return 0;
+    const filesTree = await this.GenerateTree(userId, null, false);
+    const usedSpace = { value: 0 };
+    if (filesTree.type === 'Folder') {
+      const onForEach = (file: File | Folder) => {
+        if (file.type === 'Folder') {
+          file.content.forEach(onForEach);
+        }
+        if (file.type === 'file') {
+          usedSpace.value = usedSpace.value + file.size;
+        }
+      };
+      filesTree.content.forEach(onForEach);
+      return usedSpace.value;
+    } else {
+      return 0;
+    }
+  }
+
+  async getUsedSpaceByFileType(): Promise<UsedSpaceType[]> {
+    const usedSpace: Record<string, number> = {};
+    const sumBytes = (type: string, bytes: number) => {
+      if (usedSpace[type] === undefined) {
+        usedSpace[type] = bytes;
+      } else {
+        usedSpace[type] += bytes;
+      }
+    };
+    const filesTree = await this.GenerateTree('', null, false);
+    if (filesTree.type === 'Folder') {
+      const onForEach = (file: File | Folder) => {
+        if (file.type === 'Folder') {
+          file.content.forEach(onForEach);
+        }
+        if (file.type === 'file') {
+          if (file.mime_type.includes('image/')) {
+            sumBytes('image', file.size);
+          } else if (file.mime_type.includes('video/')) {
+            sumBytes('video', file.size);
+          } else if (file.mime_type.includes('compressed')) {
+            sumBytes('compressed', file.size);
+          } else {
+            sumBytes('other', file.size);
+          }
+        }
+      };
+      filesTree.content.forEach(onForEach);
+      return Object.keys(usedSpace).map((type) => ({ type, used: usedSpace[type] }));
+    } else {
+      return [];
     }
   }
 

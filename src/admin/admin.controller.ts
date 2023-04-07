@@ -5,7 +5,8 @@ import { AdminService } from './admin.service';
 import { AuthService } from '../auth/auth.service';
 // ineterfaces
 import { MessageResponse } from '../auth/interfaces/response.interface';
-import { SpaceUsed } from './interfaces/spaceused.interface';
+import { SpaceUsed, UsedSpaceUser } from './interfaces/spaceused.interface';
+import { UsedSpaceType } from 'src/files/interfaces/list-file.interface';
 // dto
 import { DedicatedSpaceDTO } from './dto/dedicated-space-dto';
 import { SetPasswordDTO } from './dto/set-password.dto';
@@ -47,6 +48,18 @@ export class AdminController {
   @Get('/used-space')
   async getUsedSpace(): Promise<SpaceUsed> {
     return this.adminServ.getUsedSpace();
+  }
+
+  @RequireAdmin(true)
+  @Get('/used-space/users')
+  async getUsedSpaceByUsers(): Promise<UsedSpaceUser[]> {
+    return this.adminServ.getUsedSpaceByUsers();
+  }
+
+  @RequireAdmin(true)
+  @Get('/used-space/files')
+  async getUsedSpaceByFileType(): Promise<UsedSpaceType[]> {
+    return this.adminServ.getUsedSpaceByFileType()
   }
 
   // user management
