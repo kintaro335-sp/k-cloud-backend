@@ -400,7 +400,7 @@ export class FilesService {
     }
   }
 
-  async getUsedSpaceByFileType(): Promise<UsedSpaceType[]> {
+  async getUsedSpaceByFileType(path = ''): Promise<UsedSpaceType[]> {
     const usedSpace: Record<string, number> = {};
     const sumBytes = (type: string, bytes: number) => {
       if (usedSpace[type] === undefined) {
@@ -409,7 +409,7 @@ export class FilesService {
         usedSpace[type] += bytes;
       }
     };
-    const filesTree = await this.GenerateTree('', null, false);
+    const filesTree = await this.GenerateTree(path, null, false);
     if (filesTree.type === 'Folder') {
       const onForEach = (file: File | Folder) => {
         if (file.type === 'Folder') {

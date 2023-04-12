@@ -33,6 +33,7 @@ import { SpaceGuard } from './guards/space.guard';
 import { MessageResponse } from '../auth/interfaces/response.interface';
 import { ListFile, File, Folder } from './interfaces/list-file.interface';
 import { FilePTempResponse } from '../temp-storage/interfaces/filep.interface';
+import { UserPayload } from '../auth/interfaces/userPayload.interface';
 // mime
 import { contentType } from 'mime-types';
 import { join } from 'path';
@@ -47,6 +48,12 @@ export class FilesController {
     private readonly storageService: TempStorageService,
     private readonly utils: UtilsService
   ) {}
+
+  @Get('/stats/type')
+  async userStats(@Request() req) {
+    const user = req.user as UserPayload;
+    return this.filesService.getUsedSpaceByFileType(user.userId);
+  }
 
   @Get('/list')
   async getAllFiles(@Response({ passthrough: true }) res, @Request() req): Promise<ListFile> {
