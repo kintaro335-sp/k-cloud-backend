@@ -31,7 +31,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { SpaceGuard } from './guards/space.guard';
 // interfaces
 import { MessageResponse } from '../auth/interfaces/response.interface';
-import { ListFile, File, Folder } from './interfaces/list-file.interface';
+import { ListFile, File, Folder, UsedSpaceType } from './interfaces/list-file.interface';
 import { FilePTempResponse } from '../temp-storage/interfaces/filep.interface';
 import { UserPayload } from '../auth/interfaces/userPayload.interface';
 // mime
@@ -50,7 +50,7 @@ export class FilesController {
   ) {}
 
   @Get('/stats/type')
-  async userStats(@Request() req) {
+  async userStats(@Request() req): Promise<UsedSpaceType[]> {
     const user = req.user as UserPayload;
     return this.filesService.getUsedSpaceByFileType(user.userId);
   }
