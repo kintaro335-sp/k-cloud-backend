@@ -91,7 +91,7 @@ export class SharedFileController {
     }
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, OwnerShipGuard)
   @Delete('tokens/path/*')
   async deleteTokensPath(@Param() path: string, @Request() req) {
     const pathString = Object.keys(path)
