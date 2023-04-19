@@ -261,4 +261,19 @@ export class FilesController {
       });
     });
   }
+
+  @Get('zip/*')
+  async DownloadZipFile(@Param() path: string[], @Request() req, @Response({ passthrough: true }) res) {
+    const pathString = Object.keys(path)
+      .map((key) => path[key])
+      .join('/');
+    const fileName = pathString.split('/').pop();
+    const bufferFile = await this.filesService.getZipFromPathUser(pathString, req.user);
+    res.set({
+      'Content-Type': contentType(`${fileName}.zip`),
+      'Content-Disposition': `attachment; filename="${fileName}.zip";`,
+      'Content-Length': bufferFile.length
+    });
+    return new StreamableFile(bufferFile);
+  }
 }

@@ -16,8 +16,10 @@ import { BlobFTemp } from '../temp-storage/interfaces/filep.interface';
 import { existsSync, createReadStream, ReadStream, createWriteStream } from 'fs';
 import { readdir, lstat, mkdir, rm } from 'fs/promises';
 import { join } from 'path';
+// utils
 import { lookup } from 'mime-types';
 import { orderBy } from 'lodash';
+const JSZip = require('jszip');
 
 @Injectable()
 export class FilesService {
@@ -431,6 +433,45 @@ export class FilesService {
       return Object.keys(usedSpace).map((type) => ({ type, used: usedSpace[type] }));
     } else {
       return [];
+    }
+  }
+
+  async getZipFromPathUser(path: string, user: UserPayload): Promise<Buffer> {
+    const filename = path.split('/').pop();
+    const { userId } = user;
+    const entirePath = join(this.root, userId, path);
+    if (!existsSync(entirePath)) {
+      throw new NotFoundException('File or Folder Not Found');
+    }
+    const fileStatus = await lstat(entirePath);
+    if (fileStatus.isDirectory()) {
+      const treeF = await this.GenerateTree(path, user, false);
+      const zipFolder = new JSZip();
+      const onForEach = (pathContext: string) => (val: Folder | File) => {
+        if (val.type === 'Folder') {
+          val.content.forEach(onForEach(join(path, val.name)));
+        } else {
+          const realPath = join(entirePath, pathContext, val.name);
+          const zipPath = join(pathContext, val.name)
+          zipFolder.file(zipPath, createReadStream(realPath));
+        }
+      };
+      if (treeF.type === 'Folder') {
+        treeF.content.forEach(onForEach(''));
+        return new Promise((res) => {
+          zipFolder.generateAsync({ type: 'nodebuffer' }).then((buffer) => {
+            res(buffer);
+          });
+        });
+      }
+    } else {
+      const zipFile = new JSZip();
+      zipFile.file(filename, createReadStream(entirePath));
+      return new Promise((res) => {
+        zipFile.generateAsync({ type: 'nodebuffer' }).then((buffer) => {
+          res(buffer);
+        });
+      });
     }
   }
 
