@@ -182,10 +182,11 @@ export class FilesService {
         const fileStat = await lstat(filePath, { bigint: false });
         const tokens = await this.tokenServ.getCountByPath(join(path, file));
         if (fileStat.isDirectory()) {
+          const folderSize = await this.getUsedSpaceFolder(join(path, file), userPayload);
           return {
             name: file,
             type: 'folder',
-            size: fileStat.size,
+            size: folderSize,
             tokens,
             extension: '',
             mime_type: ''
@@ -389,6 +390,32 @@ export class FilesService {
     }
   }
 
+  /**
+   * Obtener el espacio usado de un usuario
+   * @param {string} path id de usuario
+   * @param {UserPayload} user usuario de usuario autenticado
+   * @returns {Promise<number>} espacio usado por el usuario
+   */
+  async getUsedSpaceFolder(path: string, user: UserPayload): Promise<number> {
+    if (!this.exists('', user)) return 0;
+    const filesTree = await this.GenerateTree(path, user, false);
+    const usedSpace = { value: 0 };
+    if (filesTree.type === 'Folder') {
+      const onForEach = (file: File | Folder) => {
+        if (file.type === 'Folder') {
+          file.content.forEach(onForEach);
+        }
+        if (file.type === 'file') {
+          usedSpace.value = usedSpace.value + file.size;
+        }
+      };
+      filesTree.content.forEach(onForEach);
+      return usedSpace.value;
+    } else {
+      return 0;
+    }
+  }
+
   async getUsedSpaceByFileType(path = ''): Promise<UsedSpaceType[]> {
     const usedSpace: Record<string, number> = {};
     const sumBytes = (type: string, bytes: number) => {
@@ -423,10 +450,9 @@ export class FilesService {
     }
   }
 
-  async getZipFromPathUser(path: string, user: UserPayload): Promise<Buffer> {
+  async getZipFromPathUser(path: string, user: UserPayload | null): Promise<Buffer> {
     const filename = path.split('/').pop();
-    const { userId } = user;
-    const entirePath = join(this.root, userId, path);
+    const entirePath = user === null ? join(this.root, path) : join(this.root, user.userId, path);
     if (!existsSync(entirePath)) {
       throw new NotFoundException('File or Folder Not Found');
     }

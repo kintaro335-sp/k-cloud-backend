@@ -146,6 +146,15 @@ export class SharedFileService {
     }));
   }
 
+  async downloadAsZipContent(id: string, pathS: string = ''): Promise<Buffer> {
+    const SFReg = await this.tokenService.getSharedFileByID(id);
+    if (SFReg === null) {
+      throw new NotFoundException('Not Found');
+    }
+    const path = join(SFReg.userid, SFReg.path, pathS);
+    return this.filesService.getZipFromPathUser(path, null);
+  }
+
   async getTokensPages(): Promise<number> {
     return this.tokenService.getCountSharedPages();
   }
