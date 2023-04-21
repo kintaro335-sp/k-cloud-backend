@@ -64,19 +64,6 @@ export class FilesService {
   }
 
   /**
-   * Escfibir un blolb de un fichero que provenga de tempStorageService
-   * @param {string} path Direccion del archivo
-   * @param {BlobFTemp} blobp Blob a escribir
-   * @returns {number}  Numbero de Bytes escritos
-   */
-  private async onWriteBlob(path: string, blobp: BlobFTemp): Promise<number> {
-    const writeStreamF = createWriteStream(path, { start: blobp.position, flags: 'w' });
-    writeStreamF.write(blobp.blob);
-    writeStreamF.close();
-    return blobp.blob.length;
-  }
-
-  /**
    * verificar si un archivo existe
    * @param {string} path
    * @param {UserPayload} userPayload
@@ -452,7 +439,7 @@ export class FilesService {
           val.content.forEach(onForEach(join(path, val.name)));
         } else {
           const realPath = join(entirePath, pathContext, val.name);
-          const zipPath = join(pathContext, val.name)
+          const zipPath = join(pathContext, val.name);
           zipFolder.file(zipPath, createReadStream(realPath));
         }
       };
