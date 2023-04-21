@@ -11,6 +11,8 @@ datasource db {
 }
 
 model User {
+  @@index([id])
+  @@index([username])
   id String @id
   username String @unique
   passwordu String
@@ -19,6 +21,9 @@ model User {
 }
 
 model Sharedfile {
+  @@index([id])
+  @@index([userid])
+  @@index([path])
   id String @id
   userid String
   name String
