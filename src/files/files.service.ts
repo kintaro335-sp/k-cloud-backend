@@ -462,11 +462,11 @@ export class FilesService {
       const zipFolder = new JSZip();
       const onForEach = (pathContext: string) => (val: Folder | File) => {
         if (val.type === 'Folder') {
-          val.content.forEach(onForEach(join(path, val.name)));
+          val.content.forEach(onForEach(join(pathContext, val.name)));
         } else {
           const realPath = join(entirePath, pathContext, val.name);
           const zipPath = join(pathContext, val.name);
-          zipFolder.file(zipPath, createReadStream(realPath));
+          zipFolder.file(zipPath, createReadStream(realPath), { createFolders: true });
         }
       };
       if (treeF.type === 'Folder') {
