@@ -64,12 +64,13 @@ export class SharedFileController {
       .filter((v) => v !== 'id')
       .map((key) => path[key])
       .join('/');
+    const fileName = pathString.split('/').pop();
     const bufferFile = await this.SFService.downloadAsZipContent(id, pathString);
     const SFReg = await this.tokenServ.getSharedFileByID(id);
 
     res.set({
-      'Content-Type': contentType(`${SFReg.name}.zip`),
-      'Content-Disposition': `attachment; filename="${SFReg.name}.zip";`,
+      'Content-Type': contentType(`${fileName}.zip`),
+      'Content-Disposition': `attachment; filename="${fileName}.zip";`,
       'Content-Length': bufferFile.length
     });
     return new StreamableFile(bufferFile);
