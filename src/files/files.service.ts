@@ -16,8 +16,10 @@ import { BlobFTemp } from '../temp-storage/interfaces/filep.interface';
 import { existsSync, createReadStream, ReadStream, createWriteStream } from 'fs';
 import { readdir, lstat, mkdir, rm } from 'fs/promises';
 import { join } from 'path';
+// utils
 import { lookup } from 'mime-types';
 import { orderBy } from 'lodash';
+const JSZip = require('jszip');
 
 @Injectable()
 export class FilesService {
@@ -59,19 +61,6 @@ export class FilesService {
       }
       this.storageService.setWritting(dir, false);
     });
-  }
-
-  /**
-   * Escfibir un blolb de un fichero que provenga de tempStorageService
-   * @param {string} path Direccion del archivo
-   * @param {BlobFTemp} blobp Blob a escribir
-   * @returns {number}  Numbero de Bytes escritos
-   */
-  private async onWriteBlob(path: string, blobp: BlobFTemp): Promise<number> {
-    const writeStreamF = createWriteStream(path, { start: blobp.position, flags: 'w' });
-    writeStreamF.write(blobp.blob);
-    writeStreamF.close();
-    return blobp.blob.length;
   }
 
   /**
@@ -193,10 +182,11 @@ export class FilesService {
         const fileStat = await lstat(filePath, { bigint: false });
         const tokens = await this.tokenServ.getCountByPath(join(path, file));
         if (fileStat.isDirectory()) {
+          const folderSize = await this.getUsedSpaceFolder(join(path, file), userPayload);
           return {
             name: file,
             type: 'folder',
-            size: fileStat.size,
+            size: folderSize,
             tokens,
             extension: '',
             mime_type: ''
@@ -400,7 +390,33 @@ export class FilesService {
     }
   }
 
-  async getUsedSpaceByFileType(): Promise<UsedSpaceType[]> {
+  /**
+   * Obtener el espacio usado de un usuario
+   * @param {string} path id de usuario
+   * @param {UserPayload} user usuario de usuario autenticado
+   * @returns {Promise<number>} espacio usado por el usuario
+   */
+  async getUsedSpaceFolder(path: string, user: UserPayload): Promise<number> {
+    if (!this.exists('', user)) return 0;
+    const filesTree = await this.GenerateTree(path, user, false);
+    const usedSpace = { value: 0 };
+    if (filesTree.type === 'Folder') {
+      const onForEach = (file: File | Folder) => {
+        if (file.type === 'Folder') {
+          file.content.forEach(onForEach);
+        }
+        if (file.type === 'file') {
+          usedSpace.value = usedSpace.value + file.size;
+        }
+      };
+      filesTree.content.forEach(onForEach);
+      return usedSpace.value;
+    } else {
+      return 0;
+    }
+  }
+
+  async getUsedSpaceByFileType(path = ''): Promise<UsedSpaceType[]> {
     const usedSpace: Record<string, number> = {};
     const sumBytes = (type: string, bytes: number) => {
       if (usedSpace[type] === undefined) {
@@ -409,7 +425,7 @@ export class FilesService {
         usedSpace[type] += bytes;
       }
     };
-    const filesTree = await this.GenerateTree('', null, false);
+    const filesTree = await this.GenerateTree(path, null, false);
     if (filesTree.type === 'Folder') {
       const onForEach = (file: File | Folder) => {
         if (file.type === 'Folder') {
@@ -431,6 +447,44 @@ export class FilesService {
       return Object.keys(usedSpace).map((type) => ({ type, used: usedSpace[type] }));
     } else {
       return [];
+    }
+  }
+
+  async getZipFromPathUser(path: string, user: UserPayload | null): Promise<Buffer> {
+    const filename = path.split('/').pop();
+    const entirePath = user === null ? join(this.root, path) : join(this.root, user.userId, path);
+    if (!existsSync(entirePath)) {
+      throw new NotFoundException('File or Folder Not Found');
+    }
+    const fileStatus = await lstat(entirePath);
+    if (fileStatus.isDirectory()) {
+      const treeF = await this.GenerateTree(path, user, false);
+      const zipFolder = new JSZip();
+      const onForEach = (pathContext: string) => (val: Folder | File) => {
+        if (val.type === 'Folder') {
+          val.content.forEach(onForEach(join(pathContext, val.name)));
+        } else {
+          const realPath = join(entirePath, pathContext, val.name);
+          const zipPath = join(pathContext, val.name);
+          zipFolder.file(zipPath, createReadStream(realPath), { createFolders: true });
+        }
+      };
+      if (treeF.type === 'Folder') {
+        treeF.content.forEach(onForEach(''));
+        return new Promise((res) => {
+          zipFolder.generateAsync({ type: 'nodebuffer' }).then((buffer) => {
+            res(buffer);
+          });
+        });
+      }
+    } else {
+      const zipFile = new JSZip();
+      zipFile.file(filename, createReadStream(entirePath));
+      return new Promise((res) => {
+        zipFile.generateAsync({ type: 'nodebuffer' }).then((buffer) => {
+          res(buffer);
+        });
+      });
     }
   }
 

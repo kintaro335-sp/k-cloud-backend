@@ -31,8 +31,9 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { SpaceGuard } from './guards/space.guard';
 // interfaces
 import { MessageResponse } from '../auth/interfaces/response.interface';
-import { ListFile, File, Folder } from './interfaces/list-file.interface';
+import { ListFile, File, Folder, UsedSpaceType } from './interfaces/list-file.interface';
 import { FilePTempResponse } from '../temp-storage/interfaces/filep.interface';
+import { UserPayload } from '../auth/interfaces/userPayload.interface';
 // mime
 import { contentType } from 'mime-types';
 import { join } from 'path';
@@ -47,6 +48,12 @@ export class FilesController {
     private readonly storageService: TempStorageService,
     private readonly utils: UtilsService
   ) {}
+
+  @Get('/stats/type')
+  async userStats(@Request() req): Promise<UsedSpaceType[]> {
+    const user = req.user as UserPayload;
+    return this.filesService.getUsedSpaceByFileType(user.userId);
+  }
 
   @Get('/list')
   async getAllFiles(@Response({ passthrough: true }) res, @Request() req): Promise<ListFile> {
@@ -253,5 +260,20 @@ export class FilesController {
         subs.next(arbol);
       });
     });
+  }
+
+  @Get('zip/*')
+  async DownloadZipFile(@Param() path: string[], @Request() req, @Response({ passthrough: true }) res) {
+    const pathString = Object.keys(path)
+      .map((key) => path[key])
+      .join('/');
+    const fileName = pathString.split('/').pop();
+    const bufferFile = await this.filesService.getZipFromPathUser(pathString, req.user);
+    res.set({
+      'Content-Type': contentType(`${fileName}.zip`),
+      'Content-Disposition': `attachment; filename="${fileName}.zip";`,
+      'Content-Length': bufferFile.length
+    });
+    return new StreamableFile(bufferFile);
   }
 }

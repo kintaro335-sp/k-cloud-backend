@@ -21,11 +21,12 @@ import { ExpireGuard } from './expire.guard';
 import { ShareFileDTO } from './dtos/sharefile.dto';
 // services
 import { SharedFileService } from './shared-file.service';
+import { TokenFilesService } from '../token-files/token-files.service';
 import { contentType } from 'mime-types';
 
 @Controller('shared-file')
 export class SharedFileController {
-  constructor(private readonly SFService: SharedFileService) {}
+  constructor(private readonly SFService: SharedFileService, private readonly tokenServ: TokenFilesService) {}
 
   @UseGuards(JwtAuthGuard)
   @Post('share/*')
@@ -36,11 +37,44 @@ export class SharedFileController {
     return this.SFService.share(pathString, req.user, body);
   }
 
+  @UseGuards(ExpireGuard)
   @Get('info/:id')
   async getSFInfo(@Param('id') id: string) {
     return this.SFService.getSFInfo(id);
   }
 
+  @UseGuards(ExpireGuard)
+  @Get('zip/:id')
+  async downloadAsAZip(@Param('id') id: string, @Response({ passthrough: true }) res) {
+    const bufferFile = await this.SFService.downloadAsZipContent(id);
+    const SFReg = await this.tokenServ.getSharedFileByID(id);
+
+    res.set({
+      'Content-Type': contentType(`${SFReg.name}.zip`),
+      'Content-Disposition': `attachment; filename="${SFReg.name}.zip";`,
+      'Content-Length': bufferFile.length
+    });
+    return new StreamableFile(bufferFile);
+  }
+
+  @UseGuards(ExpireGuard)
+  @Get('zip/:id/*')
+  async downloadAsAZipRoute(@Param('id') id: string, @Param() path: string[], @Response({ passthrough: true }) res) {
+    const pathString = Object.keys(path)
+      .filter((v) => v !== 'id')
+      .map((key) => path[key])
+      .join('/');
+    const fileName = pathString.split('/').pop();
+    const bufferFile = await this.SFService.downloadAsZipContent(id, pathString);
+    const SFReg = await this.tokenServ.getSharedFileByID(id);
+
+    res.set({
+      'Content-Type': contentType(`${fileName}.zip`),
+      'Content-Disposition': `attachment; filename="${fileName}.zip";`,
+      'Content-Length': bufferFile.length
+    });
+    return new StreamableFile(bufferFile);
+  }
   @UseGuards(JwtAuthGuard, OwnerShipGuard)
   @Delete(':id')
   async deleteToken(@Param('id') id: string) {
@@ -91,7 +125,7 @@ export class SharedFileController {
     }
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, OwnerShipGuard)
   @Delete('tokens/path/*')
   async deleteTokensPath(@Param() path: string, @Request() req) {
     const pathString = Object.keys(path)
