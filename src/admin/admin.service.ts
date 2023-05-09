@@ -8,6 +8,8 @@ import { SpaceUsed, UsedSpaceUser } from './interfaces/spaceused.interface';
 import { Config, UnitByte, SpaceConfig } from './interfaces/config.interface';
 // fs
 import { existsSync, createWriteStream, rmSync, readFileSync } from 'fs';
+import { join } from 'path';
+
 @Injectable()
 export class AdminService implements OnModuleInit, OnModuleDestroy {
   constructor(@Inject(forwardRef(() => FilesService)) private readonly fileServ: FilesService, private readonly usersServ: UsersService) {}
@@ -48,7 +50,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
    * @returns {boolean} `true` si dicho settings.json existe
    */
   existsSettingsFile(): boolean {
-    return existsSync('./settings.json');
+    return existsSync(join(__dirname,'settings.json'));
   }
 
   /**
@@ -57,9 +59,9 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
   private saveConfig(): void {
     const stream = JSON.stringify(this.config);
     if (this.existsSettingsFile()) {
-      rmSync('./settings.json');
+      rmSync(join(__dirname, 'settings.json'));
     }
-    const file = createWriteStream('./settings.json');
+    const file = createWriteStream(join(__dirname, 'settings.json'));
     file.write(Buffer.from(stream));
     file.close();
   }
@@ -70,7 +72,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
   private loadConfig() {
     if (this.existsSettingsFile()) {
       try {
-        const data = readFileSync('./settings.json');
+        const data = readFileSync(join(__dirname, 'settings.json'));
         const configString = data.toString();
         this.config = this.parseConfig(configString);
       } catch (err) {
