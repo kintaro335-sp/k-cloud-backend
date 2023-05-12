@@ -46,15 +46,14 @@ export class SharedFileController {
   @UseGuards(ExpireGuard)
   @Get('zip/:id')
   async downloadAsAZip(@Param('id') id: string, @Response({ passthrough: true }) res) {
-    const bufferFile = await this.SFService.downloadAsZipContent(id);
+    const streamFile = await this.SFService.downloadAsZipContent(id);
     const SFReg = await this.tokenServ.getSharedFileByID(id);
 
     res.set({
       'Content-Type': contentType(`${SFReg.name}.zip`),
       'Content-Disposition': `attachment; filename="${SFReg.name}.zip";`,
-      'Content-Length': bufferFile.length
     });
-    return new StreamableFile(bufferFile);
+    return new StreamableFile(streamFile);
   }
 
   @UseGuards(ExpireGuard)
@@ -66,12 +65,11 @@ export class SharedFileController {
       .join('/');
     const fileName = pathString.split('/').pop();
     const bufferFile = await this.SFService.downloadAsZipContent(id, pathString);
-    const SFReg = await this.tokenServ.getSharedFileByID(id);
+    // const SFReg = await this.tokenServ.getSharedFileByID(id);
 
     res.set({
       'Content-Type': contentType(`${fileName}.zip`),
       'Content-Disposition': `attachment; filename="${fileName}.zip";`,
-      'Content-Length': bufferFile.length
     });
     return new StreamableFile(bufferFile);
   }

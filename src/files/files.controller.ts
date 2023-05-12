@@ -268,12 +268,11 @@ export class FilesController {
       .map((key) => path[key])
       .join('/');
     const fileName = pathString.split('/').pop();
-    const bufferFile = await this.filesService.getZipFromPathUser(pathString, req.user);
+    const streamZip = await this.filesService.getZipFromPathUser(pathString, req.user);
     res.set({
       'Content-Type': contentType(`${fileName}.zip`),
-      'Content-Disposition': `attachment; filename="${fileName}.zip";`,
-      'Content-Length': bufferFile.length
+      'Content-Disposition': `attachment; filename="${fileName}.zip";`
     });
-    return new StreamableFile(bufferFile);
+    return new StreamableFile(streamZip);
   }
 }
