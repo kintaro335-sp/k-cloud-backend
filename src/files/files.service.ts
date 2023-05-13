@@ -19,6 +19,7 @@ import { join } from 'path';
 // utils
 import { lookup } from 'mime-types';
 import { orderBy } from 'lodash';
+import { Stream } from 'stream';
 const JSZip = require('jszip');
 
 @Injectable()
@@ -450,7 +451,7 @@ export class FilesService {
     }
   }
 
-  async getZipFromPathUser(path: string, user: UserPayload | null): Promise<Buffer> {
+  async getZipFromPathUser(path: string, user: UserPayload | null): Promise<any> {
     const filename = path.split('/').pop();
     const entirePath = user === null ? join(this.root, path) : join(this.root, user.userId, path);
     if (!existsSync(entirePath)) {
@@ -471,20 +472,12 @@ export class FilesService {
       };
       if (treeF.type === 'Folder') {
         treeF.content.forEach(onForEach(''));
-        return new Promise((res) => {
-          zipFolder.generateAsync({ type: 'nodebuffer' }).then((buffer) => {
-            res(buffer);
-          });
-        });
+        return zipFolder.generateNodeStream({ streamFiles: true });
       }
     } else {
       const zipFile = new JSZip();
       zipFile.file(filename, createReadStream(entirePath));
-      return new Promise((res) => {
-        zipFile.generateAsync({ type: 'nodebuffer' }).then((buffer) => {
-          res(buffer);
-        });
-      });
+      return zipFile.generateNodeStream({ streamFiles: true });
     }
   }
 

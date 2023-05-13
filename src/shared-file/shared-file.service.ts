@@ -11,7 +11,7 @@ import { TokenFilesService } from '../token-files/token-files.service';
 import { UtilsService } from '../utils/utils.service';
 import { Sharedfile } from '@prisma/client';
 import { join } from 'path';
-import { lookup } from 'mime-types';
+import { contentType, lookup } from 'mime-types';
 
 @Injectable()
 export class SharedFileService {
@@ -129,6 +129,7 @@ export class SharedFileService {
       id: sf.id,
       name: sf.name,
       type: sf.isdir ? 'folder' : 'file',
+      mime_type: contentType(sf.name) || '',
       expire: sf.doesexpires,
       expires: sf.expire.getTime()
     }));
@@ -141,6 +142,7 @@ export class SharedFileService {
       id: sf.id,
       type: sf.isdir ? 'folder' : 'file',
       name: sf.name,
+      mime_type: contentType(sf.name) || '',
       expire: sf.doesexpires,
       expires: sf.expire.getTime()
     }));
