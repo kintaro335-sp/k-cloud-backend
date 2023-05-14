@@ -107,10 +107,4 @@ export class AdminController {
   getMemoryUsageBuffer() {
     return { usage: this.adminServ.getBufferUsage() };
   }
-
-  @Get('/cpu/usage')
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  getCPUUsage() {
-    return { usage: this.adminServ.getCPUUsage() };
-  }
 }

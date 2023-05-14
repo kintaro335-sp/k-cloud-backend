@@ -203,8 +203,4 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
   getBufferUsage() {
     return process.memoryUsage().arrayBuffers;
   }
-
-  getCPUUsage() {
-    return process.cpuUsage().user;
-  }
 }
