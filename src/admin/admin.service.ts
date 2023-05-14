@@ -50,7 +50,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
    * @returns {boolean} `true` si dicho settings.json existe
    */
   existsSettingsFile(): boolean {
-    return existsSync(join(__dirname,'settings.json'));
+    return existsSync(join(__dirname, 'settings.json'));
   }
 
   /**
@@ -182,5 +182,13 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
 
   getfirstUser(): string | null {
     return this.config?.users?.firstUser || null;
+  }
+
+  getMemoryUsage() {
+    return process.memoryUsage.rss();
+  }
+
+  getBufferUsage() {
+    return process.memoryUsage().arrayBuffers;
   }
 }
