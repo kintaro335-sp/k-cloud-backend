@@ -44,6 +44,7 @@ CORS_LIST="http://192.168.50.239:3000|http://localhost:3000|http://localhost"
 
 * SETTINGS (optional)
 path where a json file with some options to store
+-Note: thw filw will be deleted in every `build` if you do not set up this variable -
 example:
 ```env
 SETTINGS="/home/user/K/settings.json"
@@ -56,11 +57,13 @@ it just ca be 2 possible values
 
 3. prisma
 
+initialize the databse with the command
 
-´´´bash
+```bash
 npx prisma db push
-´´´
-4. run it
+```
+
+4. run the app
 build the app
 ```bash
 npm run build
