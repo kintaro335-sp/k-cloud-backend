@@ -59,7 +59,7 @@ export class AdminController {
   @RequireAdmin(true)
   @Get('/used-space/files')
   async getUsedSpaceByFileType(): Promise<UsedSpaceType[]> {
-    return this.adminServ.getUsedSpaceByFileType()
+    return this.adminServ.getUsedSpaceByFileType();
   }
 
   // user management
@@ -94,5 +94,17 @@ export class AdminController {
   @Delete('/users/delete/:userid')
   async deleteUser(@Param('userid') userid: string): Promise<MessageResponse> {
     return this.authServ.deleteUser(userid);
+  }
+
+  @Get('/memory/rss')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  getMemoryUsageRss() {
+    return { usage: this.adminServ.getMemoryUsage() };
+  }
+
+  @Get('/memory/buffer')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  getMemoryUsageBuffer() {
+    return { usage: this.adminServ.getBufferUsage() };
   }
 }

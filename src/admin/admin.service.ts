@@ -3,6 +3,7 @@ import { Injectable, OnModuleInit, OnModuleDestroy, forwardRef, Inject } from '@
 import { FilesService } from '../files/files.service';
 import { UsersService } from '../users/users.service';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { ConfigService } from '@nestjs/config';
 // interfaces
 import { SpaceUsed, UsedSpaceUser } from './interfaces/spaceused.interface';
 import { Config, UnitByte, SpaceConfig } from './interfaces/config.interface';
@@ -12,7 +13,21 @@ import { join } from 'path';
 
 @Injectable()
 export class AdminService implements OnModuleInit, OnModuleDestroy {
-  constructor(@Inject(forwardRef(() => FilesService)) private readonly fileServ: FilesService, private readonly usersServ: UsersService) {}
+  constructor(
+    @Inject(forwardRef(() => FilesService)) private readonly fileServ: FilesService,
+    private readonly usersServ: UsersService,
+    private readonly configServ: ConfigService
+  ) {
+    const pathConfEnv = this.configServ.get('SETTINGS');
+
+    if (pathConfEnv !== '' || pathConfEnv !== undefined) {
+      this.pathConfig = pathConfEnv;
+    } else {
+      this.pathConfig = join(__dirname, 'settings.json');
+    }
+  }
+
+  private pathConfig = '';
 
   private config: Config = {
     core: {
@@ -26,7 +41,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     }
   };
 
-  @Cron(CronExpression.EVERY_10_MINUTES)
+  @Cron(CronExpression.EVERY_12_HOURS)
   private async updateUsedSpaceCron() {
     const usedSpaceBytes = await this.fileServ.getUsedSpace();
     if (this.config.core.usedSpaceBytes !== usedSpaceBytes) {
@@ -50,7 +65,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
    * @returns {boolean} `true` si dicho settings.json existe
    */
   existsSettingsFile(): boolean {
-    return existsSync(join(__dirname,'settings.json'));
+    return existsSync(this.pathConfig);
   }
 
   /**
@@ -58,10 +73,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
    */
   private saveConfig(): void {
     const stream = JSON.stringify(this.config);
-    if (this.existsSettingsFile()) {
-      rmSync(join(__dirname, 'settings.json'));
-    }
-    const file = createWriteStream(join(__dirname, 'settings.json'));
+    const file = createWriteStream(this.pathConfig, { flags: 'w' });
     file.write(Buffer.from(stream));
     file.close();
   }
@@ -72,7 +84,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
   private loadConfig() {
     if (this.existsSettingsFile()) {
       try {
-        const data = readFileSync(join(__dirname, 'settings.json'));
+        const data = readFileSync(this.pathConfig);
         const configString = data.toString();
         this.config = this.parseConfig(configString);
       } catch (err) {
@@ -182,5 +194,13 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
 
   getfirstUser(): string | null {
     return this.config?.users?.firstUser || null;
+  }
+
+  getMemoryUsage() {
+    return process.memoryUsage.rss();
+  }
+
+  getBufferUsage() {
+    return process.memoryUsage().arrayBuffers;
   }
 }

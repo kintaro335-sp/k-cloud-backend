@@ -11,9 +11,9 @@ this is my own solution
 
 1. install dependencies
 
-´´´bash
+```bash
 npm install
-´´´
+```
 
 2. Setup env variables; see `.env.example`
 
@@ -42,18 +42,28 @@ example:
 CORS_LIST="http://192.168.50.239:3000|http://localhost:3000|http://localhost"
 ```
 
-* NEST_APP_CLUSTER
+* SETTINGS (optional)
+path where a json file with some options to store
+-Note: thw filw will be deleted in every `build` if you do not set up this variable -
+example:
+```env
+SETTINGS="/home/user/K/settings.json"
+```
+
+* NEST_APP_CLUSTER (optional)
 it just ca be 2 possible values
 1 for enbale cluster
 0 for disable th cluster mode
 
 3. prisma
 
+initialize the databse with the command
 
-´´´bash
+```bash
 npx prisma db push
-´´´
-4. run it
+```
+
+4. run the app
 build the app
 ```bash
 npm run build
