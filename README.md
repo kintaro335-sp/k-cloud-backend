@@ -11,9 +11,9 @@ this is my own solution
 
 1. install dependencies
 
-´´´bash
+```bash
 npm install
-´´´
+```
 
 2. Setup env variables; see `.env.example`
 
