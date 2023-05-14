@@ -42,7 +42,14 @@ example:
 CORS_LIST="http://192.168.50.239:3000|http://localhost:3000|http://localhost"
 ```
 
-* NEST_APP_CLUSTER
+* SETTINGS (optional)
+path where a json file with some options to store
+example:
+```env
+SETTINGS="/home/user/K/settings.json"
+```
+
+* NEST_APP_CLUSTER (optional)
 it just ca be 2 possible values
 1 for enbale cluster
 0 for disable th cluster mode
