@@ -3,6 +3,7 @@ import { Controller, Post, Get, Delete, Body, UseGuards, Param } from '@nestjs/c
 // services
 import { AdminService } from './admin.service';
 import { AuthService } from '../auth/auth.service';
+import { LogsService } from '../logs/logs.service';
 // ineterfaces
 import { MessageResponse } from '../auth/interfaces/response.interface';
 import { SpaceUsed, UsedSpaceUser } from './interfaces/spaceused.interface';
@@ -22,7 +23,7 @@ import { RequireAdmin } from './decorators/admin.decorator';
 @UseGuards(JwtAuthGuard, AdminGuard)
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminServ: AdminService, private readonly authServ: AuthService) {}
+  constructor(private readonly adminServ: AdminService, private readonly authServ: AuthService, logserv: LogsService) {}
 
   @RequireAdmin(true)
   @Post('/dedicated-space')
