@@ -8,6 +8,7 @@ import { LogsService } from '../logs/logs.service';
 import { MessageResponse } from '../auth/interfaces/response.interface';
 import { SpaceUsed, UsedSpaceUser } from './interfaces/spaceused.interface';
 import { UsedSpaceType } from 'src/files/interfaces/list-file.interface';
+import { TIMEOPTION } from 'src/logs/interfaces/options.interface';
 // dto
 import { DedicatedSpaceDTO } from './dto/dedicated-space-dto';
 import { SetPasswordDTO } from './dto/set-password.dto';
@@ -23,7 +24,7 @@ import { RequireAdmin } from './decorators/admin.decorator';
 @UseGuards(JwtAuthGuard, AdminGuard)
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminServ: AdminService, private readonly authServ: AuthService, logserv: LogsService) {}
+  constructor(private readonly adminServ: AdminService, private readonly authServ: AuthService, private readonly logserv: LogsService) {}
 
   @RequireAdmin(true)
   @Post('/dedicated-space')
@@ -107,5 +108,11 @@ export class AdminController {
   @UseGuards(JwtAuthGuard, AdminGuard)
   getMemoryUsageBuffer() {
     return { usage: this.adminServ.getBufferUsage() };
+  }
+
+  @Get('logs/stats/line/today')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async getLogsLineToday() {
+    return this.logserv.getLineChartDataByMethod(TIMEOPTION.TODAY);
   }
 }
