@@ -56,6 +56,20 @@ export class LogsService {
     return Array.from(new Set(procecedMethods));
   }
 
+  private async getSetOfRoutes(from: Date, to: Date, routesLike: string[]) {
+    const filteredRoutes = [];
+    let _ = await Promise.all(
+      routesLike.map(async (r) => {
+        const numRoutes = await this.prismaServ.logsReq.count({ where: { route: { contains: r }, date: { gte: from, lte: to } } });
+        if (numRoutes > 0) {
+          filteredRoutes.push(r);
+        }
+        return Promise.resolve(r);
+      })
+    );
+    return filteredRoutes;
+  }
+
   async getLineChartDataByRouteLike(type: TIMEOPTION) {
     const routes = [
       '/auth/login',
@@ -79,8 +93,9 @@ export class LogsService {
       '/admin/used-space'
     ];
     const timedimension = this.getTimeDimension(type);
+    const filteredRoutes = await this.getSetOfRoutes(timedimension[timedimension.length - 1].to, timedimension[0].from, routes);
     return Promise.all(
-      routes.map(async (m) => {
+      filteredRoutes.map(async (m) => {
         const data = await Promise.all(
           timedimension.map(async (t) => {
             return { x: t.label, y: await this.countLogsByRouteLike(m, t.from, t.to) };
