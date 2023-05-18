@@ -41,7 +41,7 @@ export class LogsService {
   }
 
   async countLogsByRouteLike(route: string, dateFrom: Date, dateTo: Date): Promise<number> {
-    return this.prismaServ.logsReq.count({ where: { route: { startsWith: route }, date: { gte: dateFrom, lte: dateTo } } });
+    return this.prismaServ.logsReq.count({ where: { route: { contains: route }, date: { gte: dateFrom, lte: dateTo } } });
   }
 
   private async getSetOfStatusCode(from: Date, to: Date): Promise<string[]> {
