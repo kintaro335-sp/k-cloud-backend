@@ -12,14 +12,16 @@ export class LoggerMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
     const { method } = req;
     res.on('finish', () => {
-      this.logServ.createLog({
-        id: uuidv4(),
-        date: new Date(Date.now()),
-        method,
-        route: req.route.path,
-        statusCode: String(res.statusCode),
-        MessageError: ''
-      });
+      try {
+        this.logServ.createLog({
+          id: uuidv4(),
+          date: new Date(Date.now()),
+          method,
+          route: req.route.path,
+          statusCode: String(res.statusCode),
+          MessageError: ''
+        });
+      } catch (err) {}
     });
     next();
   }
