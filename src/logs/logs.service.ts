@@ -57,7 +57,27 @@ export class LogsService {
   }
 
   async getLineChartDataByRouteLike(type: TIMEOPTION) {
-    const routes = ['/auth/login', '/auth/login/password', '/files', '/shared-file', '/admin'];
+    const routes = [
+      '/auth/login',
+      '/auth/register',
+      '/auth/password',
+      '/files/tree',
+      '/files/list',
+      '/files/upload',
+      '/files/initialize',
+      '/files/write',
+      '/files/zip',
+      '/shared-file/tokens/list',
+      '/shared-file/tokens/pages',
+      '/shared-file/zip',
+      '/shared-file/content',
+      '/shared-file/share',
+      '/shared-file/info',
+      '/admin/logs',
+      '/admin/memory',
+      '/admin/dedicated-space',
+      '/admin/used-space'
+    ];
     const timedimension = this.getTimeDimension(type);
     return Promise.all(
       routes.map(async (m) => {
