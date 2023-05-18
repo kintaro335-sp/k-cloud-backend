@@ -157,4 +157,24 @@ export class AdminController {
   async getLogsLine30daysStatusCode() {
     return this.logserv.getLineChartDataByStatusCode(TIMEOPTION.LAST30DAYS);
   }
+
+  @Get('logs/stats/route/line/today')
+  async getLogsLineTodayRoute() {
+    return this.logserv.getLineChartDataByRouteLike(TIMEOPTION.TODAY);
+  }
+
+  @Get('logs/stats/route/line/7days')
+  async getLogsLine7DaysRoute() {
+    return this.logserv.getLineChartDataByRouteLike(TIMEOPTION.LAST7DAYS);
+  }
+
+  @Get('logs/stats/route/line/thismonth')
+  async getLogsLineThisMonthRoute() {
+    return this.logserv.getLineChartDataByRouteLike(TIMEOPTION.THISMONTH);
+  }
+
+  @Get('logs/stats/route/line/30days')
+  async getLogsLineLast30DaysRoute() {
+    return this.logserv.getLineChartDataByRouteLike(TIMEOPTION.LAST30DAYS);
+  }
 }
