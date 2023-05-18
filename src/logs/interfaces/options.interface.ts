@@ -1,7 +1,7 @@
 export enum TIMEOPTION {
   TODAY = 'today',
-  LASTWEEK = 'lastweek',
-  LASTMONTH = 'lastmonth',
+  LAST7DAYS = 'last7days',
+  THISMONTH = 'thismonth',
   LAST30DAYS = 'last30days',
   CUSTOM = 'custom'
 }

@@ -110,9 +110,51 @@ export class AdminController {
     return { usage: this.adminServ.getBufferUsage() };
   }
 
-  @Get('logs/stats/line/today')
+  @Get('logs/stats/method/line/today')
   @UseGuards(JwtAuthGuard, AdminGuard)
   async getLogsLineToday() {
     return this.logserv.getLineChartDataByMethod(TIMEOPTION.TODAY);
+  }
+
+  @Get('logs/stats/method/line/7days')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async getLogsLine7days() {
+    return this.logserv.getLineChartDataByMethod(TIMEOPTION.LAST7DAYS);
+  }
+
+  @Get('logs/stats/method/line/thismonth')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async getLogsLinethismonth() {
+    return this.logserv.getLineChartDataByMethod(TIMEOPTION.THISMONTH);
+  }
+
+  @Get('logs/stats/method/line/30days')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async getLogsLine30days() {
+    return this.logserv.getLineChartDataByMethod(TIMEOPTION.LAST30DAYS);
+  }
+
+  @Get('logs/stats/statuscode/line/today')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async getLogsLineTodayStatusCode() {
+    return this.logserv.getLineChartDataByStatusCode(TIMEOPTION.TODAY);
+  }
+
+  @Get('logs/stats/statuscode/line/7days')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async getLogsLine7daysStatusCode() {
+    return this.logserv.getLineChartDataByStatusCode(TIMEOPTION.LAST7DAYS);
+  }
+
+  @Get('logs/stats/statuscode/line/thismonth')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async getLogsLinethismonthStatusCode() {
+    return this.logserv.getLineChartDataByStatusCode(TIMEOPTION.THISMONTH);
+  }
+
+  @Get('logs/stats/statuscode/line/30days')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async getLogsLine30daysStatusCode() {
+    return this.logserv.getLineChartDataByStatusCode(TIMEOPTION.LAST30DAYS);
   }
 }

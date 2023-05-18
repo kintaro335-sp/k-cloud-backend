@@ -9,7 +9,8 @@ import { StatsLineChart } from './interfaces/statslinechart.interface';
 // prisma
 import { Prisma } from '@prisma/client';
 // utils
-import moment from 'moment';
+import { Moment } from 'moment';
+const moment = require('moment');
 
 @Injectable()
 export class LogsService {
@@ -31,13 +32,44 @@ export class LogsService {
     return logsRaw.map((l) => ({ date: l.date.getTime(), route: l.route, method: l.method, statusCode: l.statusCode }));
   }
 
+  async countLogsByStatusCode(statusCode: string, dateFrom: Date, dateTo: Date): Promise<number> {
+    return this.prismaServ.logsReq.count({ where: { statusCode: { equals: statusCode }, date: { gte: dateFrom, lte: dateTo } } });
+  }
+
   async countLogsByMethod(method: string, dateFrom: Date, dateTo: Date): Promise<number> {
-    return this.prismaServ.logsReq.count({ where: { method: { equals: method }, AND: { date: { gte: dateFrom, lte: dateTo } } } });
+    return this.prismaServ.logsReq.count({ where: { method: { equals: method }, date: { gte: dateFrom, lte: dateTo } } });
+  }
+
+  private async getSetOfStatusCode(from: Date, to: Date): Promise<string[]> {
+    const statusCodes = await this.prismaServ.logsReq.findMany({ select: { statusCode: true }, where: { date: { gte: from, lte: to } } });
+    const procecedStatusCodes = statusCodes.map((r) => r.statusCode);
+    return Array.from(new Set(procecedStatusCodes));
+  }
+
+  private async getSetOfMethods(from: Date, to: Date): Promise<string[]> {
+    const methods = await this.prismaServ.logsReq.findMany({ select: { method: true }, where: { date: { gte: from, lte: to } } });
+    const procecedMethods = methods.map((r) => r.method);
+    return Array.from(new Set(procecedMethods));
+  }
+
+  async getLineChartDataByStatusCode(type: TIMEOPTION): Promise<StatsLineChart> {
+    const timedimension = this.getTimeDimension(type);
+    const statusCodes = await this.getSetOfStatusCode(timedimension[timedimension.length - 1].to, timedimension[0].from);
+    return Promise.all(
+      statusCodes.map(async (m) => {
+        const data = await Promise.all(
+          timedimension.map(async (t) => {
+            return { x: t.label, y: await this.countLogsByMethod(m, t.from, t.to) };
+          })
+        );
+        return { id: m, data };
+      })
+    );
   }
 
   async getLineChartDataByMethod(type: TIMEOPTION): Promise<StatsLineChart> {
     const timedimension = this.getTimeDimension(type);
-    const methods = Array.from(new Set((await this.getLastDayLogs()).map((l) => l.method)));
+    const methods = await this.getSetOfMethods(timedimension[timedimension.length - 1].to, timedimension[0].from);
     return Promise.all(
       methods.map(async (m) => {
         const data = await Promise.all(
@@ -50,23 +82,65 @@ export class LogsService {
     );
   }
 
-  private getTimeDimension(type: TIMEOPTION) {
+  private getTimeDimension(type: TIMEOPTION): TimeDim[] {
     switch (type) {
       case TIMEOPTION.TODAY:
         return this.getTimeTodayDimension();
+      case TIMEOPTION.LAST7DAYS:
+        return this.getTimeLast7Days();
+      case TIMEOPTION.THISMONTH:
+        return this.getTimeThisMonth();
+      case TIMEOPTION.LAST30DAYS:
+        return this.getTimeLast30Days();
     }
   }
 
-  private getTimeTodayDimension() {
+  private getTimeLast30Days(): TimeDim[] {
+    const iterations = [...Array(30)].map((_, i) => i);
+    const dimensions = iterations.map((i) => {
+      const submomento = moment().subtract(i, 'day');
+      const frommomento = moment(submomento.startOf('day'));
+      const tomomento = moment(submomento.endOf('day'));
+      return { label: `${submomento.format('D-MMM')}`, from: frommomento.toDate(), to: tomomento.toDate() };
+    });
+    return dimensions;
+  }
+
+  private getTimeThisMonth(): TimeDim[] {
+    const momento = moment();
+    const dayofmonth = Number(momento.format('D'));
+    const iterations = [...Array(dayofmonth)].map((_, i) => i);
+    const dimensions: TimeDim[] = iterations.map((i) => {
+      const submomento = moment().subtract(i, 'day');
+      const frommomento = moment(submomento.startOf('day'));
+      const tomomento = moment(submomento.endOf('day'));
+      return { label: `${submomento.format('D-MMM')}`, from: frommomento.toDate(), to: tomomento.toDate() };
+    });
+    return dimensions;
+  }
+
+  private getTimeLast7Days(): TimeDim[] {
+    const iterations = [...Array(7)].map((_, i) => i);
+
+    const dimensions: TimeDim[] = iterations.map((i) => {
+      const submomento = moment().subtract(i, 'day');
+      const frommomento = moment(submomento.startOf('day'));
+      const tomomento = moment(submomento.endOf('day'));
+      return { label: `${submomento.format('ddd')}`, from: frommomento.toDate(), to: tomomento.toDate() };
+    });
+    return dimensions;
+  }
+
+  private getTimeTodayDimension(): TimeDim[] {
     const momento = moment();
     const hourDay = Number(momento.format('H'));
     const iterations = [...Array(hourDay)].map((_, i) => i);
     const dimensions: TimeDim[] = iterations.map((i) => {
-      const submomento = momento.subtract(i, 'hour');
-      const frommomento = submomento.startOf('hour');
-      const tomomento = submomento.endOf('hour');
+      const submomento = moment().subtract(i, 'hour');
+      const frommomento = moment(submomento.startOf('hour'));
+      const tomomento = moment(submomento.endOf('hour'));
       return {
-        label: `${frommomento.format('HH-mm')}-${tomomento.format('HH-mm')}`,
+        label: `${frommomento.format('HH:mm')}-${tomomento.format('HH:mm')}`,
         from: frommomento.toDate(),
         to: tomomento.toDate()
       };
