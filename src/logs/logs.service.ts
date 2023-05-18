@@ -59,7 +59,7 @@ export class LogsService {
       statusCodes.map(async (m) => {
         const data = await Promise.all(
           timedimension.map(async (t) => {
-            return { x: t.label, y: await this.countLogsByMethod(m, t.from, t.to) };
+            return { x: t.label, y: await this.countLogsByStatusCode(m, t.from, t.to) };
           })
         );
         return { id: m, data };
