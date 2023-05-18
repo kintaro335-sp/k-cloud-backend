@@ -40,6 +40,10 @@ export class LogsService {
     return this.prismaServ.logsReq.count({ where: { method: { equals: method }, date: { gte: dateFrom, lte: dateTo } } });
   }
 
+  async countLogsByRouteLike(route: string, dateFrom: Date, dateTo: Date): Promise<number> {
+    return this.prismaServ.logsReq.count({ where: { route: { startsWith: route }, date: { gte: dateFrom, lte: dateTo } } });
+  }
+
   private async getSetOfStatusCode(from: Date, to: Date): Promise<string[]> {
     const statusCodes = await this.prismaServ.logsReq.findMany({ select: { statusCode: true }, where: { date: { gte: from, lte: to } } });
     const procecedStatusCodes = statusCodes.map((r) => r.statusCode);
@@ -50,6 +54,21 @@ export class LogsService {
     const methods = await this.prismaServ.logsReq.findMany({ select: { method: true }, where: { date: { gte: from, lte: to } } });
     const procecedMethods = methods.map((r) => r.method);
     return Array.from(new Set(procecedMethods));
+  }
+
+  async getLineChartDataByRouteLike(type: TIMEOPTION) {
+    const routes = ['/auth/login', '/auth/login/password', '/files', '/shared-file', '/admin'];
+    const timedimension = this.getTimeDimension(type);
+    return Promise.all(
+      routes.map(async (m) => {
+        const data = await Promise.all(
+          timedimension.map(async (t) => {
+            return { x: t.label, y: await this.countLogsByRouteLike(m, t.from, t.to) };
+          })
+        );
+        return { id: m, data };
+      })
+    );
   }
 
   async getLineChartDataByStatusCode(type: TIMEOPTION): Promise<StatsLineChart> {
