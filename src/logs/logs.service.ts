@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 // services
 import { PrismaService } from '../prisma.service';
 // insterfaces
@@ -6,6 +6,7 @@ import { LogR } from './interfaces/logres.interface';
 import { TIMEOPTION } from './interfaces/options.interface';
 import { TimeDim } from './interfaces/timedim.interface';
 import { StatsLineChart } from './interfaces/statslinechart.interface';
+import { GROUPFILTER } from './interfaces/groupfilter.interface';
 // prisma
 import { Prisma } from '@prisma/client';
 // utils
@@ -32,17 +33,21 @@ export class LogsService {
     return logsRaw.map((l) => ({ date: l.date.getTime(), route: l.route, method: l.method, statusCode: l.statusCode }));
   }
 
-  async countLogsByStatusCode(statusCode: string, dateFrom: Date, dateTo: Date): Promise<number> {
+  // contar logs segun un campo y rango de fechas
+
+  private async countLogsByStatusCode(statusCode: string, dateFrom: Date, dateTo: Date): Promise<number> {
     return this.prismaServ.logsReq.count({ where: { statusCode: { equals: statusCode }, date: { gte: dateFrom, lte: dateTo } } });
   }
 
-  async countLogsByMethod(method: string, dateFrom: Date, dateTo: Date): Promise<number> {
+  private async countLogsByMethod(method: string, dateFrom: Date, dateTo: Date): Promise<number> {
     return this.prismaServ.logsReq.count({ where: { method: { equals: method }, date: { gte: dateFrom, lte: dateTo } } });
   }
 
-  async countLogsByRouteLike(route: string, dateFrom: Date, dateTo: Date): Promise<number> {
+  private async countLogsByRouteLike(route: string, dateFrom: Date, dateTo: Date): Promise<number> {
     return this.prismaServ.logsReq.count({ where: { route: { contains: route }, date: { gte: dateFrom, lte: dateTo } } });
   }
+
+  // obtencion de sets de agrupacion
 
   private async getSetOfStatusCode(from: Date, to: Date): Promise<string[]> {
     const statusCodes = await this.prismaServ.logsReq.findMany({ select: { statusCode: true }, where: { date: { gte: from, lte: to } } });
@@ -57,20 +62,34 @@ export class LogsService {
   }
 
   private async getSetOfRoutes(from: Date, to: Date, routesLike: string[]) {
-    const filteredRoutes = [];
-    let _ = await Promise.all(
+    const filteredRoutes = await Promise.all(
       routesLike.map(async (r) => {
         const numRoutes = await this.prismaServ.logsReq.count({ where: { route: { contains: r }, date: { gte: from, lte: to } } });
+        numRoutes;
         if (numRoutes > 0) {
-          filteredRoutes.push(r);
+          return r;
         }
-        return Promise.resolve(r);
       })
     );
-    return filteredRoutes;
+    return filteredRoutes.filter((r) => r !== undefined);
   }
 
-  async getLineChartDataByRouteLike(type: TIMEOPTION) {
+  // Generar las line stats
+
+  async getLineChartData(group: GROUPFILTER, time: TIMEOPTION): Promise<StatsLineChart> {
+    switch (group) {
+      case GROUPFILTER.METHOD:
+        return this.getLineChartDataByMethod(time);
+      case GROUPFILTER.ROUTE:
+        return this.getLineChartDataByRouteLike(time);
+      case GROUPFILTER.STATUSCODE:
+        return this.getLineChartDataByStatusCode(time);
+      default:
+        throw new NotFoundException();
+    }
+  }
+
+  private async getLineChartDataByRouteLike(time: TIMEOPTION): Promise<StatsLineChart> {
     const routes = [
       '/auth/login',
       '/auth/register',
@@ -92,7 +111,7 @@ export class LogsService {
       '/admin/dedicated-space',
       '/admin/used-space'
     ];
-    const timedimension = this.getTimeDimension(type);
+    const timedimension = this.getTimeDimension(time);
     const filteredRoutes = await this.getSetOfRoutes(timedimension[timedimension.length - 1].to, timedimension[0].from, routes);
     return Promise.all(
       filteredRoutes.map(async (m) => {
@@ -106,8 +125,8 @@ export class LogsService {
     );
   }
 
-  async getLineChartDataByStatusCode(type: TIMEOPTION): Promise<StatsLineChart> {
-    const timedimension = this.getTimeDimension(type);
+  private async getLineChartDataByStatusCode(time: TIMEOPTION): Promise<StatsLineChart> {
+    const timedimension = this.getTimeDimension(time);
     const statusCodes = await this.getSetOfStatusCode(timedimension[timedimension.length - 1].to, timedimension[0].from);
     return Promise.all(
       statusCodes.map(async (m) => {
@@ -121,8 +140,8 @@ export class LogsService {
     );
   }
 
-  async getLineChartDataByMethod(type: TIMEOPTION): Promise<StatsLineChart> {
-    const timedimension = this.getTimeDimension(type);
+  private async getLineChartDataByMethod(time: TIMEOPTION): Promise<StatsLineChart> {
+    const timedimension = this.getTimeDimension(time);
     const methods = await this.getSetOfMethods(timedimension[timedimension.length - 1].to, timedimension[0].from);
     return Promise.all(
       methods.map(async (m) => {
@@ -136,8 +155,10 @@ export class LogsService {
     );
   }
 
-  private getTimeDimension(type: TIMEOPTION): TimeDim[] {
-    switch (type) {
+  // Dimension del tiempo
+
+  private getTimeDimension(time: TIMEOPTION): TimeDim[] {
+    switch (time) {
       case TIMEOPTION.TODAY:
         return this.getTimeTodayDimension();
       case TIMEOPTION.LAST7DAYS:
@@ -146,6 +167,8 @@ export class LogsService {
         return this.getTimeThisMonth();
       case TIMEOPTION.LAST30DAYS:
         return this.getTimeLast30Days();
+      default:
+        throw new NotFoundException();
     }
   }
 

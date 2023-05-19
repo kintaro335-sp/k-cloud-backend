@@ -1,5 +1,4 @@
 import { Controller, Post, Get, Delete, Body, UseGuards, Param } from '@nestjs/common';
-
 // services
 import { AdminService } from './admin.service';
 import { AuthService } from '../auth/auth.service';
@@ -9,6 +8,7 @@ import { MessageResponse } from '../auth/interfaces/response.interface';
 import { SpaceUsed, UsedSpaceUser } from './interfaces/spaceused.interface';
 import { UsedSpaceType } from 'src/files/interfaces/list-file.interface';
 import { TIMEOPTION } from 'src/logs/interfaces/options.interface';
+import { GROUPFILTER } from 'src/logs/interfaces/groupfilter.interface';
 // dto
 import { DedicatedSpaceDTO } from './dto/dedicated-space-dto';
 import { SetPasswordDTO } from './dto/set-password.dto';
@@ -110,71 +110,9 @@ export class AdminController {
     return { usage: this.adminServ.getBufferUsage() };
   }
 
-  @Get('logs/stats/method/line/today')
+  @Get('logs/stats/:group/line/:time')
   @UseGuards(JwtAuthGuard, AdminGuard)
-  async getLogsLineToday() {
-    return this.logserv.getLineChartDataByMethod(TIMEOPTION.TODAY);
-  }
-
-  @Get('logs/stats/method/line/7days')
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  async getLogsLine7days() {
-    return this.logserv.getLineChartDataByMethod(TIMEOPTION.LAST7DAYS);
-  }
-
-  @Get('logs/stats/method/line/thismonth')
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  async getLogsLinethismonth() {
-    return this.logserv.getLineChartDataByMethod(TIMEOPTION.THISMONTH);
-  }
-
-  @Get('logs/stats/method/line/30days')
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  async getLogsLine30days() {
-    return this.logserv.getLineChartDataByMethod(TIMEOPTION.LAST30DAYS);
-  }
-
-  @Get('logs/stats/statuscode/line/today')
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  async getLogsLineTodayStatusCode() {
-    return this.logserv.getLineChartDataByStatusCode(TIMEOPTION.TODAY);
-  }
-
-  @Get('logs/stats/statuscode/line/7days')
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  async getLogsLine7daysStatusCode() {
-    return this.logserv.getLineChartDataByStatusCode(TIMEOPTION.LAST7DAYS);
-  }
-
-  @Get('logs/stats/statuscode/line/thismonth')
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  async getLogsLinethismonthStatusCode() {
-    return this.logserv.getLineChartDataByStatusCode(TIMEOPTION.THISMONTH);
-  }
-
-  @Get('logs/stats/statuscode/line/30days')
-  @UseGuards(JwtAuthGuard, AdminGuard)
-  async getLogsLine30daysStatusCode() {
-    return this.logserv.getLineChartDataByStatusCode(TIMEOPTION.LAST30DAYS);
-  }
-
-  @Get('logs/stats/route/line/today')
-  async getLogsLineTodayRoute() {
-    return this.logserv.getLineChartDataByRouteLike(TIMEOPTION.TODAY);
-  }
-
-  @Get('logs/stats/route/line/7days')
-  async getLogsLine7DaysRoute() {
-    return this.logserv.getLineChartDataByRouteLike(TIMEOPTION.LAST7DAYS);
-  }
-
-  @Get('logs/stats/route/line/thismonth')
-  async getLogsLineThisMonthRoute() {
-    return this.logserv.getLineChartDataByRouteLike(TIMEOPTION.THISMONTH);
-  }
-
-  @Get('logs/stats/route/line/30days')
-  async getLogsLineLast30DaysRoute() {
-    return this.logserv.getLineChartDataByRouteLike(TIMEOPTION.LAST30DAYS);
+  async getLineChartData(@Param('group') group: GROUPFILTER, @Param('time') time: TIMEOPTION) {
+    return this.logserv.getLineChartData(group, time);
   }
 }
