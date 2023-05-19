@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Delete, Body, UseGuards, Param } from '@nestjs/common';
+import { Controller, Post, Get, Delete, Body, UseGuards, Param, Query, ParseIntPipe } from '@nestjs/common';
 // services
 import { AdminService } from './admin.service';
 import { AuthService } from '../auth/auth.service';
@@ -114,5 +114,17 @@ export class AdminController {
   @UseGuards(JwtAuthGuard, AdminGuard)
   async getLineChartData(@Param('group') group: GROUPFILTER, @Param('time') time: TIMEOPTION) {
     return this.logserv.getLineChartData(group, time);
+  }
+
+  @Get('logs/list')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async getLogsList(@Query('page', ParseIntPipe) page: number) {
+    return this.logserv.getLogs(page);
+  }
+
+  @Get('logs/pages')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  async getLogsPages() {
+    return this.logserv.getPagesLogs();
   }
 }

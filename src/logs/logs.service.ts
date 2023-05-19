@@ -16,9 +16,21 @@ const moment = require('moment');
 @Injectable()
 export class LogsService {
   constructor(private readonly prismaServ: PrismaService) {}
+  private amount = 30;
 
   async createLog(entry: Prisma.LogsReqCreateInput) {
     await this.prismaServ.logsReq.create({ data: entry });
+  }
+
+  async getLogs(page: number): Promise<LogR[]> {
+    const pageR = page - 1;
+    const logs = await this.prismaServ.logsReq.findMany({ take: this.amount, skip: pageR * this.amount, orderBy: { date: 'desc' } });
+    return logs.map((l) => ({ date: l.date.getTime(), method: l.method, route: l.route, statusCode: l.statusCode }));
+  }
+
+  async getPagesLogs(): Promise<number> {
+    const count = await this.prismaServ.logsReq.count();
+    return Math.ceil(count / this.amount);
   }
 
   async getLastDayLogs(): Promise<LogR[]> {
