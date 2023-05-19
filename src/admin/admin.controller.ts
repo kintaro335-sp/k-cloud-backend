@@ -125,6 +125,6 @@ export class AdminController {
   @Get('logs/pages')
   @UseGuards(JwtAuthGuard, AdminGuard)
   async getLogsPages() {
-    return this.logserv.getPagesLogs();
+    return { pages: await this.logserv.getPagesLogs() };
   }
 }
