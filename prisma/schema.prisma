@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,14 +8,19 @@ datasource db {
 }
 
 model User {
+  @@index([id])
+  @@index([username])
   id String @id
   username String @unique
   passwordu String
-  isadmin Boolean @default(value: false)
+  isadmin Boolean @default(false)
   files Sharedfile[]
 }
 
 model Sharedfile {
+  @@index([path])
+  @@index([userid])
+  @@index([id])
   id String @id
   userid String
   name String
@@ -28,4 +30,17 @@ model Sharedfile {
   expire DateTime
   createdAt DateTime
   owner User @relation(fields: [userid], references: [id])
+}
+
+model LogsReq {
+  @@index([method])
+  @@index([statusCode])
+  @@index([route])
+  @@index([date])
+  id String @id
+  date DateTime
+  route String
+  statusCode String
+  method String
+  MessageError String @default("")
 }

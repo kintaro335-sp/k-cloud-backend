@@ -1,29 +1,5 @@
-const whiteList = [];
+const rawWhiteList = process.env.CORS_LIST || ('' as string);
 
-const ipSegs1 = ['192'];
+const whiteList = rawWhiteList.split('|');
 
-const ipSegs2 = ['168'];
-
-const ipSegs3 = ['50', '5'];
-
-const ipSegs4 = ['181', '37', '239'];
-
-const port = [':3000'];
-
-ipSegs1.forEach((i1) => {
-  ipSegs2.forEach((i2) => {
-    ipSegs3.forEach((i3) => {
-      ipSegs4.forEach((i4) => {
-        port.forEach((p) => {
-          whiteList.push(`http://${i1}.${i2}.${i3}.${i4}${port}`);
-        });
-      });
-    });
-  });
-});
-
-const other = ['http://localhost:3000'];
-
-console.log(whiteList);
-
-export default [...other, ...whiteList];
+export default [...whiteList];

@@ -5,7 +5,5 @@ export class DedicatedSpaceDTO {
   @IsNumber()
   quantity: number;
   @IsString()
-  @Contains('MB')
-  @Contains('GB')
   unitTipe: UnitByte;
 }

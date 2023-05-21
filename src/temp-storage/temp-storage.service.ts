@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { UtilsService } from '../utils/utils.service';
 // interfaces
 import { FilePTemp, BlobFTemp, FilePTempResponse } from './interfaces/filep.interface';
 import { createWriteStream, existsSync } from 'fs';
@@ -6,6 +7,8 @@ import { join } from 'path';
 
 @Injectable()
 export class TempStorageService {
+  constructor(private readonly utilsService: UtilsService) {}
+
   private filesDirectories: string[] = [];
   private storage: Record<string, FilePTemp | null> = {};
 
@@ -15,6 +18,10 @@ export class TempStorageService {
    * @returns {number} cantidad de blobs
    */
   getBlobsLength(path: string): number {
+    if (this.storage[path] === null || this.storage[path] === undefined) {
+      return 0;
+    }
+
     return this.storage[path].blobs.length;
   }
 
@@ -29,10 +36,12 @@ export class TempStorageService {
   /**
    * Actualizar lo Bytes Escritos
    * @param {string} path direccion de archivo
-   * @param {number} numBytes numero de bytes grabados
+   * @param {BlobFTemp} blob blob escrito
    */
-  updateBytesWriten(path: string, numBytes: number) {
-    this.storage[path].size = numBytes;
+  updateBytesWriten(path: string, blob: BlobFTemp) {
+    this.storage[path].bytesWritten.push({ from: blob.position, to: blob.position + blob.blob.length });
+    const total = this.storage[path].bytesWritten.map((b) => b.to - b.from);
+    this.storage[path].saved = this.utilsService.arraySum(total);
   }
 
   /**
@@ -43,7 +52,6 @@ export class TempStorageService {
    */
   createFileTemp(path: string, size: number, root: string) {
     const name = path.split('/').pop();
-    const completePath = join(root, path);
 
     this.filesDirectories.push(path);
     this.storage[path] = {
@@ -53,7 +61,8 @@ export class TempStorageService {
       received: 0,
       bytesWritten: [],
       completed: false,
-      blobs: []
+      blobs: [],
+      writting: false
     };
   }
 
@@ -89,7 +98,10 @@ export class TempStorageService {
    */
   isCompleted(path: string) {
     const file = this.storage[path];
-    const isCompleted = file.size === file.saved;
+    if (file === null || file === undefined) {
+      return true;
+    }
+    const isCompleted = file.size === file.saved || file.size < file.saved;
     this.storage[path].completed = isCompleted;
     return isCompleted;
   }
@@ -116,15 +128,14 @@ export class TempStorageService {
    *
    */
   getFileStatus(path: string): FilePTempResponse {
-    const { name, bytesWritten, completed, received, saved, size } = this.storage[path];
-
+    const { name, completed, received, saved, size, blobs } = this.storage[path];
     return {
       name,
-      bytesWritten,
       completed,
       received,
       saved,
-      size
+      size,
+      blobsNum: blobs.length
     };
   }
 
@@ -145,13 +156,12 @@ export class TempStorageService {
    * @returns {BlobFTemp} Buffer a escribir
    */
   deallocateBlob(path: string): BlobFTemp {
-    const blobR = this.storage[path].blobs.pop();
-    const bytesWritten = { from: blobR.position, to: blobR.position + blobR.blob.length };
-
-    this.storage[path].bytesWritten.push(bytesWritten);
-    this.storage[path].saved = this.getBytesWritten(path);
-
-    return blobR;
+    try {
+      const blobR = this.storage[path].blobs.pop();
+      return blobR;
+    } catch (err) {
+      return;
+    }
   }
 
   /**
@@ -165,5 +175,16 @@ export class TempStorageService {
       size += binfo.to - binfo.from;
     });
     return size;
+  }
+
+  setWritting(path: string, newValue: boolean) {
+    if (this.storage[path] === null || this.storage[path] === undefined) return;
+    this.storage[path].writting = newValue;
+  }
+
+  getWritting(path: string): boolean {
+    if (this.storage[path] === null || this.storage[path] === undefined) return false;
+
+    return this.storage[path].writting;
   }
 }

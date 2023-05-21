@@ -1,14 +1,33 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, forwardRef, Inject } from '@nestjs/common';
 // services
 import { FilesService } from '../files/files.service';
+import { UsersService } from '../users/users.service';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { ConfigService } from '@nestjs/config';
 // interfaces
-import { SpaceUsed } from './interfaces/spaceused.interface';
-import { Config, UnitByte } from './interfaces/config.interface';
+import { SpaceUsed, UsedSpaceUser } from './interfaces/spaceused.interface';
+import { Config, UnitByte, SpaceConfig } from './interfaces/config.interface';
 // fs
-import { existsSync, createWriteStream, rmSync, readFile } from 'fs';
+import { existsSync, createWriteStream, rmSync, readFileSync } from 'fs';
+import { join } from 'path';
+
 @Injectable()
 export class AdminService implements OnModuleInit, OnModuleDestroy {
-  constructor(private readonly fileServ: FilesService) {}
+  constructor(
+    @Inject(forwardRef(() => FilesService)) private readonly fileServ: FilesService,
+    private readonly usersServ: UsersService,
+    private readonly configServ: ConfigService
+  ) {
+    const pathConfEnv = this.configServ.get('SETTINGS');
+
+    if (pathConfEnv !== '' || pathConfEnv !== undefined) {
+      this.pathConfig = pathConfEnv;
+    } else {
+      this.pathConfig = join(__dirname, 'settings.json');
+    }
+  }
+
+  private pathConfig = '';
 
   private config: Config = {
     core: {
@@ -16,8 +35,20 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
       unitType: 'MB',
       dedicatedSpaceBytes: 1073741824,
       usedSpaceBytes: 0
+    },
+    users: {
+      firstUser: null
     }
   };
+
+  @Cron(CronExpression.EVERY_12_HOURS)
+  private async updateUsedSpaceCron() {
+    const usedSpaceBytes = await this.fileServ.getUsedSpace();
+    if (this.config.core.usedSpaceBytes !== usedSpaceBytes) {
+      this.config.core.usedSpaceBytes = usedSpaceBytes;
+      this.saveConfig();
+    }
+  }
 
   /**
    * Hacer Json Parse a un `string`
@@ -34,7 +65,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
    * @returns {boolean} `true` si dicho settings.json existe
    */
   existsSettingsFile(): boolean {
-    return existsSync('./settings.json');
+    return existsSync(this.pathConfig);
   }
 
   /**
@@ -42,10 +73,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
    */
   private saveConfig(): void {
     const stream = JSON.stringify(this.config);
-    if (this.existsSettingsFile()) {
-      rmSync('./settings.json');
-    }
-    const file = createWriteStream('./settings.json');
+    const file = createWriteStream(this.pathConfig, { flags: 'w' });
     file.write(Buffer.from(stream));
     file.close();
   }
@@ -55,13 +83,13 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
    */
   private loadConfig() {
     if (this.existsSettingsFile()) {
-      readFile('./settings.json', (err, data) => {
-        if (err) {
-          console.error(err);
-        }
+      try {
+        const data = readFileSync(this.pathConfig);
         const configString = data.toString();
         this.config = this.parseConfig(configString);
-      });
+      } catch (err) {
+        console.error(err);
+      }
     }
   }
 
@@ -78,7 +106,7 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Cambiar el espacio dedicado 
+   * Cambiar el espacio dedicado
    * @param {number} quantity Numero de MB o GB
    * @param {UnitByte} unitType solo pueder ser `GB` o `MB`
    */
@@ -98,12 +126,12 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
    * Actualizar el espacio usado
    * @returns {Promise<SpaceUsed>}
    */
-  async updateUsedSpace():Promise<SpaceUsed>  {
+  async updateUsedSpace(): Promise<SpaceUsed> {
     const usedSpaceBytes = await this.fileServ.getUsedSpace();
-
-    this.config.core.usedSpaceBytes = usedSpaceBytes;
-
-    this.saveConfig();
+    if (this.config.core.usedSpaceBytes !== usedSpaceBytes) {
+      this.config.core.usedSpaceBytes = usedSpaceBytes;
+      this.saveConfig();
+    }
 
     return { total: this.config.core.dedicatedSpaceBytes, used: usedSpaceBytes };
   }
@@ -112,8 +140,26 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
    * Obtener espacio usado
    * @returns {Promise<SpaceUsed>}
    */
-  async getUsedSpace() :Promise<SpaceUsed> {
+  getUsedSpace() {
     return { total: this.config.core.dedicatedSpaceBytes, used: this.config.core.usedSpaceBytes };
+  }
+
+  async getUsedSpaceByUsers(): Promise<UsedSpaceUser[]> {
+    const users = await this.usersServ.findAll();
+    const usersSpaceUsed: Array<Promise<UsedSpaceUser>> = users.map(async (u) => ({
+      id: u.id,
+      username: u.username,
+      usedSpace: await this.fileServ.getUsedSpaceUser(u.id)
+    }));
+    return Promise.all(usersSpaceUsed);
+  }
+
+  getUsedSpaceByFileType() {
+    return this.fileServ.getUsedSpaceByFileType();
+  }
+
+  getSpaceConfig(): SpaceConfig {
+    return { unitType: this.config.core.unitType, dedicatedSpace: this.config.core.dedicatedSpace };
   }
 
   // convertions
@@ -129,10 +175,32 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Convertitr GigaBytes a Bytes
-   * @param {number} gigaBytes  
+   * @param {number} gigaBytes
    * @returns {number}  Cantidad en Bytes
    */
   private convertGBtoBytes(gigaBytes: number): number {
     return gigaBytes * 1073741824;
+  }
+
+  setFirstUser(userid: string) {
+    if (this.config.users === undefined) {
+      this.config.users = {
+        firstUser: null
+      };
+    }
+    this.config.users.firstUser = userid;
+    this.saveConfig();
+  }
+
+  getfirstUser(): string | null {
+    return this.config?.users?.firstUser || null;
+  }
+
+  getMemoryUsage() {
+    return process.memoryUsage.rss();
+  }
+
+  getBufferUsage() {
+    return process.memoryUsage().arrayBuffers;
   }
 }

@@ -1,44 +1,58 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Cron } from '@nestjs/schedule';
+import { Interval } from '@nestjs/schedule';
 // services
 import { TempStorageService } from '../temp-storage/temp-storage.service';
+import { AdminService } from '../admin/admin.service';
+import { TokenFilesService } from '../token-files/token-files.service';
 // exceptions
 import { NotFoundException } from './exceptions/NotFound.exception';
 // interfaces
-import { ListFile, File, Folder } from './interfaces/list-file.interface';
+import { ListFile, File, Folder, UsedSpaceType } from './interfaces/list-file.interface';
 import { UserPayload } from '../auth/interfaces/userPayload.interface';
 import { MessageResponse } from '../auth/interfaces/response.interface';
 import { BlobFTemp } from '../temp-storage/interfaces/filep.interface';
 // fs and path
-import { existsSync, readdirSync, createReadStream, ReadStream, createWriteStream, lstatSync } from 'fs';
-import { readdir, lstat, mkdir, rm, rmdir } from 'fs/promises';
+import { existsSync, createReadStream, ReadStream, createWriteStream } from 'fs';
+import { readdir, lstat, mkdir, rm } from 'fs/promises';
 import { join } from 'path';
+// utils
 import { lookup } from 'mime-types';
 import { orderBy } from 'lodash';
+import { Stream } from 'stream';
+const JSZip = require('jszip');
 
 @Injectable()
 export class FilesService {
   public root: string = '~/';
-  constructor(private readonly configService: ConfigService, private readonly storageService: TempStorageService) {
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly storageService: TempStorageService,
+    @Inject(forwardRef(() => AdminService)) private readonly adminServ: AdminService,
+    private readonly tokenServ: TokenFilesService
+  ) {
     this.root = this.configService.get<string>('FILE_ROOT');
   }
 
   /**
    * mandar a Escribir numerosos blobs de los archivos
    */
-  @Cron('* * * * *')
+  @Interval(10000)
   async writeBlobs() {
     this.storageService.getFilesDirectories().forEach(async (dir) => {
+      if (this.storageService.getWritting(dir)) return;
+
       while (this.storageService.getBlobsLength(dir) !== 0) {
+        this.storageService.setWritting(dir, true);
         const blob = this.storageService.deallocateBlob(dir);
         if (blob !== undefined) {
           try {
             const realPath = join(this.root, dir);
             await this.storageService.writeBlob(realPath, blob);
-            this.storageService.updateBytesWriten(dir, blob.blob.length);
+            this.storageService.updateBytesWriten(dir, blob);
             if (this.storageService.isCompleted(dir)) {
-              //this.storageService
+              this.storageService.delFile(dir);
+              this.adminServ.updateUsedSpace();
             }
           } catch (err) {
             this.storageService.allocateBlob(dir, blob.position, blob.blob);
@@ -46,20 +60,8 @@ export class FilesService {
           }
         }
       }
+      this.storageService.setWritting(dir, false);
     });
-  }
-
-  /**
-   * Escfibir un blolb de un fichero que provenga de tempStorageService
-   * @param {string} path Direccion del archivo
-   * @param {BlobFTemp} blobp Blob a escribir
-   * @returns {number}  Numbero de Bytes escritos
-   */
-  private async onWriteBlob(path: string, blobp: BlobFTemp): Promise<number> {
-    const writeStreamF = createWriteStream(path, { start: blobp.position, flags: 'w' });
-    writeStreamF.write(blobp.blob);
-    writeStreamF.close();
-    return blobp.blob.length;
   }
 
   /**
@@ -84,7 +86,7 @@ export class FilesService {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
     if (!existsSync(entirePath)) {
-      throw new NotFoundException(entirePath);
+      throw new NotFoundException(path);
     }
     const statFile = await lstat(entirePath);
     return statFile.isDirectory();
@@ -117,8 +119,16 @@ export class FilesService {
     }
     const fileStat = await lstat(entirePath, { bigint: false });
     const file = entirePath.split('/').pop();
+    const tokens = await this.tokenServ.getCountByPath(path);
 
-    return { name: file, type: 'file', size: fileStat.size, extension: file.split('.').pop(), mime_type: lookup(file.split('.').pop()) || '' };
+    return {
+      name: file,
+      type: 'file',
+      size: fileStat.size,
+      tokens,
+      extension: file.split('.').pop(),
+      mime_type: lookup(file.split('.').pop()) || ''
+    };
   }
 
   /**
@@ -135,7 +145,21 @@ export class FilesService {
     }
     const fileStat = await lstat(entirePath, { bigint: false });
     const file = entirePath.split('/').pop();
-    return { name: file, type: 'file', size: fileStat.size, extension: file.split('.').pop(), mime_type: lookup(file.split('.').pop()) || '' };
+    const tokens = await this.tokenServ.getCountByPath(path);
+    return {
+      name: file,
+      type: 'file',
+      size: fileStat.size,
+      tokens,
+      extension: file.split('.').pop(),
+      mime_type: lookup(file.split('.').pop()) || ''
+    };
+  }
+
+  async getFileSize(path: string, injectRoot: boolean = true): Promise<number> {
+    const entirePath = injectRoot ? join(this.root, path) : path;
+    const fileStat = await lstat(entirePath, { bigint: false });
+    return fileStat.size;
   }
 
   /**
@@ -150,30 +174,35 @@ export class FilesService {
     if (!existsSync(entirePath)) {
       throw new NotFoundException();
     }
-    const list: File[] = [];
-    const listFiles = readdirSync(entirePath);
 
-    listFiles.forEach((file) => {
-      const filePath = join(entirePath, file);
-      const fileStat = lstatSync(filePath, { bigint: false });
-      if (fileStat.isDirectory()) {
-        list.push({
-          name: file,
-          type: 'folder',
-          size: fileStat.size,
-          extension: '',
-          mime_type: ''
-        });
-      } else {
-        list.push({
+    const listFiles = await readdir(entirePath);
+
+    const list: File[] = await Promise.all(
+      listFiles.map(async (file) => {
+        const filePath = join(entirePath, file);
+        const fileStat = await lstat(filePath, { bigint: false });
+        const tokens = await this.tokenServ.getCountByPath(join(path, file));
+        if (fileStat.isDirectory()) {
+          const folderSize = await this.getUsedSpaceFolder(join(path, file), userPayload);
+          return {
+            name: file,
+            type: 'folder',
+            size: folderSize,
+            tokens,
+            extension: '',
+            mime_type: ''
+          };
+        }
+        return {
           name: file,
           type: 'file',
           size: fileStat.size,
+          tokens,
           extension: file.split('.').pop(),
           mime_type: lookup(file.split('.').pop()) || ''
-        });
-      }
-    });
+        };
+      })
+    );
     const ordenedList = orderBy<File>(list, ['type', 'name'], ['desc', 'asc']);
     return { list: ordenedList };
   }
@@ -221,6 +250,11 @@ export class FilesService {
   async deleteFile(path: string, userPayload: UserPayload): Promise<MessageResponse> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
+    const storagePath = join(userId, path);
+    if (this.storageService.existsFile(storagePath)) {
+      this.storageService.delFile(storagePath);
+    }
+
     if (!existsSync(entirePath)) {
       throw new NotFoundException();
     }
@@ -228,7 +262,8 @@ export class FilesService {
       await rm(entirePath);
       return Promise.resolve({ message: 'File deleted successfully' });
     }
-    await rmdir(entirePath, { recursive: true });
+    await rm(entirePath, { recursive: true });
+    this.tokenServ.deleteTokensByPath(path, userId);
     return { message: 'Folder deleted successfully' };
   }
 
@@ -255,7 +290,7 @@ export class FilesService {
    * @param {boolean} rec incluir el user
    * @returns {Promise<Folder | File>} File si se detecta que el roor es File y el arbol si el carpeta
    */
-  async GenerateTree(path: string, userPayload: UserPayload | null, rec: boolean): Promise<Folder | File> {
+  async GenerateTree(path: string, userPayload: UserPayload | null, rec: boolean, showFiles = true): Promise<Folder | File> {
     const pathWithUser = userPayload !== null ? join(this.root, userPayload.userId, path) : join(this.root, path);
     const entirePath = rec ? path : pathWithUser;
     const fileStat = await lstat(entirePath, { bigint: false });
@@ -264,6 +299,7 @@ export class FilesService {
         type: 'file',
         name: path.split('/').pop(),
         extension: path.split('.').pop(),
+        tokens: 0,
         mime_type: lookup(path.split('.').pop()) || '',
         size: fileStat.size
       };
@@ -278,20 +314,24 @@ export class FilesService {
           const filePath = join(entirePath, f);
           try {
             const fileStat = await lstat(filePath, { bigint: false });
-
             if (fileStat.isDirectory()) {
               return {
                 type: 'Folder',
                 name: f,
-                content: await Promise.all((await readdir(filePath)).map(async (fi) => this.GenerateTree(join(filePath, fi), userPayload, true)))
+                content: await Promise.all(
+                  (await readdir(filePath))
+                    .map(async (fi) => await this.GenerateTree(join(filePath, fi), userPayload, true))
+                    .filter((f) => f !== null)
+                )
               };
-            } else {
+            } else if (showFiles) {
               return {
-                name: f,
                 type: 'file',
+                name: f,
                 size: fileStat.size,
-                extension: f.split('.').pop(),
-                mime_type: lookup(f.split('.').pop()) || ''
+                tokens: 0,
+                mime_type: lookup(f.split('.').pop()) || '',
+                extension: f.split('.').pop()
               };
             }
           } catch (err) {
@@ -327,10 +367,133 @@ export class FilesService {
   }
 
   /**
+   * Obtener el espacio usado de un usuario
+   * @param {string} userId id de usuario
+   * @returns {Promise<number>} espacio usado por el usuario
+   */
+  async getUsedSpaceUser(userId: string): Promise<number> {
+    if (!this.exists('', { isadmin: false, userId, username: '' })) return 0;
+    const filesTree = await this.GenerateTree(userId, null, false);
+    const usedSpace = { value: 0 };
+    if (filesTree.type === 'Folder') {
+      const onForEach = (file: File | Folder) => {
+        if (file.type === 'Folder') {
+          file.content.forEach(onForEach);
+        }
+        if (file.type === 'file') {
+          usedSpace.value = usedSpace.value + file.size;
+        }
+      };
+      filesTree.content.forEach(onForEach);
+      return usedSpace.value;
+    } else {
+      return 0;
+    }
+  }
+
+  /**
+   * Obtener el espacio usado de un usuario
+   * @param {string} path id de usuario
+   * @param {UserPayload} user usuario de usuario autenticado
+   * @returns {Promise<number>} espacio usado por el usuario
+   */
+  async getUsedSpaceFolder(path: string, user: UserPayload): Promise<number> {
+    if (!this.exists('', user)) return 0;
+    const filesTree = await this.GenerateTree(path, user, false);
+    const usedSpace = { value: 0 };
+    if (filesTree.type === 'Folder') {
+      const onForEach = (file: File | Folder) => {
+        if (file.type === 'Folder') {
+          file.content.forEach(onForEach);
+        }
+        if (file.type === 'file') {
+          usedSpace.value = usedSpace.value + file.size;
+        }
+      };
+      filesTree.content.forEach(onForEach);
+      return usedSpace.value;
+    } else {
+      return 0;
+    }
+  }
+
+  async getUsedSpaceByFileType(path = ''): Promise<UsedSpaceType[]> {
+    const usedSpace: Record<string, number> = {};
+    const sumBytes = (type: string, bytes: number) => {
+      if (usedSpace[type] === undefined) {
+        usedSpace[type] = bytes;
+      } else {
+        usedSpace[type] += bytes;
+      }
+    };
+    const filesTree = await this.GenerateTree(path, null, false);
+    if (filesTree.type === 'Folder') {
+      const onForEach = (file: File | Folder) => {
+        if (file.type === 'Folder') {
+          file.content.forEach(onForEach);
+        }
+        if (file.type === 'file') {
+          if (file.mime_type.includes('image/')) {
+            sumBytes('image', file.size);
+          } else if (file.mime_type.includes('video/')) {
+            sumBytes('video', file.size);
+          } else if (file.mime_type.includes('compressed')) {
+            sumBytes('compressed', file.size);
+          } else {
+            sumBytes('other', file.size);
+          }
+        }
+      };
+      filesTree.content.forEach(onForEach);
+      return Object.keys(usedSpace).map((type) => ({ type, used: usedSpace[type] }));
+    } else {
+      return [];
+    }
+  }
+
+  async getZipFromPathUser(path: string, user: UserPayload | null): Promise<any> {
+    const filename = path.split('/').pop();
+    const entirePath = user === null ? join(this.root, path) : join(this.root, user.userId, path);
+    if (!existsSync(entirePath)) {
+      throw new NotFoundException('File or Folder Not Found');
+    }
+    const fileStatus = await lstat(entirePath);
+    if (fileStatus.isDirectory()) {
+      const treeF = await this.GenerateTree(path, user, false);
+      const zipFolder = new JSZip();
+      const onForEach = (pathContext: string) => (val: Folder | File) => {
+        if (val.type === 'Folder') {
+          val.content.forEach(onForEach(join(pathContext, val.name)));
+        } else {
+          const realPath = join(entirePath, pathContext, val.name);
+          const zipPath = join(pathContext, val.name);
+          zipFolder.file(zipPath, createReadStream(realPath), { createFolders: true });
+        }
+      };
+      if (treeF.type === 'Folder') {
+        treeF.content.forEach(onForEach(''));
+        return zipFolder.generateNodeStream({ streamFiles: true });
+      }
+    } else {
+      const zipFile = new JSZip();
+      zipFile.file(filename, createReadStream(entirePath));
+      return zipFile.generateNodeStream({ streamFiles: true });
+    }
+  }
+
+  /**
    * Obtener el directorio Raiz donde estan alojados los archivos
    * @returns {string}
    */
   getRoot(): string {
     return this.root;
+  }
+
+  /**
+   * Obtener el path real de un archivo
+   * @returns {string}
+   */
+  getRealPath(path: string, user: UserPayload) {
+    return join(this.root, user.userId, path);
   }
 }
