@@ -9,8 +9,6 @@ import { StatsLineChart } from './interfaces/statslinechart.interface';
 import { GROUPFILTER } from './interfaces/groupfilter.interface';
 // prisma
 import { Prisma } from '@prisma/client';
-// utils
-import { Moment } from 'moment';
 const moment = require('moment');
 
 @Injectable()
@@ -128,9 +126,11 @@ export class LogsService {
     return Promise.all(
       filteredRoutes.map(async (m) => {
         const data = await Promise.all(
-          timedimension.map(async (t) => {
-            return { x: t.label, y: await this.countLogsByRouteLike(m, t.from, t.to) };
-          })
+          timedimension
+            .map(async (t) => {
+              return { x: t.label, y: await this.countLogsByRouteLike(m, t.from, t.to) };
+            })
+            .reverse()
         );
         return { id: m, data };
       })
@@ -143,9 +143,11 @@ export class LogsService {
     return Promise.all(
       statusCodes.map(async (m) => {
         const data = await Promise.all(
-          timedimension.map(async (t) => {
-            return { x: t.label, y: await this.countLogsByStatusCode(m, t.from, t.to) };
-          })
+          timedimension
+            .map(async (t) => {
+              return { x: t.label, y: await this.countLogsByStatusCode(m, t.from, t.to) };
+            })
+            .reverse()
         );
         return { id: m, data };
       })
@@ -158,9 +160,11 @@ export class LogsService {
     return Promise.all(
       methods.map(async (m) => {
         const data = await Promise.all(
-          timedimension.map(async (t) => {
-            return { x: t.label, y: await this.countLogsByMethod(m, t.from, t.to) };
-          })
+          timedimension
+            .map(async (t) => {
+              return { x: t.label, y: await this.countLogsByMethod(m, t.from, t.to) };
+            })
+            .reverse()
         );
         return { id: m, data };
       })
