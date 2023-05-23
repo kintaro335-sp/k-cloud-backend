@@ -11,9 +11,9 @@ export class MonitorService {
   @Interval(1000)
   registerMemoryUsage() {
     const memUsage = process.memoryUsage();
-    this.memoryInfo.unshift({ rss: memUsage.rss, buffer: memUsage.arrayBuffers });
+    this.memoryInfo.push({ rss: memUsage.rss, buffer: memUsage.arrayBuffers });
     if (this.memoryInfo.length > 60) {
-      this.memoryInfo.pop();
+      this.memoryInfo.shift();
     }
   }
 
