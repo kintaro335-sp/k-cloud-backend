@@ -16,6 +16,7 @@ import { SetupModule } from './setup/setup.module';
 // middlewares
 import { LoggerMiddleware } from './middlewares/logger.middleware';
 import { LogsModule } from './logs/logs.module';
+import { MonitorModule } from './monitor/monitor.module';
 
 @Module({
   imports: [
@@ -30,7 +31,8 @@ import { LogsModule } from './logs/logs.module';
     ScheduleModule.forRoot(),
     SharedFileModule,
     SetupModule,
-    LogsModule
+    LogsModule,
+    MonitorModule
   ],
   controllers: [AppController],
   providers: [AppService, ConfigService, PrismaService]
