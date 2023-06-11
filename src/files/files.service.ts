@@ -19,7 +19,6 @@ import { join } from 'path';
 // utils
 import { lookup } from 'mime-types';
 import { orderBy } from 'lodash';
-import { Stream } from 'stream';
 const JSZip = require('jszip');
 
 @Injectable()
@@ -37,7 +36,7 @@ export class FilesService {
   /**
    * mandar a Escribir numerosos blobs de los archivos
    */
-  @Interval(10000)
+  @Interval(20000)
   async writeBlobs() {
     this.storageService.getFilesDirectories().forEach(async (dir) => {
       if (this.storageService.getWritting(dir)) return;
