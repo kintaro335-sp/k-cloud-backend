@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 // services
 import { PrismaService } from '../prisma.service';
 // insterfaces
@@ -9,12 +10,19 @@ import { StatsLineChart } from './interfaces/statslinechart.interface';
 import { GROUPFILTER } from './interfaces/groupfilter.interface';
 // prisma
 import { Prisma } from '@prisma/client';
+// utils
 const moment = require('moment');
 
 @Injectable()
 export class LogsService {
-  constructor(private readonly prismaServ: PrismaService) {}
   private amount = 30;
+  constructor(private readonly prismaServ: PrismaService) {}
+
+  @Cron(CronExpression.EVERY_10_HOURS)
+  private async DeleteOldLogs() {
+    const oneMonthAgo = moment().subtract(1, 'month').toDate();
+    await this.prismaServ.logsReq.deleteMany({ where: { date: { lt: oneMonthAgo } } });
+  }
 
   async createLog(entry: Prisma.LogsReqCreateInput) {
     await this.prismaServ.logsReq.create({ data: entry });
