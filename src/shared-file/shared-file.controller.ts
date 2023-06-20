@@ -74,7 +74,7 @@ export class SharedFileController {
     return new StreamableFile(bufferFile);
   }
   @UseGuards(JwtAuthGuard, OwnerShipGuard)
-  @Delete(':id')
+  @Delete('token/:id')
   async deleteToken(@Param('id') id: string) {
     return this.SFService.deleteToken(id);
   }
@@ -123,7 +123,7 @@ export class SharedFileController {
     }
   }
 
-  @UseGuards(JwtAuthGuard, OwnerShipGuard)
+  @UseGuards(JwtAuthGuard)
   @Delete('tokens/path/*')
   async deleteTokensPath(@Param() path: string, @Request() req) {
     const pathString = Object.keys(path)
