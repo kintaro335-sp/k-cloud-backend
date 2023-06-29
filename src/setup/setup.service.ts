@@ -13,6 +13,11 @@ export class SetupService {
     return count !== 0 && this.adminServ.getfirstUser() == null;
   }
 
+  setMainUser(userId: string) {
+    this.adminServ.setFirstUser(userId);
+    return { message: `user ${userId} is Main User` };
+  }
+
   async createFirstUser(userName: string, password: string) {
     const newUser = await this.authServ.registerAdmin(userName, password);
     this.adminServ.setFirstUser(newUser.idUser);

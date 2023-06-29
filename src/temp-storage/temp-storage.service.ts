@@ -3,7 +3,6 @@ import { UtilsService } from '../utils/utils.service';
 // interfaces
 import { FilePTemp, BlobFTemp, FilePTempResponse } from './interfaces/filep.interface';
 import { createWriteStream, existsSync } from 'fs';
-import { join } from 'path';
 
 @Injectable()
 export class TempStorageService {
@@ -186,5 +185,17 @@ export class TempStorageService {
     if (this.storage[path] === null || this.storage[path] === undefined) return false;
 
     return this.storage[path].writting;
+  }
+
+  getSpaceToUse(): number {
+    let nonWrittenBytes = 0;
+    this.filesDirectories.forEach((dir) => {
+      const file = this.storage[dir];
+      if (file !== undefined || file !== null) {
+        const bytesToWrite = file.size;
+        nonWrittenBytes += bytesToWrite;
+      }
+    });
+    return nonWrittenBytes;
   }
 }

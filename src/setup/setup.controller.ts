@@ -5,6 +5,7 @@ import { SetupService } from './setup.service';
 import { ConfiguredResponse } from './interfaces/configured.interface';
 // dtos
 import { RegisterDTO } from '../auth/dtos/Register.dto';
+import { userIdDTO } from './dto/userid.dto';
 // guards
 import { UserSetupGuard } from './guards/user-setup.guard';
 
@@ -23,5 +24,10 @@ export class SetupController {
   async postCreateUser(@Body() user: RegisterDTO) {
     await this.setupserv.createFirstUser(user.username, user.password);
     return { message: 'success' };
+  }
+
+  @Post('set-first-user')
+  async setMainUser(@Body() user: userIdDTO) {
+    return this.setupserv.setMainUser(user.userid);
   }
 }

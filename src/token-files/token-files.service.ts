@@ -8,11 +8,11 @@ export class TokenFilesService {
   private group = 16;
   constructor(private readonly prismaService: PrismaService) {}
 
-  addSharedFile(sharedFile: Prisma.SharedfileCreateInput) {
+  async addSharedFile(sharedFile: Prisma.SharedfileCreateInput) {
     return this.prismaService.sharedfile.create({ data: sharedFile });
   }
 
-  getSharedFileByID(id: string) {
+  async getSharedFileByID(id: string) {
     return this.prismaService.sharedfile.findUnique({ where: { id } });
   }
 
