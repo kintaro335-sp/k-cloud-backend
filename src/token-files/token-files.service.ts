@@ -45,4 +45,8 @@ export class TokenFilesService {
   async updateSF(id: string, newData: Prisma.SharedfileUpdateInput) {
     await this.prismaService.sharedfile.update({ where: { id }, data: newData });
   }
+
+  async updatePathTokens(oldpath: string, newPath: string) {
+    await this.prismaService.sharedfile.updateMany({ data: { path: newPath }, where: { path: oldpath } });
+  }
 }

@@ -26,6 +26,7 @@ import { UtilsService } from '../utils/utils.service';
 // dtos
 import { BlobFPDTO } from './dtos/blobfp.dto';
 import { FileInitDTO } from './dtos/fileInit.dto';
+import { RenameDTO } from './dtos/rename.dto';
 // guards
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { SpaceGuard } from './guards/space.guard';
@@ -73,7 +74,7 @@ export class FilesController {
     }
     const fileName = pathString.split('/').pop();
     const properties = await this.filesService.getFilePropertiesUser(pathString, req.user);
-    const CD = downloadOpc ? 'attachment' : 'inline';
+    const CD = downloadOpc === 1 ? 'attachment' : 'inline';
     res.set({
       'Content-Type': contentType(fileName),
       'Content-Disposition': `${CD}; filename="${fileName}";`,
@@ -274,5 +275,13 @@ export class FilesController {
       'Content-Disposition': `attachment; filename="${fileName}.zip";`
     });
     return new StreamableFile(streamZip);
+  }
+
+  @Post('move/*')
+  async moveFileFolder(@Param() path: string[], @Request() req, @Body() body: RenameDTO) {
+    const pathString = Object.keys(path)
+      .map((key) => path[key])
+      .join('/');
+    return this.filesService.moveFileFolder(pathString, body.newpath, req.user);
   }
 }

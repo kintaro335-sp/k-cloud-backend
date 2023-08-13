@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Inject, forwardRef } from '@nestjs/common';
+import { BadRequestException, Injectable, Inject, forwardRef, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Interval } from '@nestjs/schedule';
 // services
@@ -14,7 +14,7 @@ import { MessageResponse } from '../auth/interfaces/response.interface';
 import { BlobFTemp } from '../temp-storage/interfaces/filep.interface';
 // fs and path
 import { existsSync, createReadStream, ReadStream, createWriteStream } from 'fs';
-import { readdir, lstat, mkdir, rm } from 'fs/promises';
+import { readdir, lstat, mkdir, rm, rename } from 'fs/promises';
 import { join } from 'path';
 // utils
 import { lookup } from 'mime-types';
@@ -36,7 +36,7 @@ export class FilesService {
   /**
    * mandar a Escribir numerosos blobs de los archivos
    */
-  @Interval(20000)
+  @Interval(10000)
   async writeBlobs() {
     this.storageService.getFilesDirectories().forEach(async (dir) => {
       if (this.storageService.getWritting(dir)) return;
@@ -414,6 +414,18 @@ export class FilesService {
     } else {
       return 0;
     }
+  }
+
+  async moveFileFolder(path: string, newPath: string, userPayload: UserPayload): Promise<MessageResponse> {
+    const { userId } = userPayload;
+    const realPath = join(this.root, userId, path);
+    const realPathNew = join(this.root, userId, newPath);
+    if (this.exists(newPath, userPayload)) {
+      throw new UnauthorizedException('file/folder already exists');
+    }
+    await rename(realPath, realPathNew);
+    await this.tokenServ.updatePathTokens(path, newPath);
+    return { message: 'move success' };
   }
 
   async getUsedSpaceByFileType(path = ''): Promise<UsedSpaceType[]> {
