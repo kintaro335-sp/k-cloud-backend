@@ -48,5 +48,15 @@ export class TokenFilesService {
 
   async updatePathTokens(oldpath: string, newPath: string) {
     await this.prismaService.sharedfile.updateMany({ data: { path: newPath }, where: { path: oldpath } });
+    const tokens = await this.prismaService.sharedfile.findMany({ where: { path: { startsWith: oldpath } } });
+    tokens.forEach(async (t) => {
+      const newPathT = t.path.replace(oldpath, newPath);
+      while (true) {
+        try {
+          await this.prismaService.sharedfile.update({ data: { path: newPathT }, where: { id: t.id } });
+          break;
+        } catch (err) {}
+      }
+    });
   }
 }
