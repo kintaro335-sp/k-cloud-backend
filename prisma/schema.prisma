@@ -21,12 +21,14 @@ model Sharedfile {
   @@index([path])
   @@index([userid])
   @@index([id])
+  @@index([public])
   id String @id
   userid String
   name String
   path String
   doesexpires Boolean
   isdir Boolean
+  public Boolean
   expire DateTime
   createdAt DateTime
   owner User @relation(fields: [userid], references: [id])

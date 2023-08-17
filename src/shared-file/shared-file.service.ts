@@ -44,6 +44,7 @@ export class SharedFileService {
       doesexpires: metadata.expires,
       isdir: isFolder,
       expire: expires,
+      public: metadata.public,
       owner: { connect: { id: user.userId } },
       name: nameF,
       path
