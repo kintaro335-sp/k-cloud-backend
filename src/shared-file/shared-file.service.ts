@@ -131,6 +131,7 @@ export class SharedFileService {
       name: sf.name,
       type: sf.isdir ? 'folder' : 'file',
       mime_type: contentType(sf.name) || '',
+      publict: sf.public,
       expire: sf.doesexpires,
       expires: sf.expire.getTime()
     }));
@@ -144,6 +145,7 @@ export class SharedFileService {
       type: sf.isdir ? 'folder' : 'file',
       name: sf.name,
       mime_type: contentType(sf.name) || '',
+      publict: sf.public,
       expire: sf.doesexpires,
       expires: sf.expire.getTime()
     }));
