@@ -9,41 +9,80 @@ export class TokenFilesService {
   constructor(private readonly prismaService: PrismaService) {}
 
   async addSharedFile(sharedFile: Prisma.SharedfileCreateInput) {
-    return this.prismaService.sharedfile.create({ data: sharedFile });
+    while (true) {
+      try {
+        return this.prismaService.sharedfile.create({ data: sharedFile });
+      } catch (err) {}
+    }
   }
 
   async getSharedFileByID(id: string) {
-    return this.prismaService.sharedfile.findUnique({ where: { id } });
+    while (true) {
+      try {
+        return this.prismaService.sharedfile.findUnique({ where: { id } });
+      } catch (err) {}
+    }
   }
 
   async getCountByPath(path: string): Promise<number> {
-    return this.prismaService.sharedfile.count({ where: { path } });
+    while (true) {
+      try {
+        return this.prismaService.sharedfile.count({ where: { path } });
+      } catch (err) {}
+    }
   }
 
   async getSharedFiles(page: number): Promise<Sharedfile[]> {
-    const skip = page * this.group;
-    return this.prismaService.sharedfile.findMany({ take: this.group, skip, where: { public: true } });
+    while (true) {
+      try {
+        const skip = page * this.group;
+        return this.prismaService.sharedfile.findMany({ take: this.group, skip, where: { public: true } });
+      } catch (err) {}
+    }
   }
 
   async getCountSharedPages(): Promise<number> {
-    const count = await this.prismaService.sharedfile.count({ where: { public: true } });
-    return Math.ceil(count / this.group);
+    while (true) {
+      try {
+        const count = await this.prismaService.sharedfile.count({ where: { public: true } });
+        return Math.ceil(count / this.group);
+      } catch (err) {}
+    }
   }
 
   async getSharedFilesByPathUserID(path: string, userid: string): Promise<Sharedfile[]> {
-    return this.prismaService.sharedfile.findMany({ where: { path, userid } });
+    while (true) {
+      try {
+        return this.prismaService.sharedfile.findMany({ where: { path, userid } });
+      } catch (err) {}
+    }
   }
 
   async removeSharedFile(id: string) {
-    await this.prismaService.sharedfile.delete({ where: { id } });
+    while (true) {
+      try {
+        await this.prismaService.sharedfile.delete({ where: { id } });
+        return;
+      } catch (err) {}
+    }
   }
 
   async deleteTokensByPath(path: string, userid: string) {
-    await this.prismaService.sharedfile.deleteMany({ where: { path, userid } });
+    while (true) {
+      try {
+        await this.prismaService.sharedfile.deleteMany({ where: { path, userid } });
+        return;
+      } catch (err) {}
+    }
   }
 
   async updateSF(id: string, newData: Prisma.SharedfileUpdateInput) {
-    await this.prismaService.sharedfile.update({ where: { id }, data: newData });
+    while (true) {
+      try {
+        await this.prismaService.sharedfile.update({ where: { id }, data: newData });
+        return;
+      } catch (err) {}
+    }
   }
 
   async updatePathTokens(oldpath: string, newPath: string) {
