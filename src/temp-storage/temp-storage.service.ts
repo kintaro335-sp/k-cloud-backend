@@ -9,8 +9,8 @@ import { createWriteStream, existsSync } from 'fs';
 export class TempStorageService {
   constructor(private readonly utilsService: UtilsService, private readonly configServ: ConfigService) {
     try {
-      const newFnumber =Number(configServ.get('FILES_ATST'));
-      this.filesAtSameTime = newFnumber;
+      const newFnumber = Number(configServ.get('FILES_ATST'));
+      this.filesAtSameTime = isNaN(newFnumber) ? 1 : newFnumber;
     } catch (err) {}
   }
   private filesAtSameTime = 1;
