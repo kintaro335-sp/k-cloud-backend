@@ -51,7 +51,7 @@ export class SharedFileController {
 
     res.set({
       'Content-Type': contentType(`${SFReg.name}.zip`),
-      'Content-Disposition': `attachment; filename="${SFReg.name}.zip";`,
+      'Content-Disposition': `attachment; filename="${SFReg.name}.zip";`
     });
     return new StreamableFile(streamFile);
   }
@@ -69,7 +69,7 @@ export class SharedFileController {
 
     res.set({
       'Content-Type': contentType(`${fileName}.zip`),
-      'Content-Disposition': `attachment; filename="${fileName}.zip";`,
+      'Content-Disposition': `attachment; filename="${fileName}.zip";`
     });
     return new StreamableFile(bufferFile);
   }
@@ -149,5 +149,18 @@ export class SharedFileController {
   @Get('tokens/pages')
   async getTokensPages() {
     return { pages: await this.SFService.getTokensPages() };
+  }
+
+  @Get('tokens/user/page/:page')
+  @UseGuards(JwtAuthGuard)
+  async getTokensByUser(@Param('page', ParseIntPipe) page: number, @Response({ passthrough: true }) res) {
+    return this.SFService.getTokensByUser(res.user, page);
+  }
+
+  @Get('tokens/user/pages')
+  @UseGuards(JwtAuthGuard)
+  async getTokensPagesByUser(@Response({ passthrough: true }) res) {
+    const pages = await this.SFService.getPagesTokensByUser(res.user);
+    return { pages };
   }
 }

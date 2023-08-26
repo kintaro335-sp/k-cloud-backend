@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { Prisma, Sharedfile } from '@prisma/client';
-import { join } from 'path';
 
 @Injectable()
 export class TokenFilesService {
@@ -97,5 +96,23 @@ export class TokenFilesService {
         } catch (err) {}
       }
     });
+  }
+
+  async getTokensByUser(userid: string, page: number) {
+    while (true) {
+      try {
+        const skip = page * this.group;
+        return this.prismaService.sharedfile.findMany({ skip, take: this.group, where: { userid } });
+      } catch (err) {}
+    }
+  }
+
+  async getPagesNumberByUser(userid: string): Promise<number> {
+    while (true) {
+      try {
+        const count = await this.prismaService.sharedfile.count({ where: { userid } });
+        return Math.ceil(count / this.group);
+      } catch (err) {}
+    }
   }
 }

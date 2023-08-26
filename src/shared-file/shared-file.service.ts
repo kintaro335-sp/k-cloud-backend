@@ -163,4 +163,24 @@ export class SharedFileService {
   async getTokensPages(): Promise<number> {
     return this.tokenService.getCountSharedPages();
   }
+
+  // with auth
+
+  async getTokensByUser(user: UserPayload, page: number): Promise<TokenElement[]> {
+    const tokens = await this.tokenService.getTokensByUser(user.userId, page);
+
+    return tokens.map((token) => ({
+      id: token.id,
+      type: token.isdir ? 'folder' : 'file',
+      name: token.name,
+      mime_type: contentType(token.name) || '',
+      publict: token.public,
+      expire: token.doesexpires,
+      expires: token.expire.getTime()
+    }));
+  }
+
+  async getPagesTokensByUser(user: UserPayload) {
+    return this.tokenService.getPagesNumberByUser(user.userId);
+  }
 }
