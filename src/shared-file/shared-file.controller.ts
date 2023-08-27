@@ -169,4 +169,24 @@ export class SharedFileController {
   async updateTokenByUser(@Param('id') id: string, @Body() body: ShareFileDTO) {
     return this.SFService.updateSFToken(id, body);
   }
+
+  @UseGuards(JwtAuthGuard, OwnerShipGuard)
+  @Get('tokens/user/content/:id')
+  async getSFcontentUser(@Param('id') id: string, @Response({ passthrough: true }) res, @Query('d') downloadOpc: number) {
+    const SFReg = await this.SFService.getSFAllInfo(id);
+    if (SFReg === null) throw new NotFoundException('not found');
+
+    if (await this.SFService.isSFDirectory(SFReg, '')) {
+      return this.SFService.getContentSFList(SFReg, '');
+    } else {
+      const fileProps = await this.SFService.getPropsSFFile(SFReg, '');
+      const CD = downloadOpc ? 'attachment' : 'inline';
+      res.set({
+        'Content-Type': contentType(SFReg.name),
+        'Content-Disposition': `${CD}; filename="${SFReg.name}";`,
+        'Content-Length': fileProps.size
+      });
+      return new StreamableFile(await this.SFService.getContentSFFile(SFReg, ''));
+    }
+  }
 }
