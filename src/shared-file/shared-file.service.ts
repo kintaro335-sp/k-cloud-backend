@@ -183,4 +183,9 @@ export class SharedFileService {
   async getPagesTokensByUser(user: UserPayload) {
     return this.tokenService.getPagesNumberByUser(user.userId);
   }
+
+  async updateSFToken(id: string, newTokenInfo: ShareFileDTO) {
+    await this.tokenService.updateSF(id, { expire: new Date(newTokenInfo.expire), public: newTokenInfo.public, doesexpires: newTokenInfo.expires });
+    return { message: 'token Updated' };
+  }
 }

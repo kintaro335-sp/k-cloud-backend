@@ -153,14 +153,20 @@ export class SharedFileController {
 
   @Get('tokens/user/page/:page')
   @UseGuards(JwtAuthGuard)
-  async getTokensByUser(@Param('page', ParseIntPipe) page: number, @Response({ passthrough: true }) res) {
-    return this.SFService.getTokensByUser(res.user, page);
+  async getTokensByUser(@Param('page', ParseIntPipe) page: number, @Request() req) {
+    return this.SFService.getTokensByUser(req.user, page);
   }
 
   @Get('tokens/user/pages')
   @UseGuards(JwtAuthGuard)
-  async getTokensPagesByUser(@Response({ passthrough: true }) res) {
-    const pages = await this.SFService.getPagesTokensByUser(res.user);
+  async getTokensPagesByUser(@Request() req) {
+    const pages = await this.SFService.getPagesTokensByUser(req.user);
     return { pages };
+  }
+
+  @Post('tokens/user/:id')
+  @UseGuards(JwtAuthGuard, OwnerShipGuard)
+  async updateTokenByUser(@Param('id') id: string, @Body() body: ShareFileDTO) {
+    return this.SFService.updateSFToken(id, body);
   }
 }
