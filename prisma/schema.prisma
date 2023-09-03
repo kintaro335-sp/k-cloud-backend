@@ -28,7 +28,7 @@ model Sharedfile {
   path String
   doesexpires Boolean
   isdir Boolean
-  public Boolean
+  public Boolean @default(false)
   expire DateTime
   createdAt DateTime
   owner User @relation(fields: [userid], references: [id])
