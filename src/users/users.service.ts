@@ -12,7 +12,11 @@ export class UsersService {
    * @returns {User[]}
    */
   async findAll(): Promise<User[] | null> {
-    return this.prisma.user.findMany();
+    while (true) {
+      try {
+        return this.prisma.user.findMany();
+      } catch (err) {}
+    }
   }
 
   /**
@@ -21,7 +25,11 @@ export class UsersService {
    * @returns {User[] | null}
    */
   async findMany(userWhere: Prisma.UserWhereInput): Promise<User[] | null> {
-    return this.prisma.user.findMany({ where: userWhere });
+    while (true) {
+      try {
+        return this.prisma.user.findMany({ where: userWhere });
+      } catch (err) {}
+    }
   }
 
   /**
@@ -30,7 +38,11 @@ export class UsersService {
    * @returns {User | null}
    */
   async findOne(userWhereUnique: Prisma.UserWhereUniqueInput): Promise<User | null> {
-    return this.prisma.user.findUnique({ where: userWhereUnique });
+    while (true) {
+      try {
+        return this.prisma.user.findUnique({ where: userWhereUnique });
+      } catch (err) {}
+    }
   }
 
   /**
@@ -39,7 +51,11 @@ export class UsersService {
    * @returns {User}
    */
   async create(user: Prisma.UserCreateInput): Promise<User> {
-    return this.prisma.user.create({ data: user });
+    while (true) {
+      try {
+        return this.prisma.user.create({ data: user });
+      } catch (err) {}
+    }
   }
 
   /**
@@ -49,7 +65,11 @@ export class UsersService {
    * @returns {User}
    */
   async update(userWhereUnique: Prisma.UserWhereUniqueInput, user: Prisma.UserUpdateInput): Promise<User> {
-    return this.prisma.user.update({ where: userWhereUnique, data: user });
+    while (true) {
+      try {
+        return this.prisma.user.update({ where: userWhereUnique, data: user });
+      } catch (err) {}
+    }
   }
 
   /**
@@ -58,10 +78,18 @@ export class UsersService {
    * @returns {Promise<User>}
    */
   async delete(userWhereUnique: Prisma.UserWhereUniqueInput): Promise<User> {
-    return this.prisma.user.delete({ where: userWhereUnique });
+    while (true) {
+      try {
+        return this.prisma.user.delete({ where: userWhereUnique });
+      } catch (err) {}
+    }
   }
 
   async countAdminUsers(): Promise<number> {
-    return this.prisma.user.count({ where: { isadmin: true } });
+    while (true) {
+      try {
+        return this.prisma.user.count({ where: { isadmin: true } });
+      } catch (err) {}
+    }
   }
 }

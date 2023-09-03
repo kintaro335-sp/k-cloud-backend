@@ -6,5 +6,6 @@ export interface TokenElement {
   id: string;
   mime_type: string;
   expire: boolean;
+  publict: boolean;
   expires: number;
 }

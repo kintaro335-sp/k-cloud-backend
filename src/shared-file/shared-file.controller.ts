@@ -51,7 +51,7 @@ export class SharedFileController {
 
     res.set({
       'Content-Type': contentType(`${SFReg.name}.zip`),
-      'Content-Disposition': `attachment; filename="${SFReg.name}.zip";`,
+      'Content-Disposition': `attachment; filename="${SFReg.name}.zip";`
     });
     return new StreamableFile(streamFile);
   }
@@ -69,7 +69,7 @@ export class SharedFileController {
 
     res.set({
       'Content-Type': contentType(`${fileName}.zip`),
-      'Content-Disposition': `attachment; filename="${fileName}.zip";`,
+      'Content-Disposition': `attachment; filename="${fileName}.zip";`
     });
     return new StreamableFile(bufferFile);
   }
@@ -149,5 +149,44 @@ export class SharedFileController {
   @Get('tokens/pages')
   async getTokensPages() {
     return { pages: await this.SFService.getTokensPages() };
+  }
+
+  @Get('tokens/user/page/:page')
+  @UseGuards(JwtAuthGuard)
+  async getTokensByUser(@Param('page', ParseIntPipe) page: number, @Request() req) {
+    return this.SFService.getTokensByUser(req.user, page);
+  }
+
+  @Get('tokens/user/pages')
+  @UseGuards(JwtAuthGuard)
+  async getTokensPagesByUser(@Request() req) {
+    const pages = await this.SFService.getPagesTokensByUser(req.user);
+    return { pages };
+  }
+
+  @Post('tokens/user/:id')
+  @UseGuards(JwtAuthGuard, OwnerShipGuard)
+  async updateTokenByUser(@Param('id') id: string, @Body() body: ShareFileDTO) {
+    return this.SFService.updateSFToken(id, body);
+  }
+
+  @UseGuards(JwtAuthGuard, OwnerShipGuard)
+  @Get('tokens/user/content/:id')
+  async getSFcontentUser(@Param('id') id: string, @Response({ passthrough: true }) res, @Query('d') downloadOpc: number) {
+    const SFReg = await this.SFService.getSFAllInfo(id);
+    if (SFReg === null) throw new NotFoundException('not found');
+
+    if (await this.SFService.isSFDirectory(SFReg, '')) {
+      return this.SFService.getContentSFList(SFReg, '');
+    } else {
+      const fileProps = await this.SFService.getPropsSFFile(SFReg, '');
+      const CD = downloadOpc ? 'attachment' : 'inline';
+      res.set({
+        'Content-Type': contentType(SFReg.name),
+        'Content-Disposition': `${CD}; filename="${SFReg.name}";`,
+        'Content-Length': fileProps.size
+      });
+      return new StreamableFile(await this.SFService.getContentSFFile(SFReg, ''));
+    }
   }
 }

@@ -1,15 +1,33 @@
 import { Injectable } from '@nestjs/common';
 import { UtilsService } from '../utils/utils.service';
+import { ConfigService } from '@nestjs/config';
 // interfaces
 import { FilePTemp, BlobFTemp, FilePTempResponse } from './interfaces/filep.interface';
 import { createWriteStream, existsSync } from 'fs';
 
 @Injectable()
 export class TempStorageService {
-  constructor(private readonly utilsService: UtilsService) {}
-
+  constructor(private readonly utilsService: UtilsService, private readonly configServ: ConfigService) {
+    try {
+      const newFnumber = Number(configServ.get('FILES_ATST'));
+      this.filesAtSameTime = isNaN(newFnumber) ? 1 : newFnumber;
+    } catch (err) {}
+  }
+  private filesAtSameTime = 1;
   private filesDirectories: string[] = [];
   private storage: Record<string, FilePTemp | null> = {};
+
+  /**
+   * Saber si escribir mas archivos al mismo tiempo
+   * @returns {boolean}
+   */
+  allowWriteMoreFiles() {
+    let filesWritting = 0;
+    this.filesDirectories.forEach((dir) => {
+      this.storage[dir]?.writting ? filesWritting++ : null;
+    });
+    return filesWritting <= this.filesAtSameTime;
+  }
 
   /**
    * obtener la cantidad de blob obtenidos
