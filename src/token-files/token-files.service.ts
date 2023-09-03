@@ -33,17 +33,35 @@ export class TokenFilesService {
 
   async getSharedFiles(page: number): Promise<Sharedfile[]> {
     while (true) {
+      const today = new Date();
       try {
         const skip = page * this.group;
-        return this.prismaService.sharedfile.findMany({ take: this.group, skip, where: { public: true } });
+        return this.prismaService.sharedfile.findMany({
+          take: this.group,
+          skip,
+          where: {
+            OR: [
+              { public: true, doesexpires: false },
+              { public: true, doesexpires: true, expire: { gt: today } }
+            ]
+          }
+        });
       } catch (err) {}
     }
   }
 
   async getCountSharedPages(): Promise<number> {
     while (true) {
+      const today = new Date();
       try {
-        const count = await this.prismaService.sharedfile.count({ where: { public: true } });
+        const count = await this.prismaService.sharedfile.count({
+          where: {
+            OR: [
+              { public: true, doesexpires: false },
+              { public: true, doesexpires: true, expire: { gt: today } }
+            ]
+          }
+        });
         return Math.ceil(count / this.group);
       } catch (err) {}
     }
