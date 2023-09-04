@@ -11,7 +11,6 @@ import { NotFoundException } from './exceptions/NotFound.exception';
 import { ListFile, File, Folder, UsedSpaceType } from './interfaces/list-file.interface';
 import { UserPayload } from '../auth/interfaces/userPayload.interface';
 import { MessageResponse } from '../auth/interfaces/response.interface';
-import { BlobFTemp } from '../temp-storage/interfaces/filep.interface';
 // fs and path
 import { existsSync, createReadStream, ReadStream, createWriteStream } from 'fs';
 import { readdir, lstat, mkdir, rm, rename } from 'fs/promises';
