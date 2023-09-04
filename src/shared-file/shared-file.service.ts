@@ -197,7 +197,7 @@ export class SharedFileService {
   // with auth
 
   async getTokensByUser(user: UserPayload, page: number): Promise<TokenElement[]> {
-    const tokens = await this.tokenService.getTokensByUser(user.userId, page);
+    const tokens = await this.tokenService.getTokensByUser(user.userId, page - 1);
 
     return tokens.map((token) => ({
       id: token.id,
