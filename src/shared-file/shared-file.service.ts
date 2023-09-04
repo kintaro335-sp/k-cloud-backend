@@ -1,6 +1,7 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 // dto
 import { ShareFileDTO } from './dtos/sharefile.dto';
+import { ShareFilesDTO } from './dtos/sharefiles.dto';
 // interfaces
 import { UserPayload } from 'src/auth/interfaces/userPayload.interface';
 import { SFInfoResponse } from './interfaces/SFInfo.interface';
@@ -28,6 +29,35 @@ export class SharedFileService {
       const fileProps = await this.filesService.getFilePropertiesUser(path, user);
       return fileProps.name;
     }
+  }
+
+  async shareFiles(path: string, user: UserPayload, metadata: ShareFilesDTO) {
+    if (!this.filesService.isDirectoryUser(path, user)) {
+      throw new BadRequestException('path is a file');
+    }
+    const files = metadata.files;
+    const ids = await Promise.all(
+      files.map(async (file) => {
+        const uuid = this.utilsServ.createIDSF();
+        const pathComplete = join(path, file);
+        const isFolder = await this.filesService.isDirectoryUser(pathComplete, user);
+        const nameF = await this.getFName(pathComplete, user);
+        const expires = new Date(metadata.expire);
+        await this.tokenService.addSharedFile({
+          id: uuid,
+          createdAt: new Date(),
+          doesexpires: metadata.expires,
+          isdir: isFolder,
+          expire: expires,
+          public: metadata.public,
+          owner: { connect: { id: user.userId } },
+          name: nameF,
+          path
+        });
+        return uuid;
+      })
+    );
+    return ids.filter((i) => i !== null);
   }
 
   async share(path: string, user: UserPayload, metadata: ShareFileDTO): Promise<{ id: string }> {

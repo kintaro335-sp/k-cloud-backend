@@ -19,6 +19,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ExpireGuard } from './expire.guard';
 // dto
 import { ShareFileDTO } from './dtos/sharefile.dto';
+import { ShareFilesDTO } from './dtos/sharefiles.dto';
 // services
 import { SharedFileService } from './shared-file.service';
 import { TokenFilesService } from '../token-files/token-files.service';
@@ -35,6 +36,15 @@ export class SharedFileController {
       .map((key) => path[key])
       .join('/');
     return this.SFService.share(pathString, req.user, body);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('sharemf/*')
+  async shareFiles(@Param() path: string[], @Body() body: ShareFilesDTO, @Request() req) {
+    const pathString = Object.keys(path)
+      .map((key) => path[key])
+      .join('/');
+    return this.SFService.shareFiles(pathString, req.user, body);
   }
 
   @UseGuards(ExpireGuard)
