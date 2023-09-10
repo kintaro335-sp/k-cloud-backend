@@ -35,7 +35,7 @@ export class FilesService {
   /**
    * mandar a Escribir numerosos blobs de los archivos
    */
-  @Interval(500)
+  @Interval(50)
   async writeBlobs() {
     this.storageService.getFilesDirectories().forEach(async (dir) => {
       if (this.storageService.getWritting(dir)) return;
