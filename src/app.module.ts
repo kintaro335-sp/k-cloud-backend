@@ -39,6 +39,6 @@ import { MonitorModule } from './monitor/monitor.module';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(LoggerMiddleware).forRoutes('*')
+    consumer.apply(LoggerMiddleware).exclude('files/*').forRoutes('*')
   }
 }
