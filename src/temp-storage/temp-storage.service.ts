@@ -14,6 +14,7 @@ export class TempStorageService {
     } catch (err) {}
   }
   private filesAtSameTime = 1;
+  private filesWritting = 0;
   private filesDirectories: string[] = [];
   private storage: Record<string, FilePTemp | null> = {};
 
@@ -22,11 +23,7 @@ export class TempStorageService {
    * @returns {boolean}
    */
   allowWriteMoreFiles() {
-    let filesWritting = 0;
-    this.filesDirectories.forEach((dir) => {
-      this.storage[dir]?.writting ? filesWritting++ : null;
-    });
-    return filesWritting <= this.filesAtSameTime;
+    return this.filesWritting <= this.filesAtSameTime;
   }
 
   /**
@@ -196,6 +193,7 @@ export class TempStorageService {
 
   setWritting(path: string, newValue: boolean) {
     if (this.storage[path] === null || this.storage[path] === undefined) return;
+    newValue ? this.filesWritting++ : this.filesWritting--;
     this.storage[path].writting = newValue;
   }
 
