@@ -181,6 +181,12 @@ export class SharedFileController {
   }
 
   @UseGuards(JwtAuthGuard, OwnerShipGuard)
+  @Get('tokens/user/info/:id')
+  async getSFInfoUser(@Param('id') id: string) {
+    return this.SFService.getSFInfo(id);
+  }
+
+  @UseGuards(JwtAuthGuard, OwnerShipGuard)
   @Get('tokens/user/content/:id')
   async getSFcontentUser(@Param('id') id: string, @Response({ passthrough: true }) res, @Query('d') downloadOpc: number) {
     const SFReg = await this.SFService.getSFAllInfo(id);
