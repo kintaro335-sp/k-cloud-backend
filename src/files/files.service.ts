@@ -428,6 +428,28 @@ export class FilesService {
     return { message: 'move success' };
   }
 
+  async moveFiles(path: string, newPath: string, files: string[], userPayload: UserPayload) {
+    const { userId } = userPayload;
+    const realPath = join(this.root, userId, path);
+    const realPathNew = join(this.root, userId, newPath);
+    const realPathIsDirectory = (await lstat(realPath)).isDirectory();
+    const realPathNewIsDirectory = await (await lstat(realPathNew)).isDirectory();
+    if (!realPathIsDirectory || realPathNewIsDirectory) {
+      throw new BadRequestException('path or new Path is not a directory');
+    }
+    await Promise.all(
+      files.map(async (f) => {
+        const filePath = join(realPath, f);
+        const newFilePath = join(realPathNew, f);
+        if (existsSync(filePath)) {
+          await rename(filePath, newFilePath);
+        }
+        return f;
+      })
+    );
+    return { message: 'archivos movidos' };
+  }
+
   async getUsedSpaceByFileType(path = ''): Promise<UsedSpaceType[]> {
     const usedSpace: Record<string, number> = {};
     const sumBytes = (type: string, bytes: number) => {
@@ -477,7 +499,7 @@ export class FilesService {
           val.content.forEach(onForEach(join(pathContext, val.name)));
         } else {
           const realPath = join(entirePath, pathContext, val.name);
-          const zipPath = join(pathContext, val.name);
+          const zipPath = join(filename, pathContext, val.name);
           zipFolder.file(zipPath, createReadStream(realPath), { createFolders: true });
         }
       };
