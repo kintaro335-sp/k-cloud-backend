@@ -450,6 +450,17 @@ export class FilesService {
     return { message: 'archivos movidos' };
   }
 
+  async renameFile(path: string, newName: string, userPayload: UserPayload) {
+    const { userId } = userPayload;
+    const newPath = path.split('/');
+    newPath.pop();
+    newPath.push(newName);
+    const realPath = join(this.root, userId, path);
+    const realNewPath = join(this.root, userId, newPath.join('/'));
+    await rename(realPath, realNewPath);
+    return { message: 'archivo renombradostatFile' };
+  }
+
   async getUsedSpaceByFileType(path = ''): Promise<UsedSpaceType[]> {
     const usedSpace: Record<string, number> = {};
     const sumBytes = (type: string, bytes: number) => {

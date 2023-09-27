@@ -27,6 +27,7 @@ import { UtilsService } from '../utils/utils.service';
 import { BlobFPDTO } from './dtos/blobfp.dto';
 import { FileInitDTO } from './dtos/fileInit.dto';
 import { RenameDTO } from './dtos/rename.dto';
+import { MoveFileDTO } from './dtos/moceFile.dto';
 import { MoveFilesDTO } from './dtos/moveFiles.dto';
 // guards
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -278,8 +279,16 @@ export class FilesController {
     return new StreamableFile(streamZip);
   }
 
+  @Post('rename/*')
+  async renameFile(@Param() path: string[], @Request() req, @Body() body: RenameDTO) {
+    const pathString = Object.keys(path)
+      .map((key) => path[key])
+      .join('/');
+    return this.filesService.renameFile(pathString, body.newName, req.user);
+  }
+
   @Post('move/*')
-  async moveFileFolder(@Param() path: string[], @Request() req, @Body() body: RenameDTO) {
+  async moveFileFolder(@Param() path: string[], @Request() req, @Body() body: MoveFileDTO) {
     const pathString = Object.keys(path)
       .map((key) => path[key])
       .join('/');
