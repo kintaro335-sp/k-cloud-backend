@@ -9,16 +9,7 @@ import { JwtStrategyHeader, JwtStrategyQuery } from './jwt.strategy';
 import { CryptoModule } from '../crypto/crypto.module';
 import { FilesModule } from '../files/files.module';
 @Module({
-  imports: [
-    UsersModule,
-    PassportModule,
-    JwtModule.register({
-      secret: jwtConstants.secret,
-      signOptions: { expiresIn: '7d' }
-    }),
-    CryptoModule,
-    forwardRef(() => FilesModule)
-  ],
+  imports: [UsersModule, PassportModule, CryptoModule, forwardRef(() => FilesModule)],
   exports: [AuthService],
   providers: [AuthService, JwtStrategyHeader, JwtStrategyQuery],
   controllers: [AuthController]
