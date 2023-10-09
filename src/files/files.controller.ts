@@ -134,7 +134,7 @@ export class FilesController {
     if (this.storageService.existsFile(pathStringC)) {
       throw new BadRequestException('Archivo ya inicializado');
     }
-    this.storageService.createFileTemp(pathStringC, body.size, this.filesService.root);
+    this.storageService.createFileTemp(pathStringC, body.size, req.user, pathString);
     return { message: 'Inicializado' };
   }
 

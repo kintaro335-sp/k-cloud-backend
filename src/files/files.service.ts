@@ -5,6 +5,7 @@ import { Interval } from '@nestjs/schedule';
 import { TempStorageService } from '../temp-storage/temp-storage.service';
 import { AdminService } from '../admin/admin.service';
 import { TokenFilesService } from '../token-files/token-files.service';
+import { SystemService } from '../system/system.service';
 // exceptions
 import { NotFoundException } from './exceptions/NotFound.exception';
 // interfaces
@@ -27,7 +28,8 @@ export class FilesService {
     private readonly configService: ConfigService,
     private readonly storageService: TempStorageService,
     @Inject(forwardRef(() => AdminService)) private readonly adminServ: AdminService,
-    private readonly tokenServ: TokenFilesService
+    private readonly tokenServ: TokenFilesService,
+    private system: SystemService
   ) {
     this.root = this.configService.get<string>('FILE_ROOT');
   }
@@ -50,6 +52,8 @@ export class FilesService {
             await this.storageService.writeBlob(realPath, blob);
             this.storageService.updateBytesWriten(dir, blob);
             if (this.storageService.isCompleted(dir)) {
+              const fileInfo = this.storageService.getFileInfo(dir);
+              this.system.emitChangeFileEvent({ path: fileInfo.path, userId: fileInfo.userId });
               this.storageService.delFile(dir);
               this.adminServ.updateUsedSpace();
             }
@@ -279,6 +283,7 @@ export class FilesService {
       throw new BadRequestException('Folder already exists');
     }
     await mkdir(entirePath, { recursive: true });
+    this.system.emitChangeFileEvent({ path, userId: userPayload.userId });
     return { message: 'Folder created successfully' };
   }
 
@@ -425,6 +430,7 @@ export class FilesService {
     }
     await rename(realPath, realPathNew);
     await this.tokenServ.updatePathTokens(path, newPath);
+    this.system.emitChangeFileEvent({ path, userId: userPayload.userId });
     return { message: 'move success' };
   }
 
@@ -447,6 +453,7 @@ export class FilesService {
         return f;
       })
     );
+    this.system.emitChangeFileEvent({ path, userId: userPayload.userId });
     return { message: 'archivos movidos' };
   }
 
@@ -458,6 +465,7 @@ export class FilesService {
     const realPath = join(this.root, userId, path);
     const realNewPath = join(this.root, userId, newPath.join('/'));
     await rename(realPath, realNewPath);
+    this.system.emitChangeFileEvent({ path, userId: userPayload.userId });
     return { message: 'archivo renombradostatFile' };
   }
 
