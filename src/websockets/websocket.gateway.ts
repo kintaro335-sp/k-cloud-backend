@@ -11,7 +11,7 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
   @WebSocketServer() wss: Server;
 
   handleConnection(client: Socket, ...args: any[]) {
-    const token = client.handshake.headers.authentication as string;
+    const token = client.handshake.auth.access_token as string;
     let payload: UserPayload;
     try {
       payload = this.jwtService.verify(token);

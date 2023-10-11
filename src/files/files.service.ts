@@ -430,7 +430,9 @@ export class FilesService {
     }
     await rename(realPath, realPathNew);
     await this.tokenServ.updatePathTokens(path, newPath);
-    this.system.emitChangeFileEvent({ path, userId: userPayload.userId });
+        const pathMessage = path.split('/');
+    pathMessage.pop();
+    this.system.emitChangeFileEvent({ path: pathMessage.join('/'), userId: userPayload.userId });
     return { message: 'move success' };
   }
 
@@ -453,7 +455,10 @@ export class FilesService {
         return f;
       })
     );
-    this.system.emitChangeFileEvent({ path, userId: userPayload.userId });
+
+    const pathMessage = path.split('/');
+    pathMessage.pop();
+    this.system.emitChangeFileEvent({ path: pathMessage.join('/'), userId: userPayload.userId });
     return { message: 'archivos movidos' };
   }
 
@@ -465,7 +470,9 @@ export class FilesService {
     const realPath = join(this.root, userId, path);
     const realNewPath = join(this.root, userId, newPath.join('/'));
     await rename(realPath, realNewPath);
-    this.system.emitChangeFileEvent({ path, userId: userPayload.userId });
+    const pathMessage = path.split('/');
+    pathMessage.pop();
+    this.system.emitChangeFileEvent({ path: pathMessage.join('/'), userId: userPayload.userId });
     return { message: 'archivo renombradostatFile' };
   }
 

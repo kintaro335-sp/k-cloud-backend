@@ -15,7 +15,7 @@ interface Conections {
 export class WebSocketFilesService implements OnApplicationBootstrap {
   constructor(private system: SystemService) {}
 
-  private connections: Conections;
+  private connections: Conections = {};
 
   onApplicationBootstrap() {
     this.system.addChangeFileListener((data) => {
