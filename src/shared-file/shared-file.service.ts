@@ -13,13 +13,15 @@ import { UtilsService } from '../utils/utils.service';
 import { Sharedfile } from '@prisma/client';
 import { join } from 'path';
 import { contentType, lookup } from 'mime-types';
+import { SystemService } from '../system/system.service';
 
 @Injectable()
 export class SharedFileService {
   constructor(
     private readonly filesService: FilesService,
     private readonly tokenService: TokenFilesService,
-    private readonly utilsServ: UtilsService
+    private readonly utilsServ: UtilsService,
+    private system: SystemService
   ) {}
 
   private async getFName(path: string, user: UserPayload) {
@@ -54,6 +56,7 @@ export class SharedFileService {
           name: nameF,
           path
         });
+        this.system.emitChangeTokenEvent({ path: pathComplete, userId: user.userId });
         return uuid;
       })
     );
@@ -79,7 +82,7 @@ export class SharedFileService {
       name: nameF,
       path
     });
-
+    this.system.emitChangeTokenEvent({ path, userId: user.userId });
     return { id: uuid };
   }
 

@@ -29,6 +29,17 @@ export class WebSocketFilesService implements OnApplicationBootstrap {
         } catch (_err) {}
       });
     });
+    this.system.addChangeTokenListener((data) => {
+      const connectionsArray = Object.keys(this.connections);
+
+      connectionsArray.forEach((idC) => {
+        try {
+          if (this.connections[idC].userId === data.userId) {
+            this.connections[idC].client.emit('file-change', { path: data.path });
+          }
+        } catch (_err) {}
+      });
+    });
   }
 
   handleConnect(client: Socket, user: UserPayload) {
