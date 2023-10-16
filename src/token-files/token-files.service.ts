@@ -96,8 +96,7 @@ export class TokenFilesService {
   async updateSF(id: string, newData: Prisma.SharedfileUpdateInput) {
     while (true) {
       try {
-        await this.prismaService.sharedfile.update({ where: { id }, data: newData });
-        return;
+        return await this.prismaService.sharedfile.update({ where: { id }, data: newData });
       } catch (err) {}
     }
   }

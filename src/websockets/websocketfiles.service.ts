@@ -35,7 +35,7 @@ export class WebSocketFilesService implements OnApplicationBootstrap {
       connectionsArray.forEach((idC) => {
         try {
           if (this.connections[idC].userId === data.userId) {
-            this.connections[idC].client.emit('file-change', { path: data.path });
+            this.connections[idC].client.emit('token-change', { path: data.path });
           }
         } catch (_err) {}
       });

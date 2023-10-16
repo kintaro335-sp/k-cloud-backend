@@ -4,7 +4,7 @@ import { WebSocketFilesService } from './websocketfiles.service';
 import { JwtService } from '@nestjs/jwt';
 import { UserPayload } from 'src/auth/interfaces/userPayload.interface';
 
-@WebSocketGateway(5001, { cors: true })
+@WebSocketGateway(5001, { cors: true, namespace: '/' })
 export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(private wsFiles: WebSocketFilesService, private jwtService: JwtService) {}
 
@@ -16,6 +16,7 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
     try {
       payload = this.jwtService.verify(token);
       this.wsFiles.handleConnect(client, payload);
+      client.emit('message', 'Welcome')
     } catch (error) {
       client.disconnect();
       return;
