@@ -2,12 +2,13 @@ import { EventEmitter } from 'events';
 import { ChangeFileData } from '../interfaces/changefile.interface';
 import { ChangeTokenEvent } from '../interfaces/changetoken.interface';
 
-export declare interface FilesEventEmitter {
+export declare interface EventEmitterWS extends EventEmitter {
   on(event: 'file-change', listener: (collection: ChangeFileData) => void);
   on(event: 'token-change', listener: (collection: ChangeTokenEvent) => void);
+  on(event: 'memory-usage-update', listener: () => void);
 }
 
-export class FilesEventEmitter extends EventEmitter {
+export class EventEmitterWS extends EventEmitter {
   constructor() {
     super();
   }

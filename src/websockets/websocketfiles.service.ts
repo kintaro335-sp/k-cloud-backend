@@ -40,6 +40,14 @@ export class WebSocketFilesService implements OnApplicationBootstrap {
         } catch (_err) {}
       });
     });
+    this.system.addChangeMemoryMonitorListener(() => {
+      const connectionsArray = Object.keys(this.connections);
+      connectionsArray.forEach((idC) => {
+        try {
+          this.connections[idC].client.emit('memory-usage-update');
+        } catch (_err) {}
+      });
+    });
   }
 
   handleConnect(client: Socket, user: UserPayload) {

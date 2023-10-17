@@ -1,27 +1,36 @@
 import { Injectable } from '@nestjs/common';
-import { FilesEventEmitter } from './eventemitter/filesEventEmitter';
+import { EventEmitterWS } from './eventemitter/filesEventEmitter';
 import { ChangeFileData } from './interfaces/changefile.interface';
-import { ChangeTokenEvent } from './interfaces/changetoken.interface'
+import { ChangeTokenEvent } from './interfaces/changetoken.interface';
 
 @Injectable()
 export class SystemService {
-  private fileEmitter = new FilesEventEmitter();
+  private eventEmitterWS = new EventEmitterWS();
+
+  //
+  emitChangeMemoryMonitorEvent() {
+    this.eventEmitterWS.emit('memory-usage-update');
+  }
+
+  addChangeMemoryMonitorListener(listener: () => void) {
+    this.eventEmitterWS.addListener('memory-usage-update', listener);
+  }
 
   //tokens event
   emitChangeTokenEvent(collection: ChangeTokenEvent) {
-    this.fileEmitter.emit('token-change', collection);
+    this.eventEmitterWS.emit('token-change', collection);
   }
 
   addChangeTokenListener(listener: (collection: ChangeTokenEvent) => void) {
-    this.fileEmitter.addListener('token-change', listener);
+    this.eventEmitterWS.addListener('token-change', listener);
   }
 
   // files change
   emitChangeFileEvent(collection: ChangeFileData) {
-    this.fileEmitter.emit('file-change', collection);
+    this.eventEmitterWS.emit('file-change', collection);
   }
 
   addChangeFileListener(listener: (collection: ChangeFileData) => void) {
-    this.fileEmitter.addListener('file-change', listener);
+    this.eventEmitterWS.addListener('file-change', listener);
   }
 }
