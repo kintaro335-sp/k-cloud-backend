@@ -10,7 +10,7 @@ export class TokenFilesService {
   async addSharedFile(sharedFile: Prisma.SharedfileCreateInput) {
     while (true) {
       try {
-        return this.prismaService.sharedfile.create({ data: sharedFile });
+        return await this.prismaService.sharedfile.create({ data: sharedFile });
       } catch (err) {}
     }
   }

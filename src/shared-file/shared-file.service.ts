@@ -54,7 +54,7 @@ export class SharedFileService {
           public: metadata.public,
           owner: { connect: { id: user.userId } },
           name: nameF,
-          path
+          path: pathComplete
         });
         this.system.emitChangeTokenEvent({ path, userId: user.userId });
         return uuid;
