@@ -10,7 +10,6 @@ import { SpaceUsed, UsedSpaceUser } from './interfaces/spaceused.interface';
 import { UsedSpaceType } from 'src/files/interfaces/list-file.interface';
 import { TIMEOPTION } from 'src/logs/interfaces/options.interface';
 import { GROUPFILTER } from 'src/logs/interfaces/groupfilter.interface';
-import { LogR } from 'src/logs/interfaces/logres.interface';
 import { StatsLineChart } from 'src/logs/interfaces/statslinechart.interface';
 import { UserL } from 'src/users/interfaces/userl.interface';
 // dto
@@ -24,6 +23,7 @@ import { AdminGuard } from './guards/admin.guard';
 import { FirstUserGuard } from './guards/first-user-guard';
 // decorators
 import { RequireAdmin } from './decorators/admin.decorator';
+import { SharedFileActivity } from 'src/logs/interfaces/sharedfileActivity.interface';
 
 @UseGuards(JwtAuthGuard, AdminGuard)
 @Controller('admin')
@@ -133,7 +133,7 @@ export class AdminController {
 
   @Get('logs/list')
   @UseGuards(JwtAuthGuard, AdminGuard)
-  async getLogsList(@Query('page', ParseIntPipe) page: number): Promise<LogR[]> {
+  async getLogsList(@Query('page', ParseIntPipe) page: number): Promise<SharedFileActivity[]> {
     return this.logserv.getLogs(page);
   }
 

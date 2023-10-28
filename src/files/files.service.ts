@@ -53,7 +53,9 @@ export class FilesService {
             this.storageService.updateBytesWriten(dir, blob);
             if (this.storageService.isCompleted(dir)) {
               const fileInfo = this.storageService.getFileInfo(dir);
-              this.system.emitChangeFileEvent({ path: fileInfo.path, userId: fileInfo.userId });
+              const pathArr = fileInfo.path.split('/');
+              pathArr.pop();
+              this.system.emitChangeFileEvent({ path: pathArr.join('/'), userId: fileInfo.userId });
               this.storageService.delFile(dir);
               this.adminServ.updateUsedSpace();
             }
@@ -430,7 +432,7 @@ export class FilesService {
     }
     await rename(realPath, realPathNew);
     await this.tokenServ.updatePathTokens(path, newPath);
-        const pathMessage = path.split('/');
+    const pathMessage = path.split('/');
     pathMessage.pop();
     this.system.emitChangeFileEvent({ path: pathMessage.join('/'), userId: userPayload.userId });
     return { message: 'move success' };

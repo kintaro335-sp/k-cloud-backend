@@ -9,18 +9,17 @@ import { v4 as uuidv4 } from 'uuid';
 export class LoggerMiddleware implements NestMiddleware {
   constructor(private readonly logServ: LogsService) {}
 
+  private RegisterActivity(req: Request, res: Response) {
+    const params = req.params;
+    console.log(params);
+    console.log(res.statusCode);
+  }
+
   use(req: Request, res: Response, next: NextFunction) {
     const { method } = req;
     res.on('finish', () => {
       try {
-        this.logServ.createLog({
-          id: uuidv4(),
-          date: new Date(Date.now()),
-          method,
-          route: req.route.path,
-          statusCode: String(res.statusCode),
-          MessageError: ''
-        });
+        this.RegisterActivity(req, res);
       } catch (err) {}
     });
     next();
