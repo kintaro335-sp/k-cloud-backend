@@ -1,9 +1,16 @@
+
+export type ActionT = 'CREATED' | 'READ' | 'DOWNLOAD' | 'DELETE' | 'DOWNLOAD_ZIP' | 'MODIFY';
+
+export type statusT = 'ALLOWED' | 'DENIED';
+
+export type reasonT = 'NOT_EXIST' | 'EXPIRED' | 'WRONG_OWNER' | 'NONE';
+
 export interface SharedFileActivity {
   id: string;
   date: Date;
-  action: 'CREATED' | 'READ' | 'DOWNLOAD' | 'DELETE' | 'DOWNLOAD_ZIP' | 'MODIFY';
-  status: 'ALLOWED' | 'DENIED';
-  reason: 'NOT_EXIST' | 'EXPIRED' | 'WRONG_OWNER';
+  action: ActionT;
+  status: statusT
+  reason: reasonT
   user: string;
   tokenid: string;
   path: string;

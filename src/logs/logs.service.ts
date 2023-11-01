@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 // services
 import { PrismaService } from '../prisma.service';
+import { SystemService } from '../system/system.service';
 // insterfaces
 import { SharedFileActivity } from './interfaces/sharedfileActivity.interface';
 import { TIMEOPTION } from './interfaces/options.interface';
@@ -16,7 +17,7 @@ const moment = require('moment');
 @Injectable()
 export class LogsService {
   private amount = 30;
-  constructor(private readonly prismaServ: PrismaService) {}
+  constructor(private readonly prismaServ: PrismaService, private system: SystemService) {}
 
   // @Cron(CronExpression.EVERY_10_HOURS)
   /* private async DeleteOldLogs() {
@@ -26,17 +27,18 @@ export class LogsService {
 
   async createLog(entry: Prisma.sharedfilesactivityCreateInput) {
     await this.prismaServ.sharedfilesactivity.create({ data: entry });
+    this.system.emitChangeStatsUpdates();
   }
 
   async getLogs(page: number): Promise<SharedFileActivity[]> {
     const pageR = page - 1;
     const logs = await this.prismaServ.sharedfilesactivity.findMany({ take: this.amount, skip: pageR * this.amount, orderBy: { date: 'desc' } });
     // @ts-ignore
-    return logs
+    return logs;
   }
 
   async getPagesLogs(): Promise<number> {
-    const count = await this.prismaServ.logsReq.count();
+    const count = await this.prismaServ.sharedfilesactivity.count();
     return Math.ceil(count / this.amount);
   }
 
@@ -71,7 +73,7 @@ export class LogsService {
 
   private async getLineChartDataByReason(time: TIMEOPTION): Promise<StatsLineChart> {
     const timedimension = this.getTimeDimension(time);
-    const filteredRoutes = ['NOT_EXIST', 'EXPIRED', 'WRONG_OWNER'];
+    const filteredRoutes = ['NOT_EXIST', 'EXPIRED', 'WRONG_OWNER', 'NONE'];
     return Promise.all(
       filteredRoutes.map(async (m) => {
         const data = await Promise.all(

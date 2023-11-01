@@ -48,6 +48,14 @@ export class WebSocketFilesService implements OnApplicationBootstrap {
         } catch (_err) {}
       });
     });
+    this.system.addChangeStatsUpdate(() => {
+      const connectionsArray = Object.keys(this.connections);
+      connectionsArray.forEach((idC) => {
+        try {
+          this.connections[idC].client.emit('stats-update');
+        } catch (_err) {}
+      });
+    });
   }
 
   handleConnect(client: Socket, user: UserPayload) {
