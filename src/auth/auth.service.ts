@@ -3,6 +3,7 @@ import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { CryptoService } from '../crypto/crypto.service';
 import { FilesService } from '../files/files.service';
+import { SystemService } from '../system/system.service';
 // interfaces
 import { UserPayload } from './interfaces/userPayload.interface';
 import { MessageResponse, AuthResponse } from './interfaces/response.interface';
@@ -17,7 +18,8 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private cryptoService: CryptoService,
-    private filesService: FilesService
+    private filesService: FilesService,
+    private system: SystemService
   ) {}
 
   /**
@@ -58,6 +60,7 @@ export class AuthService {
     });
     const payload: UserPayload = { userId: newUser.id, username: newUser.username, isadmin: newUser.isadmin };
     this.filesService.createFolder('', payload);
+    this.system.emitChangeUsersUpdates();
     return {
       access_token: this.jwtService.sign(payload)
     };
@@ -83,6 +86,7 @@ export class AuthService {
     });
     const payload: UserPayload = { userId: newUser.id, username: newUser.username, isadmin: newUser.isadmin };
     this.filesService.createFolder('', payload);
+    this.system.emitChangeUsersUpdates();
     return {
       access_token: this.jwtService.sign(payload),
       idUser
@@ -99,6 +103,7 @@ export class AuthService {
       throw new NotFoundException('usuario no encontrado');
     }
     await this.usersService.delete({ id: userid });
+    this.system.emitChangeUsersUpdates();
     return { message: 'user deleted' };
   }
 
@@ -149,6 +154,7 @@ export class AuthService {
       throw new BadRequestException('Usuario no existe');
     }
     await this.usersService.update({ id: userId }, { isadmin: admin });
+    this.system.emitChangeUsersUpdates();
     return { message: 'user type changed' };
   }
 

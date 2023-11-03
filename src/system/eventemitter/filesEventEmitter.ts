@@ -7,6 +7,7 @@ export declare interface EventEmitterWS extends EventEmitter {
   on(event: 'token-change', listener: (collection: ChangeTokenEvent) => void);
   on(event: 'memory-usage-update', listener: () => void);
   on(event: 'stats-update', listener: () => void);
+  on(event: 'users-update', listener: () => void);
 }
 
 export class EventEmitterWS extends EventEmitter {

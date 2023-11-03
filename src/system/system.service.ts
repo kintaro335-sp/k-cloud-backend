@@ -7,6 +7,15 @@ import { ChangeTokenEvent } from './interfaces/changetoken.interface';
 export class SystemService {
   private eventEmitterWS = new EventEmitterWS();
 
+  // users
+  emitChangeUsersUpdates() {
+    this.eventEmitterWS.emit('users-update');
+  }
+
+  addChangeUsersUpdate(listener: () => void) {
+    this.eventEmitterWS.addListener('users-update', listener);
+  }
+
   // memory monitor
   emitChangeStatsUpdates() {
     this.eventEmitterWS.emit('stats-update');
