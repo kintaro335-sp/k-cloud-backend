@@ -7,8 +7,10 @@ import { AuthModule } from '../auth/auth.module';
 import { UtilsModule } from '../utils/utils.module';
 import { TempStorageModule } from '../temp-storage/temp-storage.module';
 import { TokenFilesModule } from '../token-files/token-files.module';
+import { SystemModule } from '../system/system.module';
+
 @Module({
-  imports: [TempStorageModule, UtilsModule, forwardRef(() => AdminModule), AuthModule, TokenFilesModule],
+  imports: [SystemModule, TempStorageModule, UtilsModule, forwardRef(() => AdminModule), AuthModule, TokenFilesModule],
   controllers: [FilesController],
   providers: [FilesService],
   exports: [FilesService]

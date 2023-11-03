@@ -3,10 +3,15 @@ import { Interval } from '@nestjs/schedule';
 // interfaces
 import { MemoryUsageInfo } from './interfaces/MemoryUsageInfo.interface';
 import { StatsLineChart } from '../logs/interfaces/statslinechart.interface';
+// services
+import { SystemService } from '../system/system.service';
 
 @Injectable()
 export class MonitorService {
+  constructor(private system: SystemService) {}
   private memoryInfo: Array<MemoryUsageInfo> = [];
+  private interval = 3;
+  private sec = 0;
 
   @Interval(1000)
   registerMemoryUsage() {
@@ -14,6 +19,11 @@ export class MonitorService {
     this.memoryInfo.push({ rss: memUsage.rss, buffer: memUsage.arrayBuffers });
     if (this.memoryInfo.length > 60) {
       this.memoryInfo.shift();
+    }
+    this.sec++;
+    if (this.sec > this.interval) {
+      this.system.emitChangeMemoryMonitorEvent();
+      this.sec = 0;
     }
   }
 

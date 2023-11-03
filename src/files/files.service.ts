@@ -5,6 +5,7 @@ import { Interval } from '@nestjs/schedule';
 import { TempStorageService } from '../temp-storage/temp-storage.service';
 import { AdminService } from '../admin/admin.service';
 import { TokenFilesService } from '../token-files/token-files.service';
+import { SystemService } from '../system/system.service';
 // exceptions
 import { NotFoundException } from './exceptions/NotFound.exception';
 // interfaces
@@ -27,7 +28,8 @@ export class FilesService {
     private readonly configService: ConfigService,
     private readonly storageService: TempStorageService,
     @Inject(forwardRef(() => AdminService)) private readonly adminServ: AdminService,
-    private readonly tokenServ: TokenFilesService
+    private readonly tokenServ: TokenFilesService,
+    private system: SystemService
   ) {
     this.root = this.configService.get<string>('FILE_ROOT');
   }
@@ -50,6 +52,10 @@ export class FilesService {
             await this.storageService.writeBlob(realPath, blob);
             this.storageService.updateBytesWriten(dir, blob);
             if (this.storageService.isCompleted(dir)) {
+              const fileInfo = this.storageService.getFileInfo(dir);
+              const pathArr = fileInfo.path.split('/');
+              pathArr.pop();
+              this.system.emitChangeFileEvent({ path: pathArr.join('/'), userId: fileInfo.userId });
               this.storageService.delFile(dir);
               this.adminServ.updateUsedSpace();
             }
@@ -279,6 +285,7 @@ export class FilesService {
       throw new BadRequestException('Folder already exists');
     }
     await mkdir(entirePath, { recursive: true });
+    this.system.emitChangeFileEvent({ path, userId: userPayload.userId });
     return { message: 'Folder created successfully' };
   }
 
@@ -425,7 +432,50 @@ export class FilesService {
     }
     await rename(realPath, realPathNew);
     await this.tokenServ.updatePathTokens(path, newPath);
+    const pathMessage = path.split('/');
+    pathMessage.pop();
+    this.system.emitChangeFileEvent({ path: pathMessage.join('/'), userId: userPayload.userId });
     return { message: 'move success' };
+  }
+
+  async moveFiles(path: string, newPath: string, files: string[], userPayload: UserPayload) {
+    const { userId } = userPayload;
+    const realPath = join(this.root, userId, path);
+    const realPathNew = join(this.root, userId, newPath);
+    const realPathIsDirectory = (await lstat(realPath)).isDirectory();
+    const realPathNewIsDirectory = await (await lstat(realPathNew)).isDirectory();
+    if (!realPathIsDirectory || realPathNewIsDirectory) {
+      throw new BadRequestException('path or new Path is not a directory');
+    }
+    await Promise.all(
+      files.map(async (f) => {
+        const filePath = join(realPath, f);
+        const newFilePath = join(realPathNew, f);
+        if (existsSync(filePath)) {
+          await rename(filePath, newFilePath);
+        }
+        return f;
+      })
+    );
+
+    const pathMessage = path.split('/');
+    pathMessage.pop();
+    this.system.emitChangeFileEvent({ path: pathMessage.join('/'), userId: userPayload.userId });
+    return { message: 'archivos movidos' };
+  }
+
+  async renameFile(path: string, newName: string, userPayload: UserPayload) {
+    const { userId } = userPayload;
+    const newPath = path.split('/');
+    newPath.pop();
+    newPath.push(newName);
+    const realPath = join(this.root, userId, path);
+    const realNewPath = join(this.root, userId, newPath.join('/'));
+    await rename(realPath, realNewPath);
+    const pathMessage = path.split('/');
+    pathMessage.pop();
+    this.system.emitChangeFileEvent({ path: pathMessage.join('/'), userId: userPayload.userId });
+    return { message: 'archivo renombradostatFile' };
   }
 
   async getUsedSpaceByFileType(path = ''): Promise<UsedSpaceType[]> {
@@ -477,7 +527,7 @@ export class FilesService {
           val.content.forEach(onForEach(join(pathContext, val.name)));
         } else {
           const realPath = join(entirePath, pathContext, val.name);
-          const zipPath = join(pathContext, val.name);
+          const zipPath = join(filename, pathContext, val.name);
           zipFolder.file(zipPath, createReadStream(realPath), { createFolders: true });
         }
       };

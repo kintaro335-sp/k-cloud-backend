@@ -13,13 +13,15 @@ import { UtilsService } from '../utils/utils.service';
 import { Sharedfile } from '@prisma/client';
 import { join } from 'path';
 import { contentType, lookup } from 'mime-types';
+import { SystemService } from '../system/system.service';
 
 @Injectable()
 export class SharedFileService {
   constructor(
     private readonly filesService: FilesService,
     private readonly tokenService: TokenFilesService,
-    private readonly utilsServ: UtilsService
+    private readonly utilsServ: UtilsService,
+    private system: SystemService
   ) {}
 
   private async getFName(path: string, user: UserPayload) {
@@ -52,8 +54,9 @@ export class SharedFileService {
           public: metadata.public,
           owner: { connect: { id: user.userId } },
           name: nameF,
-          path
+          path: pathComplete
         });
+        this.system.emitChangeTokenEvent({ path, userId: user.userId });
         return uuid;
       })
     );
@@ -79,7 +82,9 @@ export class SharedFileService {
       name: nameF,
       path
     });
-
+    const pathEmit = path.split('/');
+    pathEmit.pop();
+    this.system.emitChangeFileEvent({ path: pathEmit.join('/'), userId: user.userId });
     return { id: uuid };
   }
 
@@ -146,10 +151,18 @@ export class SharedFileService {
 
   async removeTokensByPath(path: string, user: UserPayload) {
     await this.tokenService.deleteTokensByPath(path, user.userId);
+    const pathEmit = path.split('/');
+    pathEmit.pop();
+    this.system.emitChangeTokenEvent({ path: pathEmit.join('/'), userId: user.userId });
     return { message: 'deleted tokens' };
   }
 
   async deleteToken(id: string) {
+    const token = await this.tokenService.getSharedFileByID(id);
+    const pathEmit = token.path.split('/');
+    pathEmit.pop();
+    this.system.emitChangeFileEvent({ path: pathEmit.join('/'), userId: token.userid });
+    this.system.emitChangeTokenEvent({ path: pathEmit.join('/'), userId: token.userid });
     await this.tokenService.removeSharedFile(id);
     return { message: 'deleted' };
   }
@@ -215,7 +228,14 @@ export class SharedFileService {
   }
 
   async updateSFToken(id: string, newTokenInfo: ShareFileDTO) {
-    await this.tokenService.updateSF(id, { expire: new Date(newTokenInfo.expire), public: newTokenInfo.public, doesexpires: newTokenInfo.expires });
+    const token = await this.tokenService.updateSF(id, {
+      expire: new Date(newTokenInfo.expire),
+      public: newTokenInfo.public,
+      doesexpires: newTokenInfo.expires
+    });
+    const pathEmit = token.path.split('/');
+    pathEmit.pop();
+    this.system.emitChangeTokenEvent({ path: pathEmit.join('/'), userId: token.userid });
     return { message: 'token Updated' };
   }
 }

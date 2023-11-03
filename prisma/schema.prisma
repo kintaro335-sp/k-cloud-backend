@@ -34,15 +34,17 @@ model Sharedfile {
   owner User @relation(fields: [userid], references: [id])
 }
 
-model LogsReq {
-  @@index([method])
-  @@index([statusCode])
-  @@index([route])
+model sharedfilesactivity {
   @@index([date])
+  @@index([action])
+  @@index([status])
+  @@index([reason])
   id String @id
   date DateTime
-  route String
-  statusCode String
-  method String
-  MessageError String @default("")
+  action String
+  status String
+  reason String
+  user String
+  tokenid String
+  path String
 }

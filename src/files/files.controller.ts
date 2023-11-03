@@ -27,6 +27,8 @@ import { UtilsService } from '../utils/utils.service';
 import { BlobFPDTO } from './dtos/blobfp.dto';
 import { FileInitDTO } from './dtos/fileInit.dto';
 import { RenameDTO } from './dtos/rename.dto';
+import { MoveFileDTO } from './dtos/moceFile.dto';
+import { MoveFilesDTO } from './dtos/moveFiles.dto';
 // guards
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { SpaceGuard } from './guards/space.guard';
@@ -132,7 +134,7 @@ export class FilesController {
     if (this.storageService.existsFile(pathStringC)) {
       throw new BadRequestException('Archivo ya inicializado');
     }
-    this.storageService.createFileTemp(pathStringC, body.size, this.filesService.root);
+    this.storageService.createFileTemp(pathStringC, body.size, req.user, pathString);
     return { message: 'Inicializado' };
   }
 
@@ -277,11 +279,27 @@ export class FilesController {
     return new StreamableFile(streamZip);
   }
 
+  @Post('rename/*')
+  async renameFile(@Param() path: string[], @Request() req, @Body() body: RenameDTO) {
+    const pathString = Object.keys(path)
+      .map((key) => path[key])
+      .join('/');
+    return this.filesService.renameFile(pathString, body.newName, req.user);
+  }
+
   @Post('move/*')
-  async moveFileFolder(@Param() path: string[], @Request() req, @Body() body: RenameDTO) {
+  async moveFileFolder(@Param() path: string[], @Request() req, @Body() body: MoveFileDTO) {
     const pathString = Object.keys(path)
       .map((key) => path[key])
       .join('/');
     return this.filesService.moveFileFolder(pathString, body.newpath, req.user);
+  }
+
+  @Post('move/files/*')
+  async moveFiles(@Param() path: string[], @Request() req, @Body() body: MoveFilesDTO) {
+    const pathString = Object.keys(path)
+      .map((key) => path[key])
+      .join('/');
+    return this.filesService.moveFiles(pathString, body.newPath, body.files, req.user);
   }
 }

@@ -1,5 +1,5 @@
 export enum GROUPFILTER {
-  STATUSCODE = 'statuscode',
-  METHOD = 'method',
-  ROUTE = 'route'
+  STATUS = 'status',
+  ACTION = 'action',
+  REASON = 'reason'
 }

@@ -13,6 +13,9 @@ import { TokenFilesModule } from './token-files/token-files.module';
 import { UtilsModule } from './utils/utils.module';
 import { SharedFileModule } from './shared-file/shared-file.module';
 import { SetupModule } from './setup/setup.module';
+import { JwtModule } from '@nestjs/jwt';
+import { jwtConstants } from './auth/constants';
+import { WebSocketModule } from './websockets/websocket.module'
 // middlewares
 import { LoggerMiddleware } from './middlewares/logger.middleware';
 import { LogsModule } from './logs/logs.module';
@@ -22,6 +25,11 @@ import { MonitorModule } from './monitor/monitor.module';
   imports: [
     FilesModule,
     ConfigModule.forRoot({ isGlobal: true }),
+    JwtModule.register({
+      secret: jwtConstants.secret,
+      signOptions: { expiresIn: '7d' },
+      global: true
+    }),
     UsersModule,
     AuthModule,
     AdminModule,
@@ -32,13 +40,14 @@ import { MonitorModule } from './monitor/monitor.module';
     SharedFileModule,
     SetupModule,
     LogsModule,
-    MonitorModule
+    MonitorModule,
+    WebSocketModule
   ],
   controllers: [AppController],
   providers: [AppService, ConfigService, PrismaService]
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(LoggerMiddleware).exclude('files/*')
+    consumer.apply(LoggerMiddleware).forRoutes('shared-file/*');
   }
 }

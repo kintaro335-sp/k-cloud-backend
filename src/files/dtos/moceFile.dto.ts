@@ -1,6 +1,6 @@
 import { IsString } from 'class-validator';
 
-export class RenameDTO {
+export class MoveFileDTO {
   @IsString()
-  newName: string;
+  newpath: string;
 }

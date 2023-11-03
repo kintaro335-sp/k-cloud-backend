@@ -16,6 +16,8 @@ export interface FilePTemp {
   completed: boolean;
   blobs: BlobFTemp[];
   writting: boolean;
+  path: string;
+  userId: string;
 }
 
 export interface FilePTempResponse {

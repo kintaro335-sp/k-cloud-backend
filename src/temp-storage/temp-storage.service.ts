@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 // interfaces
 import { FilePTemp, BlobFTemp, FilePTempResponse } from './interfaces/filep.interface';
 import { createWriteStream, existsSync } from 'fs';
+import { UserPayload } from 'src/auth/interfaces/userPayload.interface';
 
 @Injectable()
 export class TempStorageService {
@@ -60,15 +61,16 @@ export class TempStorageService {
 
   /**
    * Inicializar un Archivo para cargarlo en RAM
-   * @param {string} path Direccion del archivo
+   * @param {string} realPath Direccion real del archivo
    * @param {number} size Tamaño del archivo en Bytes
-   * @param {string} root raiz
+   * @param {UserPayload} user usuario
+   * @param [string] path direccion que llega desde params
    */
-  createFileTemp(path: string, size: number, root: string) {
-    const name = path.split('/').pop();
+  createFileTemp(realPath: string, size: number, user: UserPayload, path: string) {
+    const name = realPath.split('/').pop();
 
-    this.filesDirectories.push(path);
-    this.storage[path] = {
+    this.filesDirectories.push(realPath);
+    this.storage[realPath] = {
       name,
       size,
       saved: 0,
@@ -76,7 +78,9 @@ export class TempStorageService {
       bytesWritten: [],
       completed: false,
       blobs: [],
-      writting: false
+      writting: false,
+      path,
+      userId: user.userId
     };
   }
 
@@ -201,6 +205,10 @@ export class TempStorageService {
     if (this.storage[path] === null || this.storage[path] === undefined) return false;
 
     return this.storage[path].writting;
+  }
+
+  getFileInfo(path: string) {
+    return this.storage[path];
   }
 
   getSpaceToUse(): number {
