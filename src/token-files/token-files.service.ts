@@ -4,7 +4,7 @@ import { Prisma, Sharedfile } from '@prisma/client';
 
 @Injectable()
 export class TokenFilesService {
-  private group = 16;
+  private group = 64;
   constructor(private readonly prismaService: PrismaService) {}
 
   async addSharedFile(sharedFile: Prisma.SharedfileCreateInput) {

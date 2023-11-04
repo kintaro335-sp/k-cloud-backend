@@ -11,7 +11,8 @@ import {
   Response,
   StreamableFile,
   Query,
-  ParseIntPipe
+  ParseIntPipe,
+  Patch
 } from '@nestjs/common';
 // guards
 import { OwnerShipGuard } from './ownership.guard';
@@ -24,6 +25,7 @@ import { ShareFilesDTO } from './dtos/sharefiles.dto';
 import { SharedFileService } from './shared-file.service';
 import { TokenFilesService } from '../token-files/token-files.service';
 import { contentType } from 'mime-types';
+import { TokensIdsDTO } from './dtos/tokensIds.dto';
 
 @Controller('shared-file')
 export class SharedFileController {
@@ -87,6 +89,12 @@ export class SharedFileController {
   @Delete('token/:id')
   async deleteToken(@Param('id') id: string) {
     return this.SFService.deleteToken(id);
+  }
+
+  @Patch('token/delete')
+  @UseGuards(JwtAuthGuard)
+  async deleteTokens(@Body() body: TokensIdsDTO, @Request() req) {
+    return this.SFService.deleteTokens(body.ids, req.user);
   }
 
   @UseGuards(ExpireGuard)
