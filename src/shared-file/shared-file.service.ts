@@ -14,6 +14,8 @@ import { Sharedfile } from '@prisma/client';
 import { join } from 'path';
 import { contentType, lookup } from 'mime-types';
 import { SystemService } from '../system/system.service';
+import { LogsService } from 'src/logs/logs.service';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class SharedFileService {
@@ -21,7 +23,8 @@ export class SharedFileService {
     private readonly filesService: FilesService,
     private readonly tokenService: TokenFilesService,
     private readonly utilsServ: UtilsService,
-    private system: SystemService
+    private system: SystemService,
+    private logService: LogsService
   ) {}
 
   private async getFName(path: string, user: UserPayload) {
@@ -162,9 +165,43 @@ export class SharedFileService {
     const pathEmit = token.path.split('/');
     pathEmit.pop();
     this.system.emitChangeFileEvent({ path: pathEmit.join('/'), userId: token.userid });
-    this.system.emitChangeTokenEvent({ path: pathEmit.join('/'), userId: token.userid });
+    this.system.emitChangeTokenEvent({ path: token.path, userId: token.userid });
     await this.tokenService.removeSharedFile(id);
     return { message: 'deleted' };
+  }
+
+  async deleteTokens(tokensIds: string[], userPayload: UserPayload) {
+    const { userId } = userPayload;
+    const deletedTokens = tokensIds.map(async (tokenId) => {
+      const token = await this.tokenService.getSharedFileByID(tokenId);
+      if (token.userid === userId) {
+        await this.tokenService.removeSharedFile(tokenId);
+        await this.logService.createLog({
+          id: uuidv4(),
+          action: 'DELETE',
+          date: new Date(),
+          path: token.path,
+          reason: 'NONE',
+          tokenid: tokenId,
+          user: userId,
+          status: 'ALLOWED'
+        });
+      } else {
+        await this.logService.createLog({
+          id: uuidv4(),
+          action: 'DELETE',
+          date: new Date(),
+          path: token.path,
+          reason: 'WRONG_OWNER',
+          tokenid: tokenId,
+          user: userId,
+          status: 'DENIED'
+        });
+      }
+      return tokenId;
+    });
+    this.system.emitChangeTokenEvent({ path: '', userId: userId });
+    return Promise.all(deletedTokens);
   }
 
   async getTokensByPath(path: string, user: UserPayload): Promise<TokenElement[]> {

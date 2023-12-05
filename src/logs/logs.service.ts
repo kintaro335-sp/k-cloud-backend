@@ -25,9 +25,13 @@ export class LogsService {
     await this.prismaServ.logsReq.deleteMany({ where: { date: { lt: oneMonthAgo } } });
   } */
 
-  async createLog(entry: Prisma.sharedfilesactivityCreateInput) {
-    await this.prismaServ.sharedfilesactivity.create({ data: entry });
-    this.system.emitChangeStatsUpdates();
+  async createLog(entry: SharedFileActivity) {
+    while (true) {
+      try {
+        const data = await this.prismaServ.sharedfilesactivity.create({ data: entry });
+        return data;
+      } catch (err) {}
+    }
   }
 
   async getLogs(page: number): Promise<SharedFileActivity[]> {

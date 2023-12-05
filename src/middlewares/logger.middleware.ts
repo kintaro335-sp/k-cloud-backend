@@ -34,6 +34,8 @@ export class LoggerMiddleware implements NestMiddleware {
           return 'CREATED';
         }
         return 'MODIFY';
+      case 'PATCH':
+        return 'DELETE';
       case 'DELETE':
         return 'DELETE';
     }
@@ -64,7 +66,13 @@ export class LoggerMiddleware implements NestMiddleware {
     const id = uuidv4();
     const params = req.params;
     const method = req.method;
-    const route = req.route.path;
+    const route = req.route.path as string;
+    if (method === 'PATCH') {
+      return;
+    }
+    if (route.includes('list') || route.includes('pages')) {
+      return;
+    }
     const tokenid = params.id || '';
     const path = this.processPath(params);
     const action = this.getAction(method, route, Number(req.query.d));
@@ -72,7 +80,8 @@ export class LoggerMiddleware implements NestMiddleware {
     const reason = this.getReason(res.statusCode, route);
     // @ts-ignore
     const user = req.user.userId || '';
-    this.logServ.createLog({ id, action, status, tokenid, date: new Date(), path, reason, user });
+    const newEntry = { id, action, status, tokenid, date: new Date(), path, reason, user };
+    this.logServ.createLog(newEntry);
   }
 
   use(req: Request, res: Response, next: NextFunction) {

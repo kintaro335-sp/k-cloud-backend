@@ -2,6 +2,7 @@ import {
   Controller,
   Param,
   Get,
+  Patch,
   StreamableFile,
   Response,
   Request,
@@ -42,6 +43,7 @@ import { contentType } from 'mime-types';
 import { join } from 'path';
 // RXJS
 import { Observable } from 'rxjs';
+import { DeleteFilesDTO } from './dtos/deletefiles.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('files')
@@ -227,6 +229,14 @@ export class FilesController {
       .map((key) => path[key])
       .join('/');
     return this.filesService.deleteFile(pathString, req.user);
+  }
+
+  @Patch('deletemp/*')
+  async deleteFiles(@Param() path: string[], @Body() body: DeleteFilesDTO, @Request() req) {
+    const pathString = Object.keys(path)
+      .map((key) => path[key])
+      .join('/');
+    return this.filesService.deleteFiles(pathString, body.files, req.user);
   }
 
   @Get('/tree')

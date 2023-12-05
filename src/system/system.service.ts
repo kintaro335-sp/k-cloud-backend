@@ -2,10 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { EventEmitterWS } from './eventemitter/filesEventEmitter';
 import { ChangeFileData } from './interfaces/changefile.interface';
 import { ChangeTokenEvent } from './interfaces/changetoken.interface';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class SystemService {
   private eventEmitterWS = new EventEmitterWS();
+
+  @Cron(CronExpression.EVERY_5_MINUTES)
+  private emitEvents() {
+    this.emitChangeStatsUpdates();
+  }
 
   // users
   emitChangeUsersUpdates() {
@@ -16,7 +22,7 @@ export class SystemService {
     this.eventEmitterWS.addListener('users-update', listener);
   }
 
-  // memory monitor
+  // stats
   emitChangeStatsUpdates() {
     this.eventEmitterWS.emit('stats-update');
   }

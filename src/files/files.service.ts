@@ -55,7 +55,8 @@ export class FilesService {
               const fileInfo = this.storageService.getFileInfo(dir);
               const pathArr = fileInfo.path.split('/');
               pathArr.pop();
-              this.system.emitChangeFileEvent({ path: pathArr.join('/'), userId: fileInfo.userId });
+              const pathH = pathArr.join('/');
+              this.system.emitChangeFileEvent({ path: pathH, userId: fileInfo.userId });
               this.storageService.delFile(dir);
               this.adminServ.updateUsedSpace();
             }
@@ -265,11 +266,29 @@ export class FilesService {
     }
     if (!(await lstat(entirePath)).isDirectory()) {
       await rm(entirePath);
+      const pathArr = path.split('/');
+      pathArr.pop();
+      const pathH = pathArr.join('/');
+      console.log(pathH);
+      this.system.emitChangeFileEvent({ path: pathH, userId: userPayload.userId });
       return Promise.resolve({ message: 'File deleted successfully' });
     }
     await rm(entirePath, { recursive: true });
     this.tokenServ.deleteTokensByPath(path, userId);
+    const pathArr = path.split('/');
+    pathArr.pop();
+    const pathH = pathArr.join('/');
+    console.log(pathH);
+    this.system.emitChangeFileEvent({ path: pathH, userId: userPayload.userId });
     return { message: 'Folder deleted successfully' };
+  }
+
+  async deleteFiles(path: string, files: string[], userPayload: UserPayload) {
+    const delFiles = files.map((file) => {
+      const pathFile = join(path, file);
+      this.deleteFile(pathFile, userPayload);
+    });
+    return { message: 'files deleted', files: files.length };
   }
 
   /**
