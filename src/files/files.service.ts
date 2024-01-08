@@ -304,7 +304,10 @@ export class FilesService {
       throw new BadRequestException('Folder already exists');
     }
     await mkdir(entirePath, { recursive: true });
-    this.system.emitChangeFileEvent({ path, userId: userPayload.userId });
+    const pathArr = path.split('/');
+    pathArr.pop();
+    const pathH = pathArr.join('/');
+    this.system.emitChangeFileEvent({ path: pathH, userId: userPayload.userId });
     return { message: 'Folder created successfully' };
   }
 
