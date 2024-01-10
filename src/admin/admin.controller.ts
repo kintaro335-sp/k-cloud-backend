@@ -26,6 +26,7 @@ import { OwnerGuard } from './guards/owner.guard';
 // decorators
 import { RequireAdmin } from './decorators/admin.decorator';
 import { SharedFileActivity } from 'src/logs/interfaces/sharedfileActivity.interface';
+import { NotOwnerGuard } from './guards/notowner.guard';
 
 @UseGuards(JwtAuthGuard, AdminGuard)
 @Controller('admin')
@@ -86,12 +87,14 @@ export class AdminController {
 
   @RequireAdmin(true)
   @Post('/users/password/:userid')
+  @UseGuards(NotOwnerGuard)
   async setUserPasword(@Param('userid') userid: string, @Body() body: SetPasswordDTO): Promise<MessageResponse> {
     return this.authServ.setPaswword(userid, body.password);
   }
 
   @RequireAdmin(true)
   @Post('/users/admin/:userid')
+  @UseGuards(NotOwnerGuard)
   async setUserType(@Param('userid') userid: string, @Body() body: SetAdminDTO): Promise<MessageResponse> {
     return this.authServ.setAdmin(userid, body.admin);
   }
