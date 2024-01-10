@@ -10,7 +10,7 @@ export class SetupService {
 
   async isConfigured(): Promise<boolean> {
     const count = await this.usersServ.countAdminUsers();
-    return count !== 0 && this.adminServ.getfirstUser() == null;
+    return count !== 0 && this.adminServ.getOwner() == null;
   }
 
   setMainUser(userId: string) {

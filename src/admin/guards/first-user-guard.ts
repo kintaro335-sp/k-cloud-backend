@@ -7,7 +7,7 @@ export class FirstUserGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
-    if (request.params.userid === this.adminServ.getfirstUser()) {
+    if (request.params.userid === this.adminServ.getOwner()) {
       throw new ForbiddenException();
     }
     return true;
