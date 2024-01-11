@@ -465,8 +465,8 @@ export class FilesService {
     const realPath = join(this.root, userId, path);
     const realPathNew = join(this.root, userId, newPath);
     const realPathIsDirectory = (await lstat(realPath)).isDirectory();
-    const realPathNewIsDirectory = await (await lstat(realPathNew)).isDirectory();
-    if (!realPathIsDirectory || realPathNewIsDirectory) {
+    const realPathNewIsDirectory = (await lstat(realPathNew)).isDirectory();
+    if (!realPathIsDirectory || !realPathNewIsDirectory) {
       throw new BadRequestException('path or new Path is not a directory');
     }
     await Promise.all(
@@ -475,14 +475,13 @@ export class FilesService {
         const newFilePath = join(realPathNew, f);
         if (existsSync(filePath)) {
           await rename(filePath, newFilePath);
+          this.system.emitChangeFileEvent({ path, userId: userPayload.userId });
         }
         return f;
       })
     );
 
-    const pathMessage = path.split('/');
-    pathMessage.pop();
-    this.system.emitChangeFileEvent({ path: pathMessage.join('/'), userId: userPayload.userId });
+    this.system.emitChangeFileEvent({ path, userId: userPayload.userId });
     return { message: 'archivos movidos' };
   }
 
