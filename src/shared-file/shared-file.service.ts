@@ -174,6 +174,8 @@ export class SharedFileService {
     const { userId } = userPayload;
     const deletedTokens = tokensIds.map(async (tokenId) => {
       const token = await this.tokenService.getSharedFileByID(tokenId);
+      if (token === null) return null;
+
       if (token.userid === userId) {
         await this.tokenService.removeSharedFile(tokenId);
         await this.logService.createLog({
