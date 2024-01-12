@@ -292,7 +292,6 @@ export class FilesService {
       const pathArr = path.split('/');
       pathArr.pop();
       const pathH = pathArr.join('/');
-      console.log(pathH);
       this.system.emitChangeFileEvent({ path: pathH, userId: userPayload.userId });
       return Promise.resolve({ message: 'File deleted successfully' });
     }
@@ -301,7 +300,6 @@ export class FilesService {
     const pathArr = path.split('/');
     pathArr.pop();
     const pathH = pathArr.join('/');
-    console.log(pathH);
     this.system.emitChangeFileEvent({ path: pathH, userId: userPayload.userId });
     return { message: 'Folder deleted successfully' };
   }
