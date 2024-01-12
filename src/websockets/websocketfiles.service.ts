@@ -2,6 +2,7 @@ import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { Socket } from 'socket.io';
 import { UserPayload } from 'src/auth/interfaces/userPayload.interface';
 import { SystemService } from '../system/system.service';
+import { UpdateFileEvent } from 'src/system/interfaces/updatefile.interface';
 
 interface Conections {
   [id: string]: {
@@ -61,6 +62,16 @@ export class WebSocketFilesService implements OnApplicationBootstrap {
       connectionsArray.forEach((idC) => {
         try {
           this.connections[idC].client.emit('users-update');
+        } catch (_err) {}
+      });
+    });
+
+    this.system.addChangeFileUpdateListener((event) => {
+      const connectionsArray = Object.keys(this.connections);
+      connectionsArray.forEach((idC) => {
+        try {
+          if (this.connections[idC].userId !== event.userid) return;
+          this.connections[idC].client.emit('file-update', event);
         } catch (_err) {}
       });
     });

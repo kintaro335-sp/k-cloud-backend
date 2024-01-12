@@ -13,7 +13,7 @@ import { ListFile, File, Folder, UsedSpaceType } from './interfaces/list-file.in
 import { UserPayload } from '../auth/interfaces/userPayload.interface';
 import { MessageResponse } from '../auth/interfaces/response.interface';
 // fs and path
-import { existsSync, createReadStream, ReadStream, createWriteStream } from 'fs';
+import { existsSync, createReadStream, ReadStream, createWriteStream, stat } from 'fs';
 import { readdir, lstat, mkdir, rm, rename } from 'fs/promises';
 import { join } from 'path';
 // utils
@@ -56,7 +56,9 @@ export class FilesService {
               const pathArr = fileInfo.path.split('/');
               pathArr.pop();
               const pathH = pathArr.join('/');
-              this.system.emitChangeFileEvent({ path: pathH, userId: fileInfo.userId });
+              // this.system.emitChangeFileEvent({ path: pathH, userId: fileInfo.userId });
+              const newFile = await this.getFileP(fileInfo.path, { isadmin: false, username: '', userId: fileInfo.userId });
+              if (newFile !== null) this.system.emitChangeFileUpdateEvent({ path: pathH, type: 'add', content: newFile, userid: fileInfo.userId });
               this.storageService.delFile(dir);
               this.adminServ.updateUsedSpace();
             }
@@ -211,6 +213,22 @@ export class FilesService {
     );
     const ordenedList = orderBy<File>(list, ['type', 'name'], ['desc', 'asc']);
     return { list: ordenedList };
+  }
+
+  async getFileP(path: string, userPayload: UserPayload): Promise<File | null> {
+    const { userId } = userPayload;
+    const entirePath = join(this.root, userId, path);
+    if (!existsSync(entirePath)) return null;
+    const fileName = entirePath.split('/').pop();
+    const state = await lstat(entirePath);
+    return {
+      name: fileName,
+      type: state.isDirectory() ? 'folder' : 'file',
+      size: state.size,
+      extension: fileName.split('.').pop(),
+      mime_type: lookup(fileName.split('.').pop()) || '',
+      tokens: await this.tokenServ.getCountByPath(path)
+    };
   }
 
   /**
