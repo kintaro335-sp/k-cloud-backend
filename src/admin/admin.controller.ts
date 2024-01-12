@@ -1,9 +1,10 @@
-import { Controller, Post, Get, Delete, Body, UseGuards, Param, Query, ParseIntPipe } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Delete, Body, UseGuards, Param, Query, ParseIntPipe } from '@nestjs/common';
 // services
 import { AdminService } from './admin.service';
 import { AuthService } from '../auth/auth.service';
 import { LogsService } from '../logs/logs.service';
 import { MonitorService } from '../monitor/monitor.service';
+import { SystemService } from '../system/system.service';
 // ineterfaces
 import { MessageResponse } from '../auth/interfaces/response.interface';
 import { SpaceUsed, UsedSpaceUser } from './interfaces/spaceused.interface';
@@ -21,9 +22,11 @@ import { RegisterDTO } from '../auth/dtos/Register.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from './guards/admin.guard';
 import { FirstUserGuard } from './guards/first-user-guard';
+import { OwnerGuard } from './guards/owner.guard';
 // decorators
 import { RequireAdmin } from './decorators/admin.decorator';
 import { SharedFileActivity } from 'src/logs/interfaces/sharedfileActivity.interface';
+import { NotOwnerGuard } from './guards/notowner.guard';
 
 @UseGuards(JwtAuthGuard, AdminGuard)
 @Controller('admin')
@@ -32,7 +35,8 @@ export class AdminController {
     private readonly adminServ: AdminService,
     private readonly authServ: AuthService,
     private readonly logserv: LogsService,
-    private readonly monitorServ: MonitorService
+    private readonly monitorServ: MonitorService,
+    private readonly systemServ: SystemService
   ) {}
 
   @RequireAdmin(true)
@@ -83,14 +87,32 @@ export class AdminController {
 
   @RequireAdmin(true)
   @Post('/users/password/:userid')
+  @UseGuards(NotOwnerGuard)
   async setUserPasword(@Param('userid') userid: string, @Body() body: SetPasswordDTO): Promise<MessageResponse> {
     return this.authServ.setPaswword(userid, body.password);
   }
 
   @RequireAdmin(true)
   @Post('/users/admin/:userid')
+  @UseGuards(NotOwnerGuard)
   async setUserType(@Param('userid') userid: string, @Body() body: SetAdminDTO): Promise<MessageResponse> {
     return this.authServ.setAdmin(userid, body.admin);
+  }
+
+  @RequireAdmin(true)
+  @Get('users/owner')
+  async getAdmin(): Promise<{ id: string | null }> {
+    const userId = this.adminServ.getOwner();
+    return { id: userId };
+  }
+
+  @Patch('users/owner/:userid')
+  @UseGuards(OwnerGuard)
+  async changeOwner(@Param('userid') userId: string) {
+    await this.authServ.setAdmin(userId, true);
+    this.adminServ.changeOwner(userId);
+    this.systemServ.emitChangeUsersUpdates();
+    return { message: 'owner changed' };
   }
 
   @RequireAdmin(true)

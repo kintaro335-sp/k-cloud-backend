@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { EventEmitterWS } from './eventemitter/filesEventEmitter';
 import { ChangeFileData } from './interfaces/changefile.interface';
 import { ChangeTokenEvent } from './interfaces/changetoken.interface';
+import { UpdateFileEvent } from './interfaces/updatefile.interface';
+import { UpdateUploadEvent } from './interfaces/uploadUpdate.interface';
 import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
@@ -56,5 +58,23 @@ export class SystemService {
 
   addChangeFileListener(listener: (collection: ChangeFileData) => void) {
     this.eventEmitterWS.addListener('file-change', listener);
+  }
+
+  // files update
+  emitChangeFileUpdateEvent(collection: UpdateFileEvent) {
+    this.eventEmitterWS.emit('file-update', collection);
+  }
+
+  addChangeFileUpdateListener(listener: (collection: UpdateFileEvent) => void) {
+    this.eventEmitterWS.addListener('file-update', listener);
+  }
+
+  // upload update
+  emitChangeUpdateUploadEvent(collection: UpdateUploadEvent) {
+    this.eventEmitterWS.emit('upload-update', collection);
+  }
+
+  addChangeUpdateUploadListener(listener: (collection: UpdateUploadEvent) => void) {
+    this.eventEmitterWS.addListener('upload-update', listener);
   }
 }

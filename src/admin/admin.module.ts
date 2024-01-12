@@ -7,9 +7,10 @@ import { AuthModule } from '../auth/auth.module';
 import { UsersModule } from '../users/users.module';
 import { LogsModule } from '../logs/logs.module';
 import { MonitorModule } from '../monitor/monitor.module';
+import { SystemModule } from '../system/system.module'
 
 @Module({
-  imports: [AuthModule, forwardRef(() => FilesModule), UsersModule, LogsModule, MonitorModule],
+  imports: [AuthModule, forwardRef(() => FilesModule), UsersModule, LogsModule, MonitorModule, SystemModule],
   exports: [AdminService],
   controllers: [AdminController],
   providers: [AdminService]

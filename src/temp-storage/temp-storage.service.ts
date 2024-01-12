@@ -130,7 +130,7 @@ export class TempStorageService {
    */
   delFile(path: string) {
     this.filesDirectories = this.filesDirectories.filter((dirs) => dirs !== path);
-    this.storage[path] = null;
+    delete this.storage[path];
   }
 
   /**

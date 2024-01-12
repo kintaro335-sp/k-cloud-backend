@@ -192,8 +192,13 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     this.saveConfig();
   }
 
-  getfirstUser(): string | null {
+  getOwner(): string | null {
     return this.config?.users?.firstUser || null;
+  }
+
+  changeOwner(userId: string) {
+    this.config.users.firstUser = userId;
+    this.saveConfig();
   }
 
   getMemoryUsage() {

@@ -297,7 +297,7 @@ export class FilesController {
     return this.filesService.renameFile(pathString, body.newName, req.user);
   }
 
-  @Post('move/*')
+  @Post('move/file/*')
   async moveFileFolder(@Param() path: string[], @Request() req, @Body() body: MoveFileDTO) {
     const pathString = Object.keys(path)
       .map((key) => path[key])

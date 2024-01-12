@@ -13,7 +13,7 @@ import { ListFile, File, Folder, UsedSpaceType } from './interfaces/list-file.in
 import { UserPayload } from '../auth/interfaces/userPayload.interface';
 import { MessageResponse } from '../auth/interfaces/response.interface';
 // fs and path
-import { existsSync, createReadStream, ReadStream, createWriteStream } from 'fs';
+import { existsSync, createReadStream, ReadStream, createWriteStream, stat } from 'fs';
 import { readdir, lstat, mkdir, rm, rename } from 'fs/promises';
 import { join } from 'path';
 // utils
@@ -46,19 +46,26 @@ export class FilesService {
       while (this.storageService.getBlobsLength(dir) !== 0) {
         this.storageService.setWritting(dir, true);
         const blob = this.storageService.deallocateBlob(dir);
+
         if (blob !== undefined) {
           try {
             const realPath = join(this.root, dir);
             await this.storageService.writeBlob(realPath, blob);
             this.storageService.updateBytesWriten(dir, blob);
+            const fileInfo = this.storageService.getFileInfo(dir);
             if (this.storageService.isCompleted(dir)) {
-              const fileInfo = this.storageService.getFileInfo(dir);
               const pathArr = fileInfo.path.split('/');
               pathArr.pop();
               const pathH = pathArr.join('/');
-              this.system.emitChangeFileEvent({ path: pathH, userId: fileInfo.userId });
+              // this.system.emitChangeFileEvent({ path: pathH, userId: fileInfo.userId });
+              const newFile = await this.getFileP(fileInfo.path, { isadmin: false, username: '', userId: fileInfo.userId });
+              if (newFile !== null) this.system.emitChangeFileUpdateEvent({ path: pathH, type: 'add', content: newFile, userid: fileInfo.userId });
               this.storageService.delFile(dir);
               this.adminServ.updateUsedSpace();
+            }
+            if (this.storageService.existsFile(dir)) {
+              const fileStatus = this.storageService.getFileStatus(dir);
+              this.system.emitChangeUpdateUploadEvent({ path: fileInfo.path, fileStatus, userid: fileInfo.userId });
             }
           } catch (err) {
             this.storageService.allocateBlob(dir, blob.position, blob.blob);
@@ -211,6 +218,22 @@ export class FilesService {
     );
     const ordenedList = orderBy<File>(list, ['type', 'name'], ['desc', 'asc']);
     return { list: ordenedList };
+  }
+
+  async getFileP(path: string, userPayload: UserPayload): Promise<File | null> {
+    const { userId } = userPayload;
+    const entirePath = join(this.root, userId, path);
+    if (!existsSync(entirePath)) return null;
+    const fileName = entirePath.split('/').pop();
+    const state = await lstat(entirePath);
+    return {
+      name: fileName,
+      type: state.isDirectory() ? 'folder' : 'file',
+      size: state.size,
+      extension: fileName.split('.').pop(),
+      mime_type: lookup(fileName.split('.').pop()) || '',
+      tokens: await this.tokenServ.getCountByPath(path)
+    };
   }
 
   /**
@@ -465,8 +488,8 @@ export class FilesService {
     const realPath = join(this.root, userId, path);
     const realPathNew = join(this.root, userId, newPath);
     const realPathIsDirectory = (await lstat(realPath)).isDirectory();
-    const realPathNewIsDirectory = await (await lstat(realPathNew)).isDirectory();
-    if (!realPathIsDirectory || realPathNewIsDirectory) {
+    const realPathNewIsDirectory = (await lstat(realPathNew)).isDirectory();
+    if (!realPathIsDirectory || !realPathNewIsDirectory) {
       throw new BadRequestException('path or new Path is not a directory');
     }
     await Promise.all(
@@ -475,14 +498,13 @@ export class FilesService {
         const newFilePath = join(realPathNew, f);
         if (existsSync(filePath)) {
           await rename(filePath, newFilePath);
+          this.system.emitChangeFileEvent({ path, userId: userPayload.userId });
         }
         return f;
       })
     );
 
-    const pathMessage = path.split('/');
-    pathMessage.pop();
-    this.system.emitChangeFileEvent({ path: pathMessage.join('/'), userId: userPayload.userId });
+    this.system.emitChangeFileEvent({ path, userId: userPayload.userId });
     return { message: 'archivos movidos' };
   }
 
