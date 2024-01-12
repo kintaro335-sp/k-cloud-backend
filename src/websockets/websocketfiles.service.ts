@@ -75,6 +75,15 @@ export class WebSocketFilesService implements OnApplicationBootstrap {
         } catch (_err) {}
       });
     });
+    this.system.addChangeUpdateUploadListener((event) => {
+      const connectionsArray = Object.keys(this.connections);
+      connectionsArray.forEach((idC) => {
+        try {
+          if (this.connections[idC].userId !== event.userid) return;
+          this.connections[idC].client.emit('upload-update', event);
+        } catch (_err) {}
+      });
+    });
   }
 
   handleConnect(client: Socket, user: UserPayload) {

@@ -46,13 +46,14 @@ export class FilesService {
       while (this.storageService.getBlobsLength(dir) !== 0) {
         this.storageService.setWritting(dir, true);
         const blob = this.storageService.deallocateBlob(dir);
+
         if (blob !== undefined) {
           try {
             const realPath = join(this.root, dir);
             await this.storageService.writeBlob(realPath, blob);
             this.storageService.updateBytesWriten(dir, blob);
+            const fileInfo = this.storageService.getFileInfo(dir);
             if (this.storageService.isCompleted(dir)) {
-              const fileInfo = this.storageService.getFileInfo(dir);
               const pathArr = fileInfo.path.split('/');
               pathArr.pop();
               const pathH = pathArr.join('/');
@@ -61,6 +62,10 @@ export class FilesService {
               if (newFile !== null) this.system.emitChangeFileUpdateEvent({ path: pathH, type: 'add', content: newFile, userid: fileInfo.userId });
               this.storageService.delFile(dir);
               this.adminServ.updateUsedSpace();
+            }
+            if (this.storageService.existsFile(dir)) {
+              const fileStatus = this.storageService.getFileStatus(dir);
+              this.system.emitChangeUpdateUploadEvent({ path: fileInfo.path, fileStatus, userid: fileInfo.userId });
             }
           } catch (err) {
             this.storageService.allocateBlob(dir, blob.position, blob.blob);
