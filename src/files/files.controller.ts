@@ -17,7 +17,8 @@ import {
   Body,
   Query,
   ParseIntPipe,
-  HttpStatus
+  HttpStatus,
+  ForbiddenException
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 // services
@@ -134,7 +135,7 @@ export class FilesController {
       throw new BadRequestException('archivo ya existe');
     }
     if (this.storageService.existsFile(pathStringC)) {
-      throw new BadRequestException('Archivo ya inicializado');
+      throw new ForbiddenException('Archivo ya inicializado');
     }
     this.storageService.createFileTemp(pathStringC, body.size, req.user, pathString);
     return { message: 'Inicializado' };
