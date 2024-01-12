@@ -89,7 +89,7 @@ export class TempStorageService {
       const writeStream = createWriteStream(path, { start: blob.position, flags: 'r+', autoClose: true });
       return new Promise((res) => {
         if (!writeStream.write(blob.blob)) {
-          writeStream.once('drain', () => {
+          writeStream.on('drain', () => {
             res();
           });
         } else {
@@ -100,11 +100,11 @@ export class TempStorageService {
       const writeStream = createWriteStream(path, { start: blob.position, flags: 'w', autoClose: true });
       return new Promise((res) => {
         if (!writeStream.write(blob.blob)) {
-          writeStream.once('drain', () => {
+          writeStream.on('drain', () => {
             res();
           });
         } else {
-          res();
+          process.nextTick(() => res());
         }
       });
     }
