@@ -3,6 +3,7 @@ import { Server, Socket } from 'socket.io';
 import { WebSocketFilesService } from './websocketfiles.service';
 import { JwtService } from '@nestjs/jwt';
 import { UserPayload } from 'src/auth/interfaces/userPayload.interface';
+import { Interval } from '@nestjs/schedule';
 
 @WebSocketGateway(5001, { cors: true, namespace: '/' })
 export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -16,7 +17,7 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
     try {
       payload = this.jwtService.verify(token);
       this.wsFiles.handleConnect(client, payload);
-      client.emit('message', 'Welcome')
+      client.emit('message', 'Welcome');
     } catch (error) {
       client.disconnect();
       return;
@@ -25,5 +26,10 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
 
   handleDisconnect(client: Socket) {
     this.wsFiles.handleDisconnect(client);
+  }
+
+  @Interval(1000)
+  private filu() {
+    this.wss.emit('file-upload');
   }
 }
