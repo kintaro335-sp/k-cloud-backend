@@ -60,6 +60,7 @@ export class FilesService {
               // this.system.emitChangeFileEvent({ path: pathH, userId: fileInfo.userId });
               const newFile = await this.getFileP(fileInfo.path, { isadmin: false, username: '', userId: fileInfo.userId });
               if (newFile !== null) this.system.emitChangeFileUpdateEvent({ path: pathH, type: 'add', content: newFile, userid: fileInfo.userId });
+              this.system.emitFileUploadRequest(fileInfo.userId);
               this.storageService.delFile(dir);
               this.adminServ.updateUsedSpace();
             }

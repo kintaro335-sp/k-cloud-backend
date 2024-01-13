@@ -77,4 +77,14 @@ export class SystemService {
   addChangeUpdateUploadListener(listener: (collection: UpdateUploadEvent) => void) {
     this.eventEmitterWS.addListener('upload-update', listener);
   }
+
+  // upload update
+  emitFileUploadRequest(userId: string) {
+    this.eventEmitterWS.emit('file-upload', userId);
+  }
+
+  addFileUploadRequestListener(listener: (userId:string) => void) {
+    this.eventEmitterWS.addListener('file-upload', listener);
+  }
+  
 }
