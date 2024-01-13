@@ -12,6 +12,7 @@ export declare interface EventEmitterWS extends EventEmitter {
   on(event: 'users-update', listener: () => void);
   on(event: 'file-update', listener: (data: UpdateFileEvent) => void);
   on(event: 'upload-event', listener: (data: UpdateUploadEvent) => void);
+  on(event: 'file-upload', listener: (userid: string) => void);
 }
 
 export class EventEmitterWS extends EventEmitter {
