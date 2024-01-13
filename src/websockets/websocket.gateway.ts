@@ -37,4 +37,9 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
   private treeUpdate() {
     this.wss.emit('tree-update');
   }
+
+  @Interval(2000)
+  private FUpdate() {
+    this.wss.emit('file-upload');
+  }
 }
