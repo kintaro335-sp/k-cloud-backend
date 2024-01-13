@@ -131,7 +131,7 @@ export class FilesController {
       .join('/');
     const userId = req.user.userId;
     const pathStringC = join(userId, pathString);
-    if (this.filesService.exists(pathString, req.user)) {
+    if (await this.filesService.exists(pathString, req.user)) {
       throw new BadRequestException('archivo ya existe');
     }
     if (this.storageService.existsFile(pathStringC)) {
