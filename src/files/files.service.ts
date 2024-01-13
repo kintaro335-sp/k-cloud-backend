@@ -292,6 +292,7 @@ export class FilesService {
     pathArr.pop();
     const pathH = pathArr.join('/');
     this.system.emitChangeFileEvent({ userId, path: pathH });
+    this.system.emitFileUploadRequest(userId);
     return { message: 'File created successfully' };
   }
 
