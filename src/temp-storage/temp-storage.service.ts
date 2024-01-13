@@ -19,11 +19,22 @@ export class TempStorageService {
   private filesDirectories: string[] = [];
   private storage: Record<string, FilePTemp | null> = {};
 
+  private calculateWritting() {
+    let count = 0;
+    this.filesDirectories.forEach((d) => {
+      const f = this.storage[d];
+      if (f === undefined) return;
+      f.writting ? count++ : null;
+    });
+    this.filesWritting = count;
+  }
+
   /**
    * Saber si escribir mas archivos al mismo tiempo
    * @returns {boolean}
    */
   allowWriteMoreFiles() {
+    this.calculateWritting()
     return this.filesWritting <= this.filesAtSameTime;
   }
 
@@ -93,7 +104,9 @@ export class TempStorageService {
             res();
           });
         } else {
-          process.nextTick(() => res());
+          process.nextTick(() => {
+            res();
+          });
         }
       });
     } else {
@@ -104,7 +117,9 @@ export class TempStorageService {
             res();
           });
         } else {
-          process.nextTick(() => res());
+          process.nextTick(() => {
+            res();
+          });
         }
       });
     }
@@ -199,6 +214,7 @@ export class TempStorageService {
     if (this.storage[path] === null || this.storage[path] === undefined) return;
     newValue ? this.filesWritting++ : this.filesWritting--;
     this.storage[path].writting = newValue;
+    // this.calculateWritting();
   }
 
   getWritting(path: string): boolean {
