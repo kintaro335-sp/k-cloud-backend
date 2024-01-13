@@ -93,7 +93,7 @@ export class TempStorageService {
             res();
           });
         } else {
-          res();
+          process.nextTick(() => res());
         }
       });
     } else {

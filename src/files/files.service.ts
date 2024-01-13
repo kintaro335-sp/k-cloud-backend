@@ -13,7 +13,7 @@ import { ListFile, File, Folder, UsedSpaceType } from './interfaces/list-file.in
 import { UserPayload } from '../auth/interfaces/userPayload.interface';
 import { MessageResponse } from '../auth/interfaces/response.interface';
 // fs and path
-import { existsSync, createReadStream, ReadStream, createWriteStream, stat } from 'fs';
+import { createReadStream, ReadStream, createWriteStream, access, constants } from 'fs';
 import { readdir, lstat, mkdir, rm, rename } from 'fs/promises';
 import { join } from 'path';
 // utils
@@ -81,12 +81,28 @@ export class FilesService {
    * verificar si un archivo existe
    * @param {string} path
    * @param {UserPayload} userPayload
-   * @returns {boolean}
+   * @returns {Promise<boolean>}
    */
-  exists(path: string, userPayload: UserPayload): boolean {
+  exists(path: string, userPayload: UserPayload): Promise<boolean> {
     const { userId } = userPayload;
+    // modify
     const entirePath = join(this.root, userId, path);
-    return existsSync(entirePath);
+    return new Promise((res) => {
+      access(entirePath, constants.F_OK, (err) => {
+        const exists = err?.code !== 'ENOENT';
+        res(exists);
+      });
+    });
+  }
+
+  existsEP(entirePath: string): Promise<boolean> {
+    // modify
+    return new Promise((res) => {
+      access(entirePath, constants.F_OK, (err) => {
+        const exists = err?.code !== 'ENOENT';
+        res(exists);
+      });
+    });
   }
 
   /**
@@ -98,7 +114,7 @@ export class FilesService {
   async isDirectoryUser(path: string, userPayload: UserPayload): Promise<boolean> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
-    if (!existsSync(entirePath)) {
+    if (!(await this.exists(path, userPayload))) {
       throw new NotFoundException(path);
     }
     const statFile = await lstat(entirePath);
@@ -113,7 +129,7 @@ export class FilesService {
    */
   async isDirectory(path: string, injectRoot = true): Promise<boolean> {
     const entirePath = injectRoot ? join(this.root, path) : path;
-    if (!existsSync(entirePath)) {
+    if (!(await this.existsEP(entirePath))) {
       throw new NotFoundException(entirePath);
     }
     return (await lstat(entirePath)).isDirectory();
@@ -184,7 +200,7 @@ export class FilesService {
   async getListFiles(path: string, userPayload: UserPayload): Promise<ListFile> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
-    if (!existsSync(entirePath)) {
+    if (!(await this.existsEP(entirePath))) {
       throw new NotFoundException();
     }
 
@@ -223,7 +239,7 @@ export class FilesService {
   async getFileP(path: string, userPayload: UserPayload): Promise<File | null> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
-    if (!existsSync(entirePath)) return null;
+    if (!(await this.existsEP(entirePath))) return null;
     const fileName = entirePath.split('/').pop();
     const state = await lstat(entirePath);
     return {
@@ -245,7 +261,7 @@ export class FilesService {
   async getFile(path: string, userPayload: UserPayload): Promise<ReadStream> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
-    if (!existsSync(entirePath)) {
+    if (!(await this.exists(path, userPayload))) {
       throw new NotFoundException();
     }
     return createReadStream(entirePath);
@@ -261,7 +277,7 @@ export class FilesService {
   async createFile(path: string, file: Express.Multer.File, userPayload: UserPayload): Promise<MessageResponse> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
-    if (existsSync(`${entirePath}/${file.originalname}`)) {
+    if (await this.existsEP(`${entirePath}/${file.originalname}`)) {
       throw new BadRequestException('File already exists');
     }
     const writeStream = createWriteStream(`${entirePath}/${file.originalname}`);
@@ -284,7 +300,7 @@ export class FilesService {
       this.storageService.delFile(storagePath);
     }
 
-    if (!existsSync(entirePath)) {
+    if (!(await this.existsEP(entirePath))) {
       throw new NotFoundException();
     }
     if (!(await lstat(entirePath)).isDirectory()) {
@@ -321,7 +337,7 @@ export class FilesService {
   async createFolder(path: string, userPayload: UserPayload): Promise<MessageResponse> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
-    if (existsSync(entirePath)) {
+    if (await this.existsEP(entirePath)) {
       throw new BadRequestException('Folder already exists');
     }
     await mkdir(entirePath, { recursive: true });
@@ -470,7 +486,7 @@ export class FilesService {
     const { userId } = userPayload;
     const realPath = join(this.root, userId, path);
     const realPathNew = join(this.root, userId, newPath);
-    if (this.exists(newPath, userPayload)) {
+    if (await this.exists(newPath, userPayload)) {
       throw new UnauthorizedException('file/folder already exists');
     }
     await rename(realPath, realPathNew);
@@ -494,7 +510,7 @@ export class FilesService {
       files.map(async (f) => {
         const filePath = join(realPath, f);
         const newFilePath = join(realPathNew, f);
-        if (existsSync(filePath)) {
+        if (await this.existsEP(filePath)) {
           await rename(filePath, newFilePath);
           this.system.emitChangeFileEvent({ path, userId: userPayload.userId });
         }
@@ -557,7 +573,7 @@ export class FilesService {
   async getZipFromPathUser(path: string, user: UserPayload | null): Promise<any> {
     const filename = path.split('/').pop();
     const entirePath = user === null ? join(this.root, path) : join(this.root, user.userId, path);
-    if (!existsSync(entirePath)) {
+    if (!(await this.existsEP(entirePath))) {
       throw new NotFoundException('File or Folder Not Found');
     }
     const fileStatus = await lstat(entirePath);
