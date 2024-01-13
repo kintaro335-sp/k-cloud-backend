@@ -282,12 +282,16 @@ export class FilesService {
   async createFile(path: string, file: Express.Multer.File, userPayload: UserPayload): Promise<MessageResponse> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
-    if (await this.existsEP(`${entirePath}/${file.originalname}`)) {
+    if (await this.existsEP(`${entirePath}`)) {
       throw new BadRequestException('File already exists');
     }
-    const writeStream = createWriteStream(`${entirePath}/${file.originalname}`);
+    const writeStream = createWriteStream(`${entirePath}`);
     writeStream.write(file.buffer);
     writeStream.close();
+    const pathArr = path.split('/');
+    pathArr.pop();
+    const pathH = pathArr.join('/');
+    this.system.emitChangeFileEvent({ userId, path: pathH });
     return { message: 'File created successfully' };
   }
 
