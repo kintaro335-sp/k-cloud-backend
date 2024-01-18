@@ -98,7 +98,12 @@ export class SharedFileService {
     }
 
     const realPath = join(SFReg.userid, SFReg.path);
-
+    const exists = await this.filesService.exists(SFReg.path, { isadmin: true, userId: SFReg.userid, username: '' });
+    if (!exists) {
+      this.tokenService.removeSharedFile(id);
+      this.system.emitChangeTokenEvent({ path: SFReg.path, userId: SFReg.userid });
+      throw new NotFoundException();
+    }
     const size = await this.filesService.getFileSize(realPath, true);
 
     return {
