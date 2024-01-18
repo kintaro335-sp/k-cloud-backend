@@ -7,7 +7,7 @@ export class NotOwnerGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const userId = request.user.userId;
+    const userId = request.params.userid;
     const ownerId = this.adminService.getOwner();
     if (userId === ownerId) {
       throw new NotFoundException();
