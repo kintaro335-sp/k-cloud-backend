@@ -48,6 +48,6 @@ import { MonitorModule } from './monitor/monitor.module';
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(LoggerMiddleware).forRoutes('shared-file/*');
+    consumer.apply(LoggerMiddleware).forRoutes('/shared-file/*');
   }
 }

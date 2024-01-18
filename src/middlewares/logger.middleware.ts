@@ -25,7 +25,7 @@ export class LoggerMiddleware implements NestMiddleware {
         if (path.includes('zip')) {
           return 'DOWNLOAD_ZIP';
         }
-        if (Boolean(dq)) {
+        if (dq == 1) {
           return 'DOWNLOAD';
         }
         return 'READ';
@@ -79,16 +79,18 @@ export class LoggerMiddleware implements NestMiddleware {
     const status = this.getStatus(res.statusCode);
     const reason = this.getReason(res.statusCode, route);
     // @ts-ignore
-    const user = req.user.userId || '';
+    const user = req?.user?.userId || '';
     const newEntry = { id, action, status, tokenid, date: new Date(), path, reason, user };
-    this.logServ.createLog(newEntry);
+    this.logServ.createLog(newEntry)
   }
 
   use(req: Request, res: Response, next: NextFunction) {
     res.on('finish', () => {
       try {
         this.RegisterActivity(req, res);
-      } catch (err) {}
+      } catch (err) {
+        console.error(err)
+      }
     });
     next();
   }
