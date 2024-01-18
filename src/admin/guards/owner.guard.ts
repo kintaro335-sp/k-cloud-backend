@@ -9,6 +9,9 @@ export class OwnerGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const userId = request.user.userId;
     const ownerId = this.adminService.getOwner();
+    if (ownerId === null) {
+      return true;
+    }
     if (userId !== ownerId) {
       throw new NotFoundException();
     }
