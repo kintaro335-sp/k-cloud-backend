@@ -355,6 +355,7 @@ export class FilesService {
     pathArr.pop();
     const pathH = pathArr.join('/');
     this.system.emitChangeFileEvent({ path: pathH, userId: userPayload.userId });
+    this.system.emitTreeUpdate(userPayload.userId);
     return { message: 'Folder created successfully' };
   }
 

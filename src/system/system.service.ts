@@ -83,8 +83,16 @@ export class SystemService {
     this.eventEmitterWS.emit('file-upload', userId);
   }
 
-  addFileUploadRequestListener(listener: (userId:string) => void) {
+  addFileUploadRequestListener(listener: (userId: string) => void) {
     this.eventEmitterWS.addListener('file-upload', listener);
   }
-  
+
+  // upload update
+  emitTreeUpdate(userId: string) {
+    this.eventEmitterWS.emit('tree-update', userId);
+  }
+
+  addTreeUpdateListener(listener: (userId: string) => void) {
+    this.eventEmitterWS.addListener('tree-update', listener);
+  }
 }

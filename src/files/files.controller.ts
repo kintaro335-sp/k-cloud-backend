@@ -102,10 +102,10 @@ export class FilesController {
     const pathString = Object.keys(path)
       .map((key) => path[key])
       .join('/');
-    if (!this.filesService.exists(pathString, req.user)) {
+    if (!(await this.filesService.exists(pathString, req.user))) {
       return this.filesService.createFolder(pathString, req.user);
     }
-    throw new InternalServerErrorException();
+    throw new BadRequestException('diretorio ya existe');
   }
 
   @Post('upload/*')
