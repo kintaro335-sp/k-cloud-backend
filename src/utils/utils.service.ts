@@ -19,4 +19,17 @@ export class UtilsService {
   createIDSF(): string {
     return v1();
   }
+
+  processPath(path: Record<any, string>) {
+    const pathString = Object.keys(path)
+      .map((key) => path[key])
+      .filter((v) => v !== 'id')
+      .join('/')
+      .replace('../', '');
+    console.log(pathString);
+    if (pathString === '/') {
+      return '';
+    }
+    return pathString;
+  }
 }
