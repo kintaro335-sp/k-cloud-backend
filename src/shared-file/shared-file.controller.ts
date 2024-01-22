@@ -26,17 +26,16 @@ import { SharedFileService } from './shared-file.service';
 import { TokenFilesService } from '../token-files/token-files.service';
 import { contentType } from 'mime-types';
 import { TokensIdsDTO } from './dtos/tokensIds.dto';
+import { UtilsService } from '../utils/utils.service';
 
 @Controller('shared-file')
 export class SharedFileController {
-  constructor(private readonly SFService: SharedFileService, private readonly tokenServ: TokenFilesService) {}
+  constructor(private readonly SFService: SharedFileService, private readonly tokenServ: TokenFilesService, private utils: UtilsService) {}
 
   @UseGuards(JwtAuthGuard)
   @Post('share/*')
-  async share(@Param() path: string[], @Body() body: ShareFileDTO, @Request() req) {
-    const pathString = Object.keys(path)
-      .map((key) => path[key])
-      .join('/');
+  async share(@Param() path: Record<any, string>, @Body() body: ShareFileDTO, @Request() req) {
+    const pathString = this.utils.processPath(path);
     return this.SFService.share(pathString, req.user, body);
   }
 
@@ -70,11 +69,8 @@ export class SharedFileController {
 
   @UseGuards(ExpireGuard)
   @Get('zip/:id/*')
-  async downloadAsAZipRoute(@Param('id') id: string, @Param() path: string[], @Response({ passthrough: true }) res) {
-    const pathString = Object.keys(path)
-      .filter((v) => v !== 'id')
-      .map((key) => path[key])
-      .join('/');
+  async downloadAsAZipRoute(@Param('id') id: string, @Param() path: Record<any, string>, @Response({ passthrough: true }) res) {
+    const pathString = this.utils.processPath(path);
     const fileName = pathString.split('/').pop();
     const streamFile = await this.SFService.downloadAsZipContent(id, pathString);
     // const SFReg = await this.tokenServ.getSharedFileByID(id);
@@ -108,10 +104,12 @@ export class SharedFileController {
     } else {
       const fileProps = await this.SFService.getPropsSFFile(SFReg, '');
       const CD = downloadOpc === 1 ? 'attachment' : 'inline';
+      const contentTypeHeader = contentType(SFReg.name);
       res.set({
-        'Content-Type': contentType(SFReg.name),
+        'Content-Type': contentTypeHeader,
         'Content-Disposition': `${CD}; filename="${SFReg.name}";`,
-        'Content-Length': fileProps.size
+        'Content-Length': fileProps.size,
+        'Keep-Alive': contentTypeHeader.toString().startsWith('video/') ? 'timeout=36000' : 'timeout=10'
       });
       return new StreamableFile(await this.SFService.getContentSFFile(SFReg, ''));
     }
@@ -119,11 +117,13 @@ export class SharedFileController {
 
   @UseGuards(ExpireGuard)
   @Get('content/:id/*')
-  async getSFcontentPath(@Param('id') id: string, @Param() path: string[], @Response({ passthrough: true }) res, @Query('d') downloadOpc: number) {
-    const pathString = Object.keys(path)
-      .filter((v) => v !== 'id')
-      .map((key) => path[key])
-      .join('/');
+  async getSFcontentPath(
+    @Param('id') id: string,
+    @Param() path: Record<any, string>,
+    @Response({ passthrough: true }) res,
+    @Query('d') downloadOpc: number
+  ) {
+    const pathString = this.utils.processPath(path);
     const SFReg = await this.SFService.getSFAllInfo(id);
     if (SFReg === null) throw new NotFoundException('not found');
 
@@ -132,10 +132,12 @@ export class SharedFileController {
     } else {
       const fileProps = await this.SFService.getPropsSFFile(SFReg, pathString);
       const CD = downloadOpc === 1 ? 'attachment' : 'inline';
+      const contentTypeHeader = contentType(SFReg.name);
       res.set({
         'Content-Type': contentType(fileProps.name),
         'Content-Disposition': `${CD}; filename="${fileProps.name}";`,
-        'Content-Length': fileProps.size
+        'Content-Length': fileProps.size,
+        'Keep-Alive': contentTypeHeader.toString().startsWith('video/') ? 'timeout=36000' : 'timeout=10'
       });
       return new StreamableFile(await this.SFService.getContentSFFile(SFReg, pathString));
     }
@@ -143,19 +145,15 @@ export class SharedFileController {
 
   @UseGuards(JwtAuthGuard)
   @Delete('tokens/path/*')
-  async deleteTokensPath(@Param() path: string, @Request() req) {
-    const pathString = Object.keys(path)
-      .map((key) => path[key])
-      .join('/');
+  async deleteTokensPath(@Param() path: Record<any, string>, @Request() req) {
+    const pathString = this.utils.processPath(path);
     return this.SFService.removeTokensByPath(pathString, req.user);
   }
 
   @UseGuards(JwtAuthGuard)
   @Get('tokens/path/*')
-  async getTokensByPath(@Param() path: string, @Request() req) {
-    const pathString = Object.keys(path)
-      .map((key) => path[key])
-      .join('/');
+  async getTokensByPath(@Param() path: Record<any, string>, @Request() req) {
+    const pathString = this.utils.processPath(path);
     return this.SFService.getTokensByPath(pathString, req.user);
   }
 
@@ -218,15 +216,12 @@ export class SharedFileController {
   @Get('tokens/user/content/:id/*')
   async getSFcontentUserPath(
     @Param('id') id: string,
-    @Param() path: string[],
+    @Param() path: Record<string, any>,
     @Response({ passthrough: true }) res,
     @Query('d') downloadOpc: number
   ) {
     const SFReg = await this.SFService.getSFAllInfo(id);
-    const pathString = Object.keys(path)
-      .filter((v) => v !== 'id')
-      .map((key) => path[key])
-      .join('/');
+    const pathString = this.utils.processPath(path);
     if (SFReg === null) throw new NotFoundException('not found');
 
     if (await this.SFService.isSFDirectory(SFReg, pathString)) {
