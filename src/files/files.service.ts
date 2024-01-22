@@ -367,6 +367,7 @@ export class FilesService {
    * @returns {Promise<Folder | File>} File si se detecta que el roor es File y el arbol si el carpeta
    */
   async GenerateTree(path: string, userPayload: UserPayload | null, rec: boolean, showFiles = true): Promise<Folder | File> {
+    const showF = showFiles
     const pathWithUser = userPayload !== null && !rec ? join(this.root, userPayload.userId, path) : join(this.root, path);
     const entirePath = rec ? path : pathWithUser;
 
@@ -399,7 +400,7 @@ export class FilesService {
                 name: f,
                 content: (
                   await Promise.all(
-                    (await readdir(filePath)).map(async (fi) => await this.GenerateTree(join(filePath, fi), userPayload, true, showFiles))
+                    (await readdir(filePath)).map(async (fi) => await this.GenerateTree(join(filePath, fi), userPayload, true, showF))
                   )
                 ).filter((f) => f !== null)
               };

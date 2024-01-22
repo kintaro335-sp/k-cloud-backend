@@ -193,15 +193,25 @@ export class FilesController {
   }
 
   @Get('/tree')
-  async getTreeRoot(@Request() req) {
-    return this.filesService.GenerateTree('', req.user, false, false);
+  async getTreeRoot(@Request() req): Promise<File | Folder> {
+    const tree = await this.filesService.GenerateTree('', req.user, false, false);
+    if (tree.type === 'Folder') {
+      tree.content = tree.content.filter((f) => f !== null);
+      return tree;
+    } else {
+      return tree;
+    }
   }
 
   @Get('/tree/*')
   async GetTree(@Param() path: Record<any, string>, @Request() req): Promise<File | Folder> {
     const pathString = this.utils.processPath(path);
-
-    return this.filesService.GenerateTree(pathString, req.user, false, false);
+    const tree = await this.filesService.GenerateTree(pathString, req.user, false, false);
+    if (tree.type === 'Folder') {
+      return tree;
+    } else {
+      return tree;
+    }
   }
 
   @Get('obs/tree')
