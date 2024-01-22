@@ -80,10 +80,12 @@ export class FilesController {
     const fileName = pathString.split('/').pop();
     const properties = await this.filesService.getFilePropertiesUser(pathString, req.user);
     const CD = downloadOpc === 1 ? 'attachment' : 'inline';
+    const contentTypeHeader = contentType(fileName);
     res.set({
-      'Content-Type': contentType(fileName),
+      'Content-Type': contentTypeHeader,
       'Content-Disposition': `${CD}; filename="${fileName}";`,
-      'Content-Length': properties.size
+      'Content-Length': properties.size,
+      'Keep-Alive': contentTypeHeader.toString().startsWith('video/') ? 'timeout=36000' : 'timeout=10'
     });
     return new StreamableFile(await this.filesService.getFile(pathString, req.user));
   }
