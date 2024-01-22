@@ -371,21 +371,17 @@ export class FilesService {
     const entirePath = rec ? path : pathWithUser;
 
     const fileStat = await lstat(entirePath, { bigint: false });
-    if (!fileStat.isDirectory() && !showFiles) {
-      return null;
-    }
-    if (!fileStat.isDirectory() && rec && showFiles) {
-      if (rec) {
-        console.log(entirePath);
-      }
-      return {
-        type: 'file',
-        name: path.split('/').pop(),
-        extension: path.split('.').pop(),
-        tokens: 0,
-        mime_type: lookup(path.split('.').pop()) || '',
-        size: fileStat.size
-      };
+    if (!fileStat.isDirectory()) {
+      return showFiles
+        ? {
+            type: 'file',
+            name: path.split('/').pop(),
+            extension: path.split('.').pop(),
+            tokens: 0,
+            mime_type: lookup(path.split('.').pop()) || '',
+            size: fileStat.size
+          }
+        : null;
     }
     const files = await readdir(entirePath);
 
@@ -403,7 +399,7 @@ export class FilesService {
                 name: f,
                 content: (
                   await Promise.all(
-                    (await readdir(filePath)).map(async (fi) => await this.GenerateTree(join(filePath, fi), userPayload, true, false))
+                    (await readdir(filePath)).map(async (fi) => await this.GenerateTree(join(filePath, fi), userPayload, true, showFiles))
                   )
                 ).filter((f) => f !== null)
               };
@@ -417,8 +413,10 @@ export class FilesService {
                 extension: f.split('.').pop()
               };
             }
+            return null;
           } catch (err) {
-            console.error(err);
+            console.error('tree Error: ', err);
+            return null;
           }
         })
       )
@@ -431,15 +429,20 @@ export class FilesService {
    * @returns {Promise<number>} Espacio usado en Bytes
    */
   async getUsedSpace(): Promise<number> {
-    const filesTree = await this.GenerateTree('', null, false);
+    const filesTree = await this.GenerateTree('', null, false, true);
+    console.log(filesTree);
     const usedSpace = { value: 0 };
     if (filesTree.type === 'Folder') {
       const onForEach = (file: File | Folder) => {
-        if (file.type === 'Folder') {
-          file.content.forEach(onForEach);
-        }
-        if (file.type === 'file') {
-          usedSpace.value = usedSpace.value + file.size;
+        try {
+          if (file.type === 'Folder') {
+            file.content.forEach(onForEach);
+          }
+          if (file.type === 'file') {
+            usedSpace.value = usedSpace.value + file.size;
+          }
+        } catch (err) {
+          console.log('|:','|',file);
         }
       };
       filesTree.content.forEach(onForEach);
