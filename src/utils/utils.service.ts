@@ -26,7 +26,6 @@ export class UtilsService {
       .filter((v) => v !== 'id')
       .join('/')
       .replace('../', '');
-    console.log(pathString);
     if (pathString === '/') {
       return '';
     }
