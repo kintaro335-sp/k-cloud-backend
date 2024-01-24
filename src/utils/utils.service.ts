@@ -22,8 +22,8 @@ export class UtilsService {
 
   processPath(path: Record<any, string>) {
     const pathString = Object.keys(path)
-      .map((key) => path[key])
       .filter((v) => v !== 'id')
+      .map((key) => path[key])
       .join('/')
       .replace('../', '');
     if (pathString === '/') {
