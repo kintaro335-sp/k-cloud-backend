@@ -19,11 +19,11 @@ export class LogsService {
   private amount = 30;
   constructor(private readonly prismaServ: PrismaService, private system: SystemService) {}
 
-  // @Cron(CronExpression.EVERY_10_HOURS)
-  /* private async DeleteOldLogs() {
+  @Cron(CronExpression.EVERY_10_HOURS)
+  private async DeleteOldLogs() {
     const oneMonthAgo = moment().subtract(1, 'month').toDate();
-    await this.prismaServ.logsReq.deleteMany({ where: { date: { lt: oneMonthAgo } } });
-  } */
+    await this.prismaServ.sharedfilesactivity.deleteMany({ where: { date: { lt: oneMonthAgo } } });
+  }
 
   async createLog(entry: SharedFileActivity) {
     while (true) {
