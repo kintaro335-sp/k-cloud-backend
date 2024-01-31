@@ -194,7 +194,7 @@ export class FilesController {
 
   @Get('/tree')
   async getTreeRoot(@Request() req): Promise<File | Folder> {
-    const tree = await this.filesService.GenerateTree('', req.user, false, false);
+    const tree = await this.filesService.GetTreeC(req.user);
     if (tree.type === 'Folder') {
       tree.content = tree.content.filter((f) => f !== null);
       return tree;
