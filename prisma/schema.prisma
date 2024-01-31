@@ -15,6 +15,7 @@ model User {
   passwordu String
   isadmin Boolean @default(false)
   files Sharedfile[]
+  tree Tree[]
 }
 
 model Sharedfile {
@@ -47,4 +48,12 @@ model sharedfilesactivity {
   user String
   tokenid String
   path String
+}
+
+model Tree {
+  @@index([userid])
+  userid String @id
+  content Bytes
+  compressed Boolean
+  owner User @relation(fields: [userid], references: [id])
 }

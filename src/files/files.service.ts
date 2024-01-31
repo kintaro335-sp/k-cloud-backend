@@ -6,6 +6,7 @@ import { TempStorageService } from '../temp-storage/temp-storage.service';
 import { AdminService } from '../admin/admin.service';
 import { TokenFilesService } from '../token-files/token-files.service';
 import { SystemService } from '../system/system.service';
+import { TreeFilesService } from '../treefiles/treeFiles.service';
 // exceptions
 import { NotFoundException } from './exceptions/NotFound.exception';
 // interfaces
@@ -29,6 +30,7 @@ export class FilesService {
     private readonly storageService: TempStorageService,
     @Inject(forwardRef(() => AdminService)) private readonly adminServ: AdminService,
     private readonly tokenServ: TokenFilesService,
+    private treeService: TreeFilesService,
     private system: SystemService
   ) {
     this.root = this.configService.get<string>('FILE_ROOT');
@@ -354,8 +356,10 @@ export class FilesService {
     const pathArr = path.split('/');
     pathArr.pop();
     const pathH = pathArr.join('/');
+    this.updateTree(userPayload).then(() => {
+      this.system.emitTreeUpdate(userPayload.userId);
+    });
     this.system.emitChangeFileEvent({ path: pathH, userId: userPayload.userId });
-    this.system.emitTreeUpdate(userPayload.userId);
     return { message: 'Folder created successfully' };
   }
 
@@ -367,7 +371,7 @@ export class FilesService {
    * @returns {Promise<Folder | File>} File si se detecta que el roor es File y el arbol si el carpeta
    */
   async GenerateTree(path: string, userPayload: UserPayload | null, rec: boolean, showFiles = true): Promise<Folder | File> {
-    const showF = showFiles
+    const showF = showFiles;
     const pathWithUser = userPayload !== null && !rec ? join(this.root, userPayload.userId, path) : join(this.root, path);
     const entirePath = rec ? path : pathWithUser;
 
@@ -426,6 +430,32 @@ export class FilesService {
   }
 
   /**
+   * Obtener el Arbol completo por cache
+   * @param userPayload
+   * @returns {Folder | File} tree
+   */
+  async GetTreeC(userPayload: UserPayload) {
+    const { userId } = userPayload;
+    const treeC = await this.treeService.getTreeCache(userId);
+    if (treeC === null) {
+      const tree = await this.GenerateTree('', userPayload, false, false);
+      this.treeService.setTreeCache(userId, tree);
+      return tree;
+    }
+    return treeC;
+  }
+
+  /**
+   * actualizar el cache en caso de una modificacion de un directorio
+   * @param {UserPayload} userPayload
+   */
+  private async updateTree(userPayload: UserPayload) {
+    const { userId } = userPayload;
+    const tree = await this.GenerateTree('', userPayload, false, false);
+    return await this.treeService.setTreeCache(userId, tree);
+  }
+
+  /**
    * Obtener El espacio usado
    * @returns {Promise<number>} Espacio usado en Bytes
    */
@@ -443,7 +473,7 @@ export class FilesService {
             usedSpace.value = usedSpace.value + file.size;
           }
         } catch (err) {
-          console.log('|:','|',file);
+          console.log('|:', '|', file);
         }
       };
       filesTree.content.forEach(onForEach);
@@ -516,6 +546,9 @@ export class FilesService {
     const pathMessage = path.split('/');
     pathMessage.pop();
     this.system.emitChangeFileEvent({ path: pathMessage.join('/'), userId: userPayload.userId });
+    this.updateTree(userPayload).then(() => {
+      this.system.emitTreeUpdate(userPayload.userId);
+    });
     return { message: 'move success' };
   }
 
@@ -539,7 +572,9 @@ export class FilesService {
         return f;
       })
     );
-
+    this.updateTree(userPayload).then(() => {
+      this.system.emitTreeUpdate(userPayload.userId);
+    });
     this.system.emitChangeFileEvent({ path, userId: userPayload.userId });
     return { message: 'archivos movidos' };
   }
@@ -555,6 +590,9 @@ export class FilesService {
     const pathMessage = path.split('/');
     pathMessage.pop();
     this.system.emitChangeFileEvent({ path: pathMessage.join('/'), userId: userPayload.userId });
+    this.updateTree(userPayload).then(() => {
+      this.system.emitTreeUpdate(userPayload.userId);
+    });
     return { message: 'archivo renombradostatFile' };
   }
 
