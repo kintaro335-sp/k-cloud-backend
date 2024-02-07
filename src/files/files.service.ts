@@ -438,7 +438,7 @@ export class FilesService {
     const { userId } = userPayload;
     const treeC = await this.treeService.getTreeCache(userId);
     if (treeC === null) {
-      const tree = await this.GenerateTree('', userPayload, false, false);
+      const tree = await this.GenerateTree('', userPayload, false, true);
       this.treeService.setTreeCache(userId, tree);
       return tree;
     }
@@ -449,9 +449,9 @@ export class FilesService {
    * actualizar el cache en caso de una modificacion de un directorio
    * @param {UserPayload} userPayload
    */
-  private async updateTree(userPayload: UserPayload) {
+  async updateTree(userPayload: UserPayload) {
     const { userId } = userPayload;
-    const tree = await this.GenerateTree('', userPayload, false, false);
+    const tree = await this.GenerateTree('', userPayload, false, true);
     return await this.treeService.setTreeCache(userId, tree);
   }
 

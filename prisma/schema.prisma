@@ -54,6 +54,6 @@ model Tree {
   @@index([userid])
   userid String @id
   content Bytes
-  compressed Boolean
+  index Bytes
   owner User @relation(fields: [userid], references: [id])
 }
