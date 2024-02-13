@@ -184,7 +184,7 @@ export class LogsService {
     const hourDay = Number(momento.format('H'));
     const iterations = [...Array(hourDay)].map((_, i) => i);
     const dimensions: TimeDim[] = iterations.map((i) => {
-      const submomento = moment().subtract(i, 'hour');
+      const submomento = moment().subtract(i+1, 'hour');
       const frommomento = moment(submomento.startOf('hour'));
       const tomomento = moment(submomento.endOf('hour'));
       return {

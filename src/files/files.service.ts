@@ -461,7 +461,6 @@ export class FilesService {
    */
   async getUsedSpace(): Promise<number> {
     const filesTree = await this.GenerateTree('', null, false, true);
-    console.log(filesTree);
     const usedSpace = { value: 0 };
     if (filesTree.type === 'Folder') {
       const onForEach = (file: File | Folder) => {
@@ -472,9 +471,7 @@ export class FilesService {
           if (file.type === 'file') {
             usedSpace.value = usedSpace.value + file.size;
           }
-        } catch (err) {
-          console.log('|:', '|', file);
-        }
+        } catch (err) {}
       };
       filesTree.content.forEach(onForEach);
       return usedSpace.value;
