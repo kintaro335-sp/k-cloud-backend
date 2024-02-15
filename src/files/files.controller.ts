@@ -125,11 +125,11 @@ export class FilesController {
     const pathString = this.utils.processPath(path);
     const userId = req.user.userId;
     const pathStringC = join(userId, pathString);
-    if (await this.filesService.exists(pathString, req.user)) {
-      throw new BadRequestException('archivo ya existe');
-    }
     if (this.storageService.existsFile(pathStringC)) {
       throw new ForbiddenException('Archivo ya inicializado');
+    }
+    if (await this.filesService.exists(pathString, req.user)) {
+      throw new BadRequestException('archivo ya existe');
     }
     this.storageService.createFileTemp(pathStringC, body.size, req.user, pathString);
     return { message: 'Inicializado' };
