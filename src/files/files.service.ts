@@ -487,7 +487,7 @@ export class FilesService {
    */
   async getUsedSpaceUser(userId: string): Promise<number> {
     if (!this.exists('', { isadmin: false, userId, username: '' })) return 0;
-    const filesTree = await this.GenerateTree(userId, null, false);
+    const filesTree = await this.GetTreeC({ isadmin: false, username: '', userId });
     const usedSpace = { value: 0 };
     if (filesTree.type === 'Folder') {
       const onForEach = (file: File | Folder) => {
