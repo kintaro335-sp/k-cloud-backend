@@ -438,7 +438,7 @@ export class FilesService {
     const { userId } = userPayload;
     const treeC = await this.treeService.getTreeCache(userId);
     if (treeC === null) {
-      const tree = await this.GenerateTree('', userPayload, false, false);
+      const tree = await this.GenerateTree('', userPayload, false, true);
       this.treeService.setTreeCache(userId, tree);
       return tree;
     }
@@ -449,9 +449,9 @@ export class FilesService {
    * actualizar el cache en caso de una modificacion de un directorio
    * @param {UserPayload} userPayload
    */
-  private async updateTree(userPayload: UserPayload) {
+  async updateTree(userPayload: UserPayload) {
     const { userId } = userPayload;
-    const tree = await this.GenerateTree('', userPayload, false, false);
+    const tree = await this.GenerateTree('', userPayload, false, true);
     return await this.treeService.setTreeCache(userId, tree);
   }
 
@@ -461,7 +461,6 @@ export class FilesService {
    */
   async getUsedSpace(): Promise<number> {
     const filesTree = await this.GenerateTree('', null, false, true);
-    console.log(filesTree);
     const usedSpace = { value: 0 };
     if (filesTree.type === 'Folder') {
       const onForEach = (file: File | Folder) => {
@@ -472,9 +471,7 @@ export class FilesService {
           if (file.type === 'file') {
             usedSpace.value = usedSpace.value + file.size;
           }
-        } catch (err) {
-          console.log('|:', '|', file);
-        }
+        } catch (err) {}
       };
       filesTree.content.forEach(onForEach);
       return usedSpace.value;
@@ -490,7 +487,7 @@ export class FilesService {
    */
   async getUsedSpaceUser(userId: string): Promise<number> {
     if (!this.exists('', { isadmin: false, userId, username: '' })) return 0;
-    const filesTree = await this.GenerateTree(userId, null, false);
+    const filesTree = await this.GetTreeC({ isadmin: false, username: '', userId });
     const usedSpace = { value: 0 };
     if (filesTree.type === 'Folder') {
       const onForEach = (file: File | Folder) => {

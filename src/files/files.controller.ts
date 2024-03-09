@@ -25,12 +25,14 @@ import { FilesInterceptor } from '@nestjs/platform-express';
 import { FilesService } from './files.service';
 import { TempStorageService } from '../temp-storage/temp-storage.service';
 import { UtilsService } from '../utils/utils.service';
+import { TreeFilesService } from '../treefiles/treeFiles.service';
 // dtos
 import { BlobFPDTO } from './dtos/blobfp.dto';
 import { FileInitDTO } from './dtos/fileInit.dto';
 import { RenameDTO } from './dtos/rename.dto';
 import { MoveFileDTO } from './dtos/moceFile.dto';
 import { MoveFilesDTO } from './dtos/moveFiles.dto';
+import { DeleteFilesDTO } from './dtos/deletefiles.dto';
 // guards
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { SpaceGuard } from './guards/space.guard';
@@ -39,12 +41,10 @@ import { MessageResponse } from '../auth/interfaces/response.interface';
 import { ListFile, File, Folder, UsedSpaceType } from './interfaces/list-file.interface';
 import { FilePTempResponse } from '../temp-storage/interfaces/filep.interface';
 import { UserPayload } from '../auth/interfaces/userPayload.interface';
+import { IndexList } from 'src/treefiles/interfaces/indexelement.interface';
 // mime
 import { contentType } from 'mime-types';
 import { join } from 'path';
-// RXJS
-import { Observable } from 'rxjs';
-import { DeleteFilesDTO } from './dtos/deletefiles.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('files')
@@ -52,7 +52,8 @@ export class FilesController {
   constructor(
     private readonly filesService: FilesService,
     private readonly storageService: TempStorageService,
-    private readonly utils: UtilsService
+    private readonly utils: UtilsService,
+    private readonly treeServ: TreeFilesService
   ) {}
 
   @Get('/stats/type')
@@ -124,11 +125,11 @@ export class FilesController {
     const pathString = this.utils.processPath(path);
     const userId = req.user.userId;
     const pathStringC = join(userId, pathString);
-    if (await this.filesService.exists(pathString, req.user)) {
-      throw new BadRequestException('archivo ya existe');
-    }
     if (this.storageService.existsFile(pathStringC)) {
       throw new ForbiddenException('Archivo ya inicializado');
+    }
+    if (await this.filesService.exists(pathString, req.user)) {
+      throw new BadRequestException('archivo ya existe');
     }
     this.storageService.createFileTemp(pathStringC, body.size, req.user, pathString);
     return { message: 'Inicializado' };
@@ -192,6 +193,10 @@ export class FilesController {
     return this.filesService.deleteFiles(pathString, body.files, req.user);
   }
 
+  @Get('/index')
+  async getindexRoot(@Request() req): Promise<IndexList> {
+    return this.treeServ.getIndexCache(req.user.userId);
+  }
   @Get('/tree')
   async getTreeRoot(@Request() req): Promise<File | Folder> {
     const tree = await this.filesService.GetTreeC(req.user);
@@ -203,6 +208,12 @@ export class FilesController {
     }
   }
 
+  @Patch('/tree')
+  async updateTree(@Request() req): Promise<{ message: string }> {
+    this.filesService.updateTree(req.user);
+    return { message: 'Updating Tree' };
+  }
+
   @Get('/tree/*')
   async GetTree(@Param() path: Record<any, string>, @Request() req): Promise<File | Folder> {
     const pathString = this.utils.processPath(path);
@@ -212,28 +223,6 @@ export class FilesController {
     } else {
       return tree;
     }
-  }
-
-  @Get('obs/tree')
-  getTreeRootObs(@Request() req): Observable<File | Folder> {
-    return new Observable((subs) => {
-      this.filesService.GenerateTree('', req.user, false).then((arbol) => {
-        subs.next(arbol);
-      });
-    });
-  }
-
-  @Get('obs/tree/*')
-  GetTreeObs(@Param() path: string[], @Request() req): Observable<File | Folder> {
-    const pathString = Object.keys(path)
-      .map((key) => path[key])
-      .join('/');
-
-    return new Observable((subs) => {
-      this.filesService.GenerateTree(pathString, req.user, false).then((arbol) => {
-        subs.next(arbol);
-      });
-    });
   }
 
   @Get('zip/*')

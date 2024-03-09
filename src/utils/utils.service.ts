@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { IndexList } from 'src/treefiles/interfaces/indexelement.interface';
 // uniqid
 import { v1 } from 'uuid';
 
@@ -30,5 +31,25 @@ export class UtilsService {
       return '';
     }
     return pathString;
+  }
+
+  quickSort(arr: IndexList) {
+    if (arr.length <= 1) {
+      return arr;
+    }
+
+    let pivot = arr[0];
+    let leftArr = [];
+    let rightArr = [];
+
+    for (let i = 1; i < arr.length; i++) {
+      if (arr[i].path < pivot.path) {
+        leftArr.push(arr[i]);
+      } else {
+        rightArr.push(arr[i]);
+      }
+    }
+
+    return [...this.quickSort(leftArr), pivot, ...this.quickSort(rightArr)];
   }
 }

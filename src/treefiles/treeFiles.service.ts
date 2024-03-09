@@ -1,13 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
+import { UtilsService } from 'src/utils/utils.service';
 import { Folder, File } from '../files/interfaces/list-file.interface';
 import { deflateRaw, inflateRaw, constants } from 'node:zlib';
+import { join } from 'path';
+import { IndexList } from './interfaces/indexelement.interface';
 
 @Injectable()
 export class TreeFilesService {
-  constructor(private prismaServ: PrismaService) {}
+  constructor(private prismaServ: PrismaService, private utils: UtilsService) {}
 
-  private async compressTree(content: Buffer): Promise<null | Buffer> {
+  private async compressContent(content: Buffer): Promise<null | Buffer> {
     return new Promise((res) => {
       deflateRaw(
         content,
@@ -39,7 +42,7 @@ export class TreeFilesService {
   }
 
   async getTreeCache(userid: string) {
-    const treeReg = await this.prismaServ.tree.findUnique({ where: { userid } });
+    const treeReg = await this.prismaServ.tree.findUnique({ select: { content: true }, where: { userid } });
     if (treeReg === null) return null;
     const uncompressedContent = await this.unzip(treeReg.content);
     if (uncompressedContent === null) return null;
@@ -47,17 +50,49 @@ export class TreeFilesService {
     return JSON.parse(treeString) as File | Folder;
   }
 
+  async getIndexCache(userid: string) {
+    const treeReg = await this.prismaServ.tree.findUnique({ select: { index: true }, where: { userid } });
+    if (treeReg === null) return null;
+    const uncompressedContent = await this.unzip(treeReg.index);
+    if (uncompressedContent === null) return null;
+    const indexString = uncompressedContent.toString('utf8');
+    return JSON.parse(indexString) as IndexList;
+  }
+
+  private createIndex(tree: File | Folder) {
+    const index: IndexList = [];
+    const getOnForEach = (path = '') => {
+      return (val: File | Folder) => {
+        if (val.type === 'file') {
+          index.push({ name: val.name, path: join(path, val.name) });
+        }
+        if (val.type === 'Folder') {
+          index.push({ name: val.name, path: join(path, val.name) });
+          val.content.forEach(getOnForEach(join(path, val.name)));
+        }
+      };
+    };
+    if (tree.type == 'Folder') {
+      tree.content.forEach(getOnForEach(''));
+    }
+
+    return this.utils.quickSort(index);
+  }
+
   async setTreeCache(userid: string, tree: File | Folder) {
     const treeString = JSON.stringify(tree);
-    const compressedContent = await this.compressTree(Buffer.from(treeString));
+    const index = this.createIndex(tree);
+    const indexString = JSON.stringify(index);
+    const compressedContent = await this.compressContent(Buffer.from(treeString));
+    const compressedIndex = await this.compressContent(Buffer.from(indexString));
     if (compressedContent === null) {
       return null;
     }
     const regt = await this.prismaServ.tree.findUnique({ where: { userid } });
     if (regt) {
-      return this.updateTree(userid, compressedContent);
+      return this.updateTree(userid, compressedContent, compressedIndex);
     }
-    return this.saveTree(userid, compressedContent);
+    return this.saveTree(userid, compressedContent, compressedIndex);
   }
 
   async existsTree(userid: string) {
@@ -65,18 +100,18 @@ export class TreeFilesService {
     return count !== 0;
   }
 
-  private async updateTree(userid: string, content: Buffer) {
+  private async updateTree(userid: string, content: Buffer, index: Buffer) {
     while (true) {
       try {
-        return this.prismaServ.tree.update({ where: { userid }, data: { content } });
+        return this.prismaServ.tree.update({ where: { userid }, data: { content, index } });
       } catch (_err) {}
     }
   }
 
-  private async saveTree(userid: string, content: Buffer) {
+  private async saveTree(userid: string, content: Buffer, index: Buffer) {
     while (true) {
       try {
-        return this.prismaServ.tree.create({ data: { userid, content, compressed: true } });
+        return this.prismaServ.tree.create({ data: { userid, content, index } });
       } catch (_err) {}
     }
   }

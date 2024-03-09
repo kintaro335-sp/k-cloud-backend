@@ -12,7 +12,7 @@ import { GROUPFILTER } from './interfaces/groupfilter.interface';
 // prisma
 import { Prisma } from '@prisma/client';
 // utils
-const moment = require('moment');
+import * as dayjs from 'dayjs';
 
 @Injectable()
 export class LogsService {
@@ -21,7 +21,7 @@ export class LogsService {
 
   @Cron(CronExpression.EVERY_10_HOURS)
   private async DeleteOldLogs() {
-    const oneMonthAgo = moment().subtract(1, 'month').toDate();
+    const oneMonthAgo = dayjs().subtract(1, 'month').toDate();
     await this.prismaServ.sharedfilesactivity.deleteMany({ where: { date: { lt: oneMonthAgo } } });
   }
 
@@ -146,22 +146,22 @@ export class LogsService {
   private getTimeLast30Days(): TimeDim[] {
     const iterations = [...Array(30)].map((_, i) => i);
     const dimensions = iterations.map((i) => {
-      const submomento = moment().subtract(i, 'day');
-      const frommomento = moment(submomento.startOf('day'));
-      const tomomento = moment(submomento.endOf('day'));
+      const submomento = dayjs().subtract(i, 'day');
+      const frommomento = dayjs(submomento.startOf('day'));
+      const tomomento = dayjs(submomento.endOf('day'));
       return { label: `${submomento.format('D-MMM')}`, from: frommomento.toDate(), to: tomomento.toDate() };
     });
     return dimensions;
   }
 
   private getTimeThisMonth(): TimeDim[] {
-    const momento = moment();
+    const momento = dayjs();
     const dayofmonth = Number(momento.format('D'));
     const iterations = [...Array(dayofmonth)].map((_, i) => i);
     const dimensions: TimeDim[] = iterations.map((i) => {
-      const submomento = moment().subtract(i, 'day');
-      const frommomento = moment(submomento.startOf('day'));
-      const tomomento = moment(submomento.endOf('day'));
+      const submomento = dayjs().subtract(i, 'day');
+      const frommomento = dayjs(submomento.startOf('day'));
+      const tomomento = dayjs(submomento.endOf('day'));
       return { label: `${submomento.format('D-MMM')}`, from: frommomento.toDate(), to: tomomento.toDate() };
     });
     return dimensions;
@@ -171,22 +171,22 @@ export class LogsService {
     const iterations = [...Array(7)].map((_, i) => i);
 
     const dimensions: TimeDim[] = iterations.map((i) => {
-      const submomento = moment().subtract(i, 'day');
-      const frommomento = moment(submomento.startOf('day'));
-      const tomomento = moment(submomento.endOf('day'));
+      const submomento = dayjs().subtract(i, 'day');
+      const frommomento = dayjs(submomento.startOf('day'));
+      const tomomento = dayjs(submomento.endOf('day'));
       return { label: `${submomento.format('ddd')}`, from: frommomento.toDate(), to: tomomento.toDate() };
     });
     return dimensions;
   }
 
   private getTimeTodayDimension(): TimeDim[] {
-    const momento = moment();
-    const hourDay = Number(momento.format('H'));
+    const dayjsM = dayjs();
+    const hourDay = Number(dayjsM.format('H')) + 1;
     const iterations = [...Array(hourDay)].map((_, i) => i);
     const dimensions: TimeDim[] = iterations.map((i) => {
-      const submomento = moment().subtract(i, 'hour');
-      const frommomento = moment(submomento.startOf('hour'));
-      const tomomento = moment(submomento.endOf('hour'));
+      const submomento = dayjs().subtract(i, 'hour');
+      const frommomento = dayjs(submomento.startOf('hour'));
+      const tomomento = dayjs(submomento.endOf('hour'));
       return {
         label: `${frommomento.format('HH:mm')}-${tomomento.format('HH:mm')}`,
         from: frommomento.toDate(),
