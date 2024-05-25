@@ -15,7 +15,7 @@ import { SharedFileModule } from './shared-file/shared-file.module';
 import { SetupModule } from './setup/setup.module';
 import { JwtModule } from '@nestjs/jwt';
 import { jwtConstants } from './auth/constants';
-import { WebSocketModule } from './websockets/websocket.module'
+import { WebSocketModule } from './websockets/websocket.module';
 // middlewares
 import { LoggerMiddleware } from './middlewares/logger.middleware';
 import { LogsModule } from './logs/logs.module';
@@ -28,7 +28,8 @@ import { MonitorModule } from './monitor/monitor.module';
     JwtModule.register({
       secret: jwtConstants.secret,
       signOptions: { expiresIn: '7d' },
-      global: true
+      global: true,
+      verifyOptions: { algorithms: ['HS256'] }
     }),
     UsersModule,
     AuthModule,
@@ -44,7 +45,7 @@ import { MonitorModule } from './monitor/monitor.module';
     WebSocketModule
   ],
   controllers: [AppController],
-  providers: [AppService, ConfigService, PrismaService]
+  providers: [AppService, ConfigService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
