@@ -492,6 +492,7 @@ export class FilesService {
       const onForEach = (file: File | Folder) => {
         try {
           if (file.type === 'Folder') {
+            usedSpace.value = usedSpace.value + file.size;
             file.content.forEach(onForEach);
           }
           if (file.type === 'file') {
@@ -620,7 +621,7 @@ export class FilesService {
     return { message: 'archivo renombradostatFile' };
   }
 
-  async getUsedSpaceByFileType(path = ''): Promise<UsedSpaceType[]> {
+  async getUsedSpaceByFileType(userId = ''): Promise<UsedSpaceType[]> {
     const usedSpace: Record<string, number> = {};
     const sumBytes = (type: string, bytes: number) => {
       if (usedSpace[type] === undefined) {
@@ -629,7 +630,7 @@ export class FilesService {
         usedSpace[type] += bytes;
       }
     };
-    const filesTree = await this.GenerateTree(path, null, false);
+    const filesTree = await this.treeService.getTree(userId);
     if (filesTree.type === 'Folder') {
       const onForEach = (file: File | Folder) => {
         if (file.type === 'Folder') {

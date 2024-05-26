@@ -95,6 +95,28 @@ export class TreeFilesService {
     return this.saveTree(userid, compressedContent, compressedIndex);
   }
 
+  private async decompressUserTree(compressedTree: Buffer): Promise<Folder> {
+    const unCompressed = await this.unzip(compressedTree);
+    const folder = JSON.parse(unCompressed.toString('utf-8')) as Folder;
+    return folder;
+  }
+
+  async getTree(userId = ''): Promise<Folder> {
+    if (userId !== '') {
+      const tree = await this.prismaServ.tree.findUnique({ select: { content: true }, where: { userid: userId } });
+      return this.decompressUserTree(tree.content)
+    }
+    const FolderRoot: Folder = {
+      name: 'root',
+      size: 4096,
+      type: 'Folder',
+      content: []
+    };
+    const trees = await this.prismaServ.tree.findMany({ select: { content: true } });
+    FolderRoot.content = await Promise.all(trees.map(async (t) => this.decompressUserTree(t.content)));
+    return FolderRoot;
+  }
+
   async existsTree(userid: string) {
     const count = await this.prismaServ.tree.count({ where: { userid } });
     return count !== 0;
