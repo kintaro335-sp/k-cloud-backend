@@ -1,12 +1,13 @@
 import { BadRequestException, Injectable, Inject, forwardRef, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Interval } from '@nestjs/schedule';
+import { Interval, Cron, CronExpression } from '@nestjs/schedule';
 // services
 import { TempStorageService } from '../temp-storage/temp-storage.service';
 import { AdminService } from '../admin/admin.service';
 import { TokenFilesService } from '../token-files/token-files.service';
 import { SystemService } from '../system/system.service';
 import { TreeFilesService } from '../treefiles/treeFiles.service';
+import { PrismaService } from '../prisma.service';
 // exceptions
 import { NotFoundException } from './exceptions/NotFound.exception';
 // interfaces
@@ -31,9 +32,26 @@ export class FilesService {
     @Inject(forwardRef(() => AdminService)) private readonly adminServ: AdminService,
     private readonly tokenServ: TokenFilesService,
     private treeService: TreeFilesService,
-    private system: SystemService
+    private system: SystemService,
+    private prismaServ: PrismaService
   ) {
     this.root = this.configService.get<string>('FILE_ROOT');
+  }
+
+  @Cron(CronExpression.EVERY_DAY_AT_10AM)
+  private async updateIndexes() {
+    try {
+      const users = await this.prismaServ.user.findMany({ select: { id: true, username: true } });
+      users.forEach((u) => {
+        try {
+          this.updateTree({ userId: u.id, username: u.username, isadmin: false });
+        } catch (err) {
+          console.error(err);
+        }
+      });
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   /**
