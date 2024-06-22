@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, forwardRef, Inject } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, forwardRef, Inject, BadRequestException } from '@nestjs/common';
 // services
 import { FilesService } from '../files/files.service';
 import { UsersService } from '../users/users.service';
@@ -111,15 +111,27 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
    * @param {UnitByte} unitType solo pueder ser `GB` o `MB`
    */
   setDedicatedSpace(quantity: number, unitType: UnitByte): void {
-    this.config.core.unitType = unitType;
     if (unitType === 'MB') {
-      this.config.core.dedicatedSpace = quantity;
-      this.config.core.dedicatedSpaceBytes = this.convertMBtoBytes(quantity);
+      const dedicatedSpace = quantity;
+      const dedicatedSpaceBytes = this.convertMBtoBytes(quantity);
+      if (this.config.core.usedSpaceBytes > dedicatedSpaceBytes) {
+        throw new BadRequestException('El espacio usado es mayor que el espacio dedicado');
+      }
+      this.config.core.unitType = unitType;
+      this.config.core.dedicatedSpace = dedicatedSpace;
+      this.config.core.dedicatedSpaceBytes = dedicatedSpaceBytes;
     }
     if (unitType === 'GB') {
-      this.config.core.dedicatedSpace = quantity;
-      this.config.core.dedicatedSpaceBytes = this.convertGBtoBytes(quantity);
+      const dedicatedSpace = quantity;
+      const dedicatedSpaceBytes = this.convertGBtoBytes(quantity);
+      if (this.config.core.usedSpaceBytes > dedicatedSpaceBytes) {
+        throw new BadRequestException('El espacio usado es mayor que el espacio dedicado');
+      }
+      this.config.core.unitType = unitType;
+      this.config.core.dedicatedSpace = dedicatedSpace;
+      this.config.core.dedicatedSpaceBytes = dedicatedSpaceBytes;
     }
+    this.saveConfig();
   }
 
   /**

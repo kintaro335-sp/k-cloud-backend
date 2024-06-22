@@ -12,14 +12,15 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
   @WebSocketServer() wss: Server;
 
   handleConnection(client: Socket, ...args: any[]) {
-    const token = client.handshake.auth.access_token as string;
+    const token_auth = client.handshake.auth.access_token as string;
+    const token_header = client.handshake.headers.authorization;
     let payload: UserPayload;
     try {
-      payload = this.jwtService.verify(token);
+      payload = this.jwtService.verify(token_auth || token_header) as UserPayload;
       this.wsFiles.handleConnect(client, payload);
       client.emit('message', 'Welcome');
     } catch (error) {
-      client.disconnect();
+      this.wsFiles.handleConnect(client, { userId: 'Guest', isadmin: false, username: 'Guest' });
       return;
     }
   }
@@ -33,8 +34,8 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
     this.wsFiles.handleDisconnect(client);
   }
 
-  @Interval(2000)
-  private FUpdate() {
-    this.wss.emit('file-upload');
-  }
+  // @Interval(2000)
+  // private FUpdate() {
+  //   this.wss.emit('file-upload');
+  // }
 }

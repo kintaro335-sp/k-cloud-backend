@@ -641,8 +641,16 @@ export class FilesService {
             sumBytes('image', file.size);
           } else if (file.mime_type.includes('video/')) {
             sumBytes('video', file.size);
-          } else if (file.mime_type.includes('compressed')) {
-            sumBytes('compressed', file.size);
+          } else if (file.mime_type.includes('audio/')) {
+            sumBytes('audio', file.size);
+          } else if (file.mime_type.includes('pdf')) {
+            sumBytes('pdf', file.size);
+          } else if (file.mime_type.includes('7z')) {
+            sumBytes('7zip', file.size);
+          } else if (file.mime_type.includes('zip')) {
+            sumBytes('zip', file.size);
+          } else if (file.mime_type.includes('gzip')) {
+            sumBytes('gzip', file.size);
           } else {
             sumBytes('other', file.size);
           }

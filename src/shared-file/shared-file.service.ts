@@ -88,6 +88,7 @@ export class SharedFileService {
     const pathEmit = path.split('/');
     pathEmit.pop();
     this.system.emitChangeFileEvent({ path: pathEmit.join('/'), userId: user.userId });
+    this.system.emitChangeTokenEvent({ path: pathEmit.join('/'), userId: user.userId });
     return { id: uuid };
   }
 
