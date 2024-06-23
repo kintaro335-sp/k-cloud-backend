@@ -79,7 +79,7 @@ export class FilesController {
     }
     const fileName = pathString.split('/').pop();
     const properties = await this.filesService.getFilePropertiesUser(pathString, req.user);
-    const CD = downloadOpc === 1 ? 'attachment' : 'inline';
+    const CD = Number(downloadOpc) === 1 ? 'attachment' : 'inline';
     const contentTypeHeader = contentType(fileName);
     res.set({
       'Content-Type': contentTypeHeader,
