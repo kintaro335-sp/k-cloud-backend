@@ -9,9 +9,10 @@ import { TempStorageModule } from '../temp-storage/temp-storage.module';
 import { TokenFilesModule } from '../token-files/token-files.module';
 import { SystemModule } from '../system/system.module';
 import { TreeFilesModule } from '../treefiles/treeFiles.module';
+import { UsersModule } from '../users/users.module';
 
 @Module({
-  imports: [SystemModule, TempStorageModule, UtilsModule, forwardRef(() => AdminModule), AuthModule, TokenFilesModule, TreeFilesModule],
+  imports: [SystemModule, TempStorageModule, UtilsModule, forwardRef(() => AdminModule), AuthModule, TokenFilesModule, TreeFilesModule, UsersModule],
   controllers: [FilesController],
   providers: [FilesService],
   exports: [FilesService]

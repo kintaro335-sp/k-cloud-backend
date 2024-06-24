@@ -13,6 +13,8 @@ import { join } from 'path';
 
 @Injectable()
 export class AdminService implements OnModuleInit, OnModuleDestroy {
+  private updating = false;
+
   constructor(
     @Inject(forwardRef(() => FilesService)) private readonly fileServ: FilesService,
     private readonly usersServ: UsersService,
@@ -146,6 +148,16 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     }
 
     return { total: this.config.core.dedicatedSpaceBytes, used: usedSpaceBytes };
+  }
+
+  async updateUsersTrees() {
+    if (this.updating) {
+      return { message: 'Updating Trees' };
+    }
+    this.updating = true;
+    const mesg = await this.fileServ.updateAllTrees();
+    this.updating = false;
+    return mesg;
   }
 
   /**

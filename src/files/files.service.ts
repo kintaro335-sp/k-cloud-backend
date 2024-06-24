@@ -7,6 +7,7 @@ import { AdminService } from '../admin/admin.service';
 import { TokenFilesService } from '../token-files/token-files.service';
 import { SystemService } from '../system/system.service';
 import { TreeFilesService } from '../treefiles/treeFiles.service';
+import { UsersService } from '../users/users.service';
 // exceptions
 import { NotFoundException } from './exceptions/NotFound.exception';
 // interfaces
@@ -32,6 +33,7 @@ export class FilesService {
     @Inject(forwardRef(() => AdminService)) private readonly adminServ: AdminService,
     private readonly tokenServ: TokenFilesService,
     private treeService: TreeFilesService,
+    private usersService: UsersService,
     private system: SystemService
   ) {
     this.root = this.configService.get<string>('FILE_ROOT');
@@ -453,6 +455,18 @@ export class FilesService {
       )
     };
     return folder;
+  }
+
+
+  /**
+   * Actualizar todos los arboles de los usuarios
+   */
+  async updateAllTrees() {
+    const users = await this.usersService.findAll();
+    for (const user of users) {
+      await this.updateTree({ userId: user.id, username: user.username, isadmin: false });
+    }
+    return { message: 'arobles actualizados' };
   }
 
   /**
