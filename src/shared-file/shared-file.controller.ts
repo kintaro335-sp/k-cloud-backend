@@ -103,7 +103,7 @@ export class SharedFileController {
       return this.SFService.getContentSFList(SFReg, '');
     } else {
       const fileProps = await this.SFService.getPropsSFFile(SFReg, '');
-      const CD = downloadOpc === 1 ? 'attachment' : 'inline';
+      const CD = Number(downloadOpc) === 1 ? 'attachment' : 'inline';
       const contentTypeHeader = contentType(SFReg.name);
       res.set({
         'Content-Type': contentTypeHeader,
@@ -131,7 +131,7 @@ export class SharedFileController {
       return this.SFService.getContentSFList(SFReg, pathString);
     } else {
       const fileProps = await this.SFService.getPropsSFFile(SFReg, pathString);
-      const CD = downloadOpc === 1 ? 'attachment' : 'inline';
+      const CD = Number(downloadOpc) === 1 ? 'attachment' : 'inline';
       const contentTypeHeader = contentType(SFReg.name);
       res.set({
         'Content-Type': contentType(fileProps.name),
@@ -201,12 +201,15 @@ export class SharedFileController {
     if (await this.SFService.isSFDirectory(SFReg, '')) {
       return this.SFService.getContentSFList(SFReg, '');
     } else {
+      const filename = SFReg.name;
       const fileProps = await this.SFService.getPropsSFFile(SFReg, '');
-      const CD = downloadOpc === 1 ? 'attachment' : 'inline';
+      const CD = Number(downloadOpc) === 1 ? 'attachment' : 'inline';
+      const contentTypeHeader = contentType(filename);
       res.set({
         'Content-Type': contentType(SFReg.name),
         'Content-Disposition': `${CD}; filename="${SFReg.name}";`,
-        'Content-Length': fileProps.size
+        'Content-Length': fileProps.size,
+        'Keep-Alive': contentTypeHeader.toString().startsWith('video/') ? 'timeout=36000' : 'timeout=10'
       });
       return new StreamableFile(await this.SFService.getContentSFFile(SFReg, ''));
     }
@@ -227,12 +230,15 @@ export class SharedFileController {
     if (await this.SFService.isSFDirectory(SFReg, pathString)) {
       return this.SFService.getContentSFList(SFReg, pathString);
     } else {
+      const fileName = pathString.split('/').pop();
       const fileProps = await this.SFService.getPropsSFFile(SFReg, pathString);
-      const CD = downloadOpc === 1 ? 'attachment' : 'inline';
+      const CD = Number(downloadOpc) === 1 ? 'attachment' : 'inline';
+      const contentTypeHeader = contentType(fileName);
       res.set({
         'Content-Type': contentType(SFReg.name),
         'Content-Disposition': `${CD}; filename="${SFReg.name}";`,
-        'Content-Length': fileProps.size
+        'Content-Length': fileProps.size,
+        'Keep-Alive': contentTypeHeader.toString().startsWith('video/') ? 'timeout=36000' : 'timeout=10'
       });
       return new StreamableFile(await this.SFService.getContentSFFile(SFReg, pathString));
     }

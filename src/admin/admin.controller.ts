@@ -77,6 +77,12 @@ export class AdminController {
     return this.adminServ.getUsedSpaceByFileType();
   }
 
+  @RequireAdmin(true)
+  @Patch('/update-users-trees')
+  async getUsedSpaceByFileTypeByType(){
+    return this.adminServ.updateUsersTrees();
+  }
+
   // user management
 
   @RequireAdmin(true)

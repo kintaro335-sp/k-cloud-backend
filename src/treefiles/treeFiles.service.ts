@@ -64,10 +64,10 @@ export class TreeFilesService {
     const getOnForEach = (path = '') => {
       return (val: File | Folder) => {
         if (val.type === 'file') {
-          index.push({ name: val.name, path: join(path, val.name) });
+          index.push({ name: val.name, path: join(path, val.name), size: val.size, mime_type: val.mime_type });
         }
         if (val.type === 'Folder') {
-          index.push({ name: val.name, path: join(path, val.name) });
+          index.push({ name: val.name, path: join(path, val.name), size: val.size, mime_type: 'Folder' });
           val.content.forEach(getOnForEach(join(path, val.name)));
         }
       };
@@ -93,6 +93,28 @@ export class TreeFilesService {
       return this.updateTree(userid, compressedContent, compressedIndex);
     }
     return this.saveTree(userid, compressedContent, compressedIndex);
+  }
+
+  private async decompressUserTree(compressedTree: Buffer): Promise<Folder> {
+    const unCompressed = await this.unzip(compressedTree);
+    const folder = JSON.parse(unCompressed.toString('utf-8')) as Folder;
+    return folder;
+  }
+
+  async getTree(userId = ''): Promise<Folder> {
+    if (userId !== '') {
+      const tree = await this.prismaServ.tree.findUnique({ select: { content: true }, where: { userid: userId } });
+      return this.decompressUserTree(tree.content)
+    }
+    const FolderRoot: Folder = {
+      name: 'root',
+      size: 4096,
+      type: 'Folder',
+      content: []
+    };
+    const trees = await this.prismaServ.tree.findMany({ select: { content: true } });
+    FolderRoot.content = await Promise.all(trees.map(async (t) => this.decompressUserTree(t.content)));
+    return FolderRoot;
   }
 
   async existsTree(userid: string) {

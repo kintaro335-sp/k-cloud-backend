@@ -7,7 +7,7 @@ import { AdminService } from '../admin/admin.service';
 import { TokenFilesService } from '../token-files/token-files.service';
 import { SystemService } from '../system/system.service';
 import { TreeFilesService } from '../treefiles/treeFiles.service';
-import { PrismaService } from '../prisma.service';
+import { UsersService } from '../users/users.service';
 // exceptions
 import { NotFoundException } from './exceptions/NotFound.exception';
 // interfaces
@@ -26,29 +26,35 @@ const JSZip = require('jszip');
 @Injectable()
 export class FilesService {
   public root: string = '~/';
+  private userIndexUpdateScheduled = [];
   constructor(
     private readonly configService: ConfigService,
     private readonly storageService: TempStorageService,
     @Inject(forwardRef(() => AdminService)) private readonly adminServ: AdminService,
     private readonly tokenServ: TokenFilesService,
     private treeService: TreeFilesService,
-    private system: SystemService,
-    private prismaServ: PrismaService
+    private usersService: UsersService,
+    private system: SystemService
   ) {
     this.root = this.configService.get<string>('FILE_ROOT');
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_10AM)
+  private addUserIndexUpdateSchedule(userId: string) {
+    if (this.userIndexUpdateScheduled.includes(userId)) return;
+    this.userIndexUpdateScheduled.push(userId);
+  }
+
+  @Cron(CronExpression.EVERY_MINUTE)
   private async updateIndexes() {
     try {
-      const users = await this.prismaServ.user.findMany({ select: { id: true, username: true } });
-      users.forEach((u) => {
+      while (this.userIndexUpdateScheduled.length !== 0) {
         try {
-          this.updateTree({ userId: u.id, username: u.username, isadmin: false });
+          const u = this.userIndexUpdateScheduled.pop();
+          await this.updateTree({ userId: u, username: '', isadmin: false });
         } catch (err) {
           console.error(err);
         }
-      });
+      }
     } catch (err) {
       console.error(err);
     }
@@ -87,6 +93,7 @@ export class FilesService {
               }
               this.system.emitFileUploadRequest(fileInfo.userId);
               this.storageService.delFile(dir);
+              this.addUserIndexUpdateSchedule(fileInfo.userId);
               this.adminServ.updateUsedSpace();
             }
             if (this.storageService.existsFile(dir)) {
@@ -313,6 +320,7 @@ export class FilesService {
     const pathH = pathArr.join('/');
     this.system.emitChangeFileEvent({ userId, path: pathH });
     this.system.emitFileUploadRequest(userId);
+    this.addUserIndexUpdateSchedule(userId);
     return { message: 'File created successfully' };
   }
 
@@ -411,6 +419,7 @@ export class FilesService {
     const folder: Folder = {
       type: 'Folder',
       name: entirePath.split('/').pop(),
+      size: fileStat.size,
       content: await Promise.all(
         files.map(async (f): Promise<File | Folder> => {
           const filePath = join(entirePath, f);
@@ -420,6 +429,7 @@ export class FilesService {
               return {
                 type: 'Folder',
                 name: f,
+                size: fileStat.size,
                 content: (
                   await Promise.all(
                     (await readdir(filePath)).map(async (fi) => await this.GenerateTree(join(filePath, fi), userPayload, true, showF))
@@ -445,6 +455,18 @@ export class FilesService {
       )
     };
     return folder;
+  }
+
+
+  /**
+   * Actualizar todos los arboles de los usuarios
+   */
+  async updateAllTrees() {
+    const users = await this.usersService.findAll();
+    for (const user of users) {
+      await this.updateTree({ userId: user.id, username: user.username, isadmin: false });
+    }
+    return { message: 'arobles actualizados' };
   }
 
   /**
@@ -484,6 +506,7 @@ export class FilesService {
       const onForEach = (file: File | Folder) => {
         try {
           if (file.type === 'Folder') {
+            usedSpace.value = usedSpace.value + file.size;
             file.content.forEach(onForEach);
           }
           if (file.type === 'file') {
@@ -536,6 +559,7 @@ export class FilesService {
     if (filesTree.type === 'Folder') {
       const onForEach = (file: File | Folder) => {
         if (file.type === 'Folder') {
+          usedSpace.value = usedSpace.value + file.size;
           file.content.forEach(onForEach);
         }
         if (file.type === 'file') {
@@ -611,7 +635,7 @@ export class FilesService {
     return { message: 'archivo renombradostatFile' };
   }
 
-  async getUsedSpaceByFileType(path = ''): Promise<UsedSpaceType[]> {
+  async getUsedSpaceByFileType(userId = ''): Promise<UsedSpaceType[]> {
     const usedSpace: Record<string, number> = {};
     const sumBytes = (type: string, bytes: number) => {
       if (usedSpace[type] === undefined) {
@@ -620,7 +644,7 @@ export class FilesService {
         usedSpace[type] += bytes;
       }
     };
-    const filesTree = await this.GenerateTree(path, null, false);
+    const filesTree = await this.treeService.getTree(userId);
     if (filesTree.type === 'Folder') {
       const onForEach = (file: File | Folder) => {
         if (file.type === 'Folder') {
@@ -631,8 +655,16 @@ export class FilesService {
             sumBytes('image', file.size);
           } else if (file.mime_type.includes('video/')) {
             sumBytes('video', file.size);
-          } else if (file.mime_type.includes('compressed')) {
-            sumBytes('compressed', file.size);
+          } else if (file.mime_type.includes('audio/')) {
+            sumBytes('audio', file.size);
+          } else if (file.mime_type.includes('pdf')) {
+            sumBytes('pdf', file.size);
+          } else if (file.mime_type.includes('7z')) {
+            sumBytes('7zip', file.size);
+          } else if (file.mime_type.includes('zip')) {
+            sumBytes('zip', file.size);
+          } else if (file.mime_type.includes('gzip')) {
+            sumBytes('gzip', file.size);
           } else {
             sumBytes('other', file.size);
           }

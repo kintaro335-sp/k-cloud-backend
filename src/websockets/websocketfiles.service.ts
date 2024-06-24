@@ -38,6 +38,9 @@ export class WebSocketFilesService implements OnApplicationBootstrap {
           if (this.connections[idC].userId === data.userId) {
             this.connections[idC].client.emit('token-change', { path: data.path });
           }
+          if(this.connections[idC].userId === "Guest") {
+            this.connections[idC].client.emit('token-change', { path: "" });
+          }
         } catch (_err) {}
       });
     });

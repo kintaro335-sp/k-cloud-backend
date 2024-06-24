@@ -16,6 +16,7 @@ export interface ListFile {
 export interface Folder {
   type: 'Folder';
   name: string;
+  size: number;
   content: Array<Folder | File>;
 }
 

@@ -2,7 +2,6 @@ import { Module, forwardRef } from '@nestjs/common';
 import { FilesController } from './files.controller';
 import { FilesService } from './files.service';
 // imports
-import { PrismaService } from '../prisma.service';
 import { AdminModule } from '../admin/admin.module';
 import { AuthModule } from '../auth/auth.module';
 import { UtilsModule } from '../utils/utils.module';
@@ -10,11 +9,12 @@ import { TempStorageModule } from '../temp-storage/temp-storage.module';
 import { TokenFilesModule } from '../token-files/token-files.module';
 import { SystemModule } from '../system/system.module';
 import { TreeFilesModule } from '../treefiles/treeFiles.module';
+import { UsersModule } from '../users/users.module';
 
 @Module({
-  imports: [SystemModule, TempStorageModule, UtilsModule, forwardRef(() => AdminModule), AuthModule, TokenFilesModule, TreeFilesModule],
+  imports: [SystemModule, TempStorageModule, UtilsModule, forwardRef(() => AdminModule), AuthModule, TokenFilesModule, TreeFilesModule, UsersModule],
   controllers: [FilesController],
-  providers: [FilesService, PrismaService],
+  providers: [FilesService],
   exports: [FilesService]
 })
 export class FilesModule {}
