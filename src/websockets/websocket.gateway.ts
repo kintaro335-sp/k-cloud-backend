@@ -30,6 +30,11 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
     client.emit('file-upload');
   }
 
+  @SubscribeMessage('who-am-i')
+  onWhoAmI(client: Socket) {
+    client.emit('message', this.wsFiles.getUserInfo(client.id));
+  }
+
   handleDisconnect(client: Socket) {
     this.wsFiles.handleDisconnect(client);
   }
