@@ -53,7 +53,7 @@ export class AuthService {
    * @param {string} pasword Contraseña en texto plano
    * @returns {Promise<AuthResponse>} el Access Token del Usuario
    */
-  async register(userName: string, pasword: string): Promise<AuthResponse> {
+  async register(userName: string, pasword: string, device: string = ''): Promise<AuthResponse> {
     const user = await this.usersService.findOne({ username: userName });
     if (user) {
       throw new BadRequestException('Usuario ya existe');
@@ -63,7 +63,9 @@ export class AuthService {
       username: userName,
       passwordu: this.cryptoService.createPassword(pasword)
     });
-    const payload: UserPayload = { sessionId: '', userId: newUser.id, username: newUser.username, isadmin: newUser.isadmin };
+    const newSessionId = this.sessionsService.createSesionId();
+    const payload: UserPayload = { sessionId: newSessionId, userId: newUser.id, username: newUser.username, isadmin: newUser.isadmin };
+    await this.sessionsService.createSession(newSessionId, payload, device);
     this.filesService.createFolder('', payload);
     this.system.emitChangeUsersUpdates();
     return {

@@ -13,9 +13,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     await super.canActivate(context);
     const request = this.getRequest(context);
     const today = new Date();
-
-    const session = await this.sessionsService.retrieveSession(request.user.sessionId);
-    console.log(request.user)
+    await this.sessionsService.validateSession(request.user.sessionId);
     return true;
   }
 }

@@ -25,8 +25,8 @@ export class AuthController {
   }
 
   @Post('register')
-  async register(@Body() body: RegisterDTO): Promise<AuthResponse> {
-    return this.authService.register(body.username, body.password);
+  async register(@Body() body: RegisterDTO, @Headers('User-Agent') device: string): Promise<AuthResponse> {
+    return this.authService.register(body.username, body.password, device);
   }
 
   @Put('password')
