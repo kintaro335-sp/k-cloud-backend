@@ -44,7 +44,7 @@ export class FilesService {
     this.userIndexUpdateScheduled.push(userId);
   }
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_10_MINUTES)
   private async updateIndexes() {
     try {
       while (this.userIndexUpdateScheduled.length !== 0) {
