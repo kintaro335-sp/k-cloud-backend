@@ -16,6 +16,7 @@ import { SetupModule } from './setup/setup.module';
 import { JwtModule } from '@nestjs/jwt';
 import { jwtConstants } from './auth/constants';
 import { WebSocketModule } from './websockets/websocket.module';
+import { SessionsModule } from './sessions/sessions.module';
 // middlewares
 import { LoggerMiddleware } from './middlewares/logger.middleware';
 import { LogsModule } from './logs/logs.module';
@@ -27,10 +28,11 @@ import { MonitorModule } from './monitor/monitor.module';
     ConfigModule.forRoot({ isGlobal: true }),
     JwtModule.register({
       secret: jwtConstants.secret,
-      signOptions: { expiresIn: '7d' },
+      signOptions: {  },
       global: true,
       verifyOptions: { algorithms: ['HS256'] }
     }),
+    SessionsModule,
     UsersModule,
     AuthModule,
     AdminModule,

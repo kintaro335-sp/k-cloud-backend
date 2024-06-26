@@ -17,7 +17,7 @@ export class JwtStrategyHeader extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: UserPayload): Promise<UserPayload> {
-    return { userId: payload.userId, username: payload.username, isadmin: payload.isadmin };
+    return { sessionId: payload.sessionId, userId: payload.userId, username: payload.username, isadmin: payload.isadmin };
   }
 }
 
@@ -32,6 +32,6 @@ export class JwtStrategyQuery extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: UserPayload): Promise<UserPayload> {
-    return { userId: payload.userId, username: payload.username, isadmin: payload.isadmin };
+    return { sessionId: payload.sessionId, userId: payload.userId, username: payload.username, isadmin: payload.isadmin };
   }
 }

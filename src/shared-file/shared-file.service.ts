@@ -99,7 +99,7 @@ export class SharedFileService {
     }
 
     const realPath = join(SFReg.userid, SFReg.path);
-    const exists = await this.filesService.exists(SFReg.path, { isadmin: true, userId: SFReg.userid, username: '' });
+    const exists = await this.filesService.exists(SFReg.path, { sessionId: '',  isadmin: true, userId: SFReg.userid, username: '' });
     if (!exists) {
       this.tokenService.removeSharedFile(id);
       this.system.emitChangeTokenEvent({ path: SFReg.path, userId: SFReg.userid });
@@ -126,7 +126,7 @@ export class SharedFileService {
     if (SFReg === null) {
       throw new NotFoundException('File not found');
     }
-    const user: UserPayload = { isadmin: false, userId: SFReg.userid, username: SFReg.id };
+    const user: UserPayload = { sessionId: '', isadmin: false, userId: SFReg.userid, username: SFReg.id };
     const pseudoPath = join(SFReg.path, path);
     return this.filesService.isDirectoryUser(pseudoPath, user);
   }
@@ -135,7 +135,7 @@ export class SharedFileService {
     if (SFReg === null) {
       throw new NotFoundException('File not found');
     }
-    const user: UserPayload = { isadmin: false, userId: SFReg.userid, username: SFReg.id };
+    const user: UserPayload = { sessionId: '', isadmin: false, userId: SFReg.userid, username: SFReg.id };
     const pseudoPath = join(SFReg.path, path);
     return this.filesService.getListFiles(pseudoPath, user);
   }
@@ -144,7 +144,7 @@ export class SharedFileService {
     if (SFReg === null) {
       throw new NotFoundException('File not found');
     }
-    const user: UserPayload = { isadmin: false, userId: SFReg.userid, username: SFReg.id };
+    const user: UserPayload = { sessionId: '', isadmin: false, userId: SFReg.userid, username: SFReg.id };
     const pseudoPath = join(SFReg.path, path);
     return this.filesService.getFile(pseudoPath, user);
   }
@@ -153,7 +153,7 @@ export class SharedFileService {
     if (SFReg === null) {
       throw new NotFoundException('File not found');
     }
-    const user: UserPayload = { isadmin: false, userId: SFReg.userid, username: SFReg.id };
+    const user: UserPayload = { sessionId: '', isadmin: false, userId: SFReg.userid, username: SFReg.id };
     const pseudoPath = join(SFReg.path, path);
     return this.filesService.getFilePropertiesUser(pseudoPath, user);
   }

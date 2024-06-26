@@ -1,6 +1,8 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
-import { UsersService } from '../users/users.service';
+// services
 import { JwtService } from '@nestjs/jwt';
+import { UsersService } from '../users/users.service';
+import { SessionsService } from '../sessions/sessions.service';
 import { CryptoService } from '../crypto/crypto.service';
 import { FilesService } from '../files/files.service';
 import { SystemService } from '../system/system.service';
@@ -19,6 +21,7 @@ export class AuthService {
     private jwtService: JwtService,
     private cryptoService: CryptoService,
     private filesService: FilesService,
+    private sessionsService: SessionsService,
     private system: SystemService
   ) {}
 
@@ -28,13 +31,15 @@ export class AuthService {
    * @param {string} pasword contraseña en texto plano
    * @returns {Promise<AuthResponse>} Token de Auth por JWT
    */
-  async login(userName: string, pasword: string): Promise<AuthResponse> {
+  async login(userName: string, pasword: string, device: string = ''): Promise<AuthResponse> {
     const user = await this.usersService.findOne({ username: userName });
     if (!user) {
       throw new BadRequestException('Usuario o contraseña incorrectos');
     }
     if (this.cryptoService.comparePasswords(pasword, user.passwordu)) {
-      const payload: UserPayload = { userId: user.id, username: user.username, isadmin: user.isadmin };
+      const newSessionId = this.sessionsService.createSesionId();
+      const payload: UserPayload = { sessionId: newSessionId, userId: user.id, username: user.username, isadmin: user.isadmin };
+      await this.sessionsService.createSession(newSessionId, payload, device);
       return {
         access_token: this.jwtService.sign(payload)
       };
@@ -58,7 +63,7 @@ export class AuthService {
       username: userName,
       passwordu: this.cryptoService.createPassword(pasword)
     });
-    const payload: UserPayload = { userId: newUser.id, username: newUser.username, isadmin: newUser.isadmin };
+    const payload: UserPayload = { sessionId: '', userId: newUser.id, username: newUser.username, isadmin: newUser.isadmin };
     this.filesService.createFolder('', payload);
     this.system.emitChangeUsersUpdates();
     return {
@@ -84,7 +89,7 @@ export class AuthService {
       passwordu: this.cryptoService.createPassword(pasword),
       isadmin: true
     });
-    const payload: UserPayload = { userId: newUser.id, username: newUser.username, isadmin: newUser.isadmin };
+    const payload: UserPayload = { sessionId: '', userId: newUser.id, username: newUser.username, isadmin: newUser.isadmin };
     this.filesService.createFolder('', payload);
     this.system.emitChangeUsersUpdates();
     return {

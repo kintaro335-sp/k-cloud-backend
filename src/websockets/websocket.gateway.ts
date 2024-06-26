@@ -20,7 +20,7 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
       this.wsFiles.handleConnect(client, payload);
       client.emit('message', 'Welcome');
     } catch (error) {
-      this.wsFiles.handleConnect(client, { userId: 'Guest', isadmin: false, username: 'Guest' });
+      this.wsFiles.handleConnect(client, { sessionId: 'Guest', userId: 'Guest', isadmin: false, username: 'Guest' });
       return;
     }
   }
