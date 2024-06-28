@@ -8,6 +8,7 @@ import { FilesService } from '../files/files.service';
 import { SystemService } from '../system/system.service';
 // interfaces
 import { UserPayload } from './interfaces/userPayload.interface';
+import { ApiKeysResponse, SessionsResponse } from './interfaces/apikey.interface';
 import { MessageResponse, AuthResponse } from './interfaces/response.interface';
 import { UserL } from '../users/interfaces/userl.interface';
 
@@ -48,6 +49,19 @@ export class AuthService {
   }
 
   /**
+   * Crear un api key de un usuario con apikey
+   * @param {UserPayload} user datos de usuario
+   * @returns {Promise<AuthResponse>} apikey
+   * */
+  async createApiKey(user: UserPayload): Promise<AuthResponse> {
+    const sessionId = this.sessionsService.createSesionId();
+    const payload: UserPayload = { sessionId, userId: user.userId, username: user.username, isadmin: user.isadmin };
+    const access_token = this.jwtService.sign(payload);
+    await this.sessionsService.createApiKey(sessionId, payload, access_token);
+    return { access_token };    
+  }
+
+  /**
    * Crear un nuevo usuario
    * @param {string} userName Nombre del usuario nuevo
    * @param {string} pasword Contraseña en texto plano
@@ -71,6 +85,16 @@ export class AuthService {
     return {
       access_token: this.jwtService.sign(payload)
     };
+  }
+
+  /**
+   * Logout de un usuario
+   * @param {string} sessionId Id de Sesion
+   * @returns {Promise<MessageResponse>}
+   */
+  async logout(sessionId: string): Promise<MessageResponse> {
+    await this.sessionsService.revokeSession(sessionId);
+    return { message: 'logout' };
   }
 
   /**
@@ -173,5 +197,23 @@ export class AuthService {
     const users = await this.usersService.findAll();
 
     return users.map((u) => ({ id: u.id, username: u.username, admin: u.isadmin }));
+  }
+
+  /**
+   * Obtener las api keys de un usuario
+   * @param {UserPayload} user datos de usuario
+   */
+  async getApiKeys(user: UserPayload): Promise<ApiKeysResponse> {
+    const apiKeys = await this.sessionsService.getApiKeysByUserId(user.userId);
+    return { data: apiKeys, total: apiKeys.length };
+  }
+
+  /**
+   * Obtener las sesiones de un usuario
+   * @param {UserPayload} user datos de usuario
+   */
+  async getSessions(user: UserPayload): Promise<SessionsResponse> {
+    const sessions = await this.sessionsService.getSessionsByUserId(user.userId);
+    return { data: sessions, total: sessions.length };
   }
 }

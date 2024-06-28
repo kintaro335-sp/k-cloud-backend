@@ -1,12 +1,16 @@
-import { Controller, Post, Get, UseGuards, Request, Body, Put, Headers } from '@nestjs/common';
-import { JwtAuthGuard } from './jwt-auth.guard';
+import { Controller, Post, Get, UseGuards, Request, Body, Put, Headers, Param } from '@nestjs/common';
+// services
 import { AuthService } from './auth.service';
+// guards
+import { JwtAuthGuard } from './jwt-auth.guard';
+import { ApiKeyGuard } from './guards/apikey.guard';
 // dtos
 import { LoginDTO } from './dtos/login.dto';
 import { RegisterDTO } from './dtos/Register.dto';
 import { PasswdDTO } from './dtos/passwd.dto';
 // interfaces
 import { UserPayload } from './interfaces/userPayload.interface';
+import { ApiKeysResponse, SessionsResponse } from './interfaces/apikey.interface';
 import { AuthResponse, MessageResponse } from './interfaces/response.interface';
 
 @Controller('auth')
@@ -29,10 +33,45 @@ export class AuthController {
     return this.authService.register(body.username, body.password, device);
   }
 
+  @Post('logout')
+  @UseGuards(JwtAuthGuard)
+  async logout(@Request() req): Promise<MessageResponse> {
+    const user: UserPayload = req.user;
+    return this.authService.logout(user.userId);
+  }
+
+  @Post('revoke/:sessionId')
+  @UseGuards(JwtAuthGuard)
+  async revokeSession(@Request() req, @Param('sessionId') sessionId: string): Promise<MessageResponse> {
+    const user: UserPayload = req.user;
+    return this.authService.logout(sessionId);
+  }
+
+  @Post('apikey')
+  @UseGuards(JwtAuthGuard, ApiKeyGuard)
+  async createApiKey(@Request() req): Promise<AuthResponse> {
+    const user: UserPayload = req.user;
+    return this.authService.createApiKey(user);
+  }
+
   @Put('password')
   @UseGuards(JwtAuthGuard)
   async changePassword(@Request() req, @Body() body: PasswdDTO): Promise<MessageResponse> {
     const user: UserPayload = req.user;
     return this.authService.changePassword(user.userId, body.password, body.newPassword);
+  }
+
+  @Get('sessions')
+  @UseGuards(JwtAuthGuard)
+  async getSessions(@Request() req): Promise<SessionsResponse> {
+    const user: UserPayload = req.user;
+    return this.authService.getSessions(user);
+  }
+
+  @Get('apikeys')
+  @UseGuards(JwtAuthGuard)
+  async getApiKeys(@Request() req): Promise<ApiKeysResponse> {
+    const user: UserPayload = req.user;
+    return this.authService.getApiKeys(user);
   }
 }
