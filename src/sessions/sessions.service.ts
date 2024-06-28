@@ -112,6 +112,8 @@ export class SessionsService {
     delete this.sessionsCache[sessionId];
     while (true) {
       try {
+        const count = await this.prisma.sessions.count({ where: { id: sessionId } });
+        if (count === 0) return null;
         return this.prisma.sessions.delete({
           where: {
             id: sessionId
@@ -153,7 +155,7 @@ export class SessionsService {
             userid: userId,
             type: 'session',
             expire: {
-              lt: today
+              gt: today
             }
           }
         });
