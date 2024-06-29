@@ -95,4 +95,13 @@ export class SystemService {
   addTreeUpdateListener(listener: (userId: string) => void) {
     this.eventEmitterWS.addListener('tree-update', listener);
   }
+
+  // logout
+  emitLogout(sessionId: string) {
+    this.eventEmitterWS.emit('logout', sessionId);
+  }
+
+  addLogoutListener(listener: (sessionId: string) => void) {
+    this.eventEmitterWS.addListener('logout', listener);
+  }
 }

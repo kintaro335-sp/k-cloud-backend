@@ -2,6 +2,9 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 // services
 import { PrismaService } from '../prisma.service';
+import { SystemService } from '../system/system.service';
+// errors
+import { InvalidSessionError } from './errors/invalidsession.error';
 // interfaces
 import { UserPayload } from 'src/auth/interfaces/userPayload.interface';
 import { Session, SessionCache, SessionType } from './interfaces/session.interface';
@@ -13,16 +16,17 @@ import * as dayjs from 'dayjs';
 
 @Injectable()
 export class SessionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService, private readonly system: SystemService) {}
 
   private sessionsCache: Record<string, SessionCache> = {};
 
-  @Cron(CronExpression.EVERY_HOUR)
+  @Cron(CronExpression.EVERY_30_MINUTES)
   private cleanSessionsCache() {
     const now = dayjs().toDate();
     Object.keys(this.sessionsCache).forEach((key) => {
       const session = this.sessionsCache[key];
-      if (now.getTime() - session.lastUsed.getTime() > 3600000) {
+      if (now.getTime() - session.lastUsed.getTime() > 1000 * 60 * 60) {
+        console.log(`Deleting session ${key}`);
         delete this.sessionsCache[key];
       }
     });
@@ -114,6 +118,7 @@ export class SessionsService {
       try {
         const count = await this.prisma.sessions.count({ where: { id: sessionId } });
         if (count === 0) return null;
+        this.system.emitLogout(sessionId);
         return this.prisma.sessions.delete({
           where: {
             id: sessionId
@@ -123,16 +128,22 @@ export class SessionsService {
     }
   }
 
-  async validateSession(sessionId: string) {
+  async validateSession(sessionId: string, websocket = false) {
     const session = await this.retrieveSession(sessionId);
 
     if (!session) {
-      throw new UnauthorizedException();
+      if (websocket) {
+        throw new InvalidSessionError("Invalid session");
+      }
+      throw new UnauthorizedException()
     }
 
     const today = new Date();
     if (today > session.expire && session.doesexpire) {
       this.revokeSession(sessionId);
+      if (websocket) {
+        throw new InvalidSessionError("Session Expired");
+      }
       throw new UnauthorizedException();
     }
     if (this.sessionsCache[sessionId] !== undefined) {

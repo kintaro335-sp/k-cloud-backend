@@ -37,7 +37,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async logout(@Request() req): Promise<MessageResponse> {
     const user: UserPayload = req.user;
-    return this.authService.logout(user.userId);
+    return this.authService.logout(user.sessionId);
   }
 
   @Post('revoke/:sessionId')
