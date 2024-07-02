@@ -41,6 +41,7 @@ export class AuthService {
       const newSessionId = this.sessionsService.createSesionId();
       const payload: UserPayload = { sessionId: newSessionId, userId: user.id, username: user.username, isadmin: user.isadmin };
       await this.sessionsService.createSession(newSessionId, payload, device);
+      this.system.emitChangeSessions(user.id);
       return {
         access_token: this.jwtService.sign(payload)
       };
@@ -53,12 +54,13 @@ export class AuthService {
    * @param {UserPayload} user datos de usuario
    * @returns {Promise<AuthResponse>} apikey
    * */
-  async createApiKey(user: UserPayload): Promise<AuthResponse> {
+  async createApiKey(user: UserPayload, name: string): Promise<AuthResponse> {
     const sessionId = this.sessionsService.createSesionId();
     const payload: UserPayload = { sessionId, userId: user.userId, username: user.username, isadmin: user.isadmin };
     const access_token = this.jwtService.sign(payload);
-    await this.sessionsService.createApiKey(sessionId, payload, access_token);
-    return { access_token };    
+    await this.sessionsService.createApiKey(name, sessionId, payload, access_token);
+    this.system.emitChangeSessions(user.userId);
+    return { access_token };
   }
 
   /**
@@ -93,7 +95,10 @@ export class AuthService {
    * @returns {Promise<MessageResponse>}
    */
   async logout(sessionId: string): Promise<MessageResponse> {
-    await this.sessionsService.revokeSession(sessionId);
+    const user = await this.sessionsService.revokeSession(sessionId);
+    if (user !== null) {
+      this.system.emitChangeSessions(user.userid);
+    }
     return { message: 'logout' };
   }
 

@@ -8,6 +8,7 @@ import { ApiKeyGuard } from './guards/apikey.guard';
 import { LoginDTO } from './dtos/login.dto';
 import { RegisterDTO } from './dtos/Register.dto';
 import { PasswdDTO } from './dtos/passwd.dto';
+import { ApiKeyNameDto } from './dtos/apikeyname.dto';
 // interfaces
 import { UserPayload } from './interfaces/userPayload.interface';
 import { ApiKeysResponse, SessionsResponse } from './interfaces/apikey.interface';
@@ -47,11 +48,11 @@ export class AuthController {
     return this.authService.logout(sessionId);
   }
 
-  @Post('apikey')
+  @Post('apikeys')
   @UseGuards(JwtAuthGuard, ApiKeyGuard)
-  async createApiKey(@Request() req): Promise<AuthResponse> {
+  async createApiKey(@Request() req, @Body() body: ApiKeyNameDto): Promise<AuthResponse> {
     const user: UserPayload = req.user;
-    return this.authService.createApiKey(user);
+    return this.authService.createApiKey(user, body.name);
   }
 
   @Put('password')

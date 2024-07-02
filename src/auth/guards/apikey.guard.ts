@@ -16,7 +16,7 @@ export class ApiKeyGuard implements CanActivate {
       throw new UnauthorizedException();
     }
     await this.sessionsService.validateSession(user.sessionId);
-    const session = await this.sessionsService.retrieveSession(user.userId);
+    const session = await this.sessionsService.retrieveSession(user.sessionId);
     if (session.type === 'api') {
       throw new UnauthorizedException();
     }

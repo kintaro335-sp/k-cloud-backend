@@ -72,9 +72,10 @@ export class SessionsService {
     }
   }
 
-  async createApiKey(sessionId: string, user: UserPayload, token: string) {
+  async createApiKey(name: string, sessionId: string, user: UserPayload, token: string) {
     const newApiKey: Session = {
       id: sessionId,
+      name,
       userid: user.userId,
       token,
       type: 'api',
@@ -180,6 +181,7 @@ export class SessionsService {
         return this.prisma.sessions.findMany({
           select: {
             id: true,
+            name: true,
             token: true,
           },
           where: {

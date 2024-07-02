@@ -105,6 +105,15 @@ export class WebSocketFilesService implements OnApplicationBootstrap {
         } catch (_err) {}
       });
     });
+    this.system.addChangeSessionsListener((userId: string) => {
+      const connectionsArray = Object.keys(this.connections);
+      connectionsArray.forEach((idC) => {
+        try {
+          if (this.connections[idC].user.userId !== userId) return;
+          this.connections[idC].client.emit('sessions-update', userId);
+        } catch (_err) {}
+      });
+    });
     this.system.addLogoutListener((sessionId) => {
       const connectionsArray = Object.keys(this.connections);
       connectionsArray.forEach((idC) => {

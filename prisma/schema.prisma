@@ -24,6 +24,7 @@ model Sessions {
   @@index([userid])
   @@index([type])
   id String @id
+  name String @default("")
   userid String
   type String
   token String

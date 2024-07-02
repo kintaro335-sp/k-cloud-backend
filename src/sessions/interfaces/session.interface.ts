@@ -2,6 +2,7 @@ export type SessionType = 'session' | 'api';
 
 export interface Session {
   id: string;
+  name?: string;
   userid: string;
   token: string;
   type: SessionType;
