@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, forwardRef, Inject } from '@nestjs/common';
+import { Injectable, OnModuleInit, OnModuleDestroy, forwardRef, Inject, BadRequestException } from '@nestjs/common';
 // services
 import { FilesService } from '../files/files.service';
 import { UsersService } from '../users/users.service';
@@ -13,6 +13,8 @@ import { join } from 'path';
 
 @Injectable()
 export class AdminService implements OnModuleInit, OnModuleDestroy {
+  private updating = false;
+
   constructor(
     @Inject(forwardRef(() => FilesService)) private readonly fileServ: FilesService,
     private readonly usersServ: UsersService,
@@ -111,15 +113,27 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
    * @param {UnitByte} unitType solo pueder ser `GB` o `MB`
    */
   setDedicatedSpace(quantity: number, unitType: UnitByte): void {
-    this.config.core.unitType = unitType;
     if (unitType === 'MB') {
-      this.config.core.dedicatedSpace = quantity;
-      this.config.core.dedicatedSpaceBytes = this.convertMBtoBytes(quantity);
+      const dedicatedSpace = quantity;
+      const dedicatedSpaceBytes = this.convertMBtoBytes(quantity);
+      if (this.config.core.usedSpaceBytes > dedicatedSpaceBytes) {
+        throw new BadRequestException('El espacio usado es mayor que el espacio dedicado');
+      }
+      this.config.core.unitType = unitType;
+      this.config.core.dedicatedSpace = dedicatedSpace;
+      this.config.core.dedicatedSpaceBytes = dedicatedSpaceBytes;
     }
     if (unitType === 'GB') {
-      this.config.core.dedicatedSpace = quantity;
-      this.config.core.dedicatedSpaceBytes = this.convertGBtoBytes(quantity);
+      const dedicatedSpace = quantity;
+      const dedicatedSpaceBytes = this.convertGBtoBytes(quantity);
+      if (this.config.core.usedSpaceBytes > dedicatedSpaceBytes) {
+        throw new BadRequestException('El espacio usado es mayor que el espacio dedicado');
+      }
+      this.config.core.unitType = unitType;
+      this.config.core.dedicatedSpace = dedicatedSpace;
+      this.config.core.dedicatedSpaceBytes = dedicatedSpaceBytes;
     }
+    this.saveConfig();
   }
 
   /**
@@ -134,6 +148,16 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     }
 
     return { total: this.config.core.dedicatedSpaceBytes, used: usedSpaceBytes };
+  }
+
+  async updateUsersTrees() {
+    if (this.updating) {
+      return { message: 'Updating Trees' };
+    }
+    this.updating = true;
+    const mesg = await this.fileServ.updateAllTrees();
+    this.updating = false;
+    return mesg;
   }
 
   /**
@@ -159,7 +183,11 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
   }
 
   getSpaceConfig(): SpaceConfig {
-    return { unitType: this.config.core.unitType, dedicatedSpace: this.config.core.dedicatedSpace };
+    return {
+      unitType: this.config.core.unitType,
+      dedicatedSpace: this.config.core.dedicatedSpace,
+      usedSpaceBytes: this.config.core.usedSpaceBytes
+    };
   }
 
   // convertions
@@ -192,8 +220,13 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
     this.saveConfig();
   }
 
-  getfirstUser(): string | null {
+  getOwner(): string | null {
     return this.config?.users?.firstUser || null;
+  }
+
+  changeOwner(userId: string) {
+    this.config.users.firstUser = userId;
+    this.saveConfig();
   }
 
   getMemoryUsage() {

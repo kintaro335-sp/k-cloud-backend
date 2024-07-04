@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import { IndexList } from 'src/treefiles/interfaces/indexelement.interface';
 // uniqid
 import { v1 } from 'uuid';
+import { orderBy } from 'lodash';
 
 @Injectable()
 export class UtilsService {
@@ -18,5 +20,21 @@ export class UtilsService {
 
   createIDSF(): string {
     return v1();
+  }
+
+  processPath(path: Record<any, string>) {
+    const pathString = Object.keys(path)
+      .filter((v) => v !== 'id')
+      .map((key) => path[key])
+      .join('/')
+      .replace('../', '');
+    if (pathString === '/') {
+      return '';
+    }
+    return pathString;
+  }
+
+  quickSort(arr: IndexList): IndexList {
+    return orderBy(arr, ['path'], ['asc']);
   }
 }

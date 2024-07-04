@@ -14,33 +14,62 @@ model User {
   username String @unique
   passwordu String
   isadmin Boolean @default(false)
+  sessions Sessions[]
   files Sharedfile[]
+  tree Tree[]
+}
+
+model Sessions {
+  @@index([id])
+  @@index([userid])
+  @@index([type])
+  id String @id
+  name String @default("")
+  userid String
+  type String
+  token String
+  doesexpire Boolean @default(false)
+  expire DateTime
+  device String @default("")
+  owner User @relation(fields: [userid], references: [id])
 }
 
 model Sharedfile {
   @@index([path])
   @@index([userid])
   @@index([id])
+  @@index([public])
   id String @id
   userid String
   name String
   path String
   doesexpires Boolean
   isdir Boolean
+  public Boolean @default(false)
   expire DateTime
   createdAt DateTime
   owner User @relation(fields: [userid], references: [id])
 }
 
-model LogsReq {
-  @@index([method])
-  @@index([statusCode])
-  @@index([route])
+model sharedfilesactivity {
   @@index([date])
+  @@index([action])
+  @@index([status])
+  @@index([reason])
   id String @id
   date DateTime
-  route String
-  statusCode String
-  method String
-  MessageError String @default("")
+  action String
+  status String
+  reason String
+  user String
+  tokenid String
+  path String
+}
+
+model Tree {
+  @@index([userid])
+  userid String @id
+  content Bytes
+  index Bytes
+  owner User @relation(fields: [userid], references: [id])
 }

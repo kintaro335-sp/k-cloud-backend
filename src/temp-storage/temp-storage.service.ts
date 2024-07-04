@@ -1,16 +1,42 @@
 import { Injectable } from '@nestjs/common';
 import { UtilsService } from '../utils/utils.service';
+import { ConfigService } from '@nestjs/config';
 // interfaces
 import { FilePTemp, BlobFTemp, FilePTempResponse } from './interfaces/filep.interface';
 import { createWriteStream, existsSync } from 'fs';
-import { join } from 'path';
+import { UserPayload } from 'src/auth/interfaces/userPayload.interface';
 
 @Injectable()
 export class TempStorageService {
-  constructor(private readonly utilsService: UtilsService) {}
-
+  constructor(private readonly utilsService: UtilsService, private readonly configServ: ConfigService) {
+    try {
+      const newFnumber = Number(configServ.get('FILES_ATST'));
+      this.filesAtSameTime = isNaN(newFnumber) ? 1 : newFnumber;
+    } catch (err) {}
+  }
+  private filesAtSameTime = 1;
+  private filesWritting = 0;
   private filesDirectories: string[] = [];
   private storage: Record<string, FilePTemp | null> = {};
+
+  private calculateWritting() {
+    let count = 0;
+    this.filesDirectories.forEach((d) => {
+      const f = this.storage[d];
+      if (f === undefined) return;
+      f.writting ? count++ : null;
+    });
+    this.filesWritting = count;
+  }
+
+  /**
+   * Saber si escribir mas archivos al mismo tiempo
+   * @returns {boolean}
+   */
+  allowWriteMoreFiles() {
+    this.calculateWritting()
+    return this.filesWritting <= this.filesAtSameTime;
+  }
 
   /**
    * obtener la cantidad de blob obtenidos
@@ -46,15 +72,16 @@ export class TempStorageService {
 
   /**
    * Inicializar un Archivo para cargarlo en RAM
-   * @param {string} path Direccion del archivo
+   * @param {string} realPath Direccion real del archivo
    * @param {number} size Tamaño del archivo en Bytes
-   * @param {string} root raiz
+   * @param {UserPayload} user usuario
+   * @param [string] path direccion que llega desde params
    */
-  createFileTemp(path: string, size: number, root: string) {
-    const name = path.split('/').pop();
+  createFileTemp(realPath: string, size: number, user: UserPayload, path: string) {
+    const name = realPath.split('/').pop();
 
-    this.filesDirectories.push(path);
-    this.storage[path] = {
+    this.filesDirectories.push(realPath);
+    this.storage[realPath] = {
       name,
       size,
       saved: 0,
@@ -62,7 +89,9 @@ export class TempStorageService {
       bytesWritten: [],
       completed: false,
       blobs: [],
-      writting: false
+      writting: false,
+      path,
+      userId: user.userId
     };
   }
 
@@ -71,22 +100,26 @@ export class TempStorageService {
       const writeStream = createWriteStream(path, { start: blob.position, flags: 'r+', autoClose: true });
       return new Promise((res) => {
         if (!writeStream.write(blob.blob)) {
-          writeStream.once('drain', () => {
+          writeStream.on('drain', () => {
             res();
           });
         } else {
-          res();
+          process.nextTick(() => {
+            res();
+          });
         }
       });
     } else {
       const writeStream = createWriteStream(path, { start: blob.position, flags: 'w', autoClose: true });
       return new Promise((res) => {
         if (!writeStream.write(blob.blob)) {
-          writeStream.once('drain', () => {
+          writeStream.on('drain', () => {
             res();
           });
         } else {
-          res();
+          process.nextTick(() => {
+            res();
+          });
         }
       });
     }
@@ -112,7 +145,7 @@ export class TempStorageService {
    */
   delFile(path: string) {
     this.filesDirectories = this.filesDirectories.filter((dirs) => dirs !== path);
-    this.storage[path] = null;
+    delete this.storage[path];
   }
 
   /**
@@ -179,12 +212,30 @@ export class TempStorageService {
 
   setWritting(path: string, newValue: boolean) {
     if (this.storage[path] === null || this.storage[path] === undefined) return;
+    newValue ? this.filesWritting++ : this.filesWritting--;
     this.storage[path].writting = newValue;
+    // this.calculateWritting();
   }
 
   getWritting(path: string): boolean {
     if (this.storage[path] === null || this.storage[path] === undefined) return false;
 
     return this.storage[path].writting;
+  }
+
+  getFileInfo(path: string) {
+    return this.storage[path];
+  }
+
+  getSpaceToUse(): number {
+    let nonWrittenBytes = 0;
+    this.filesDirectories.forEach((dir) => {
+      const file = this.storage[dir];
+      if (file !== undefined || file !== null) {
+        const bytesToWrite = file.size;
+        nonWrittenBytes += bytesToWrite;
+      }
+    });
+    return nonWrittenBytes;
   }
 }

@@ -13,7 +13,6 @@ export class ExpireGuard implements CanActivate {
     }
     const today = new Date();
     if (today > SFReg.expire && SFReg.doesexpires) {
-      this.tokensServ.removeSharedFile(idToken);
       throw new NotFoundException('Not Found');
     }
     return true;

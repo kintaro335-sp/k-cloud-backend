@@ -11,6 +11,7 @@ interface CoreConfig {
 export interface SpaceConfig {
   dedicatedSpace: number;
   unitType: UnitByte;
+  usedSpaceBytes: number;
 }
 
 interface UsersConfig {

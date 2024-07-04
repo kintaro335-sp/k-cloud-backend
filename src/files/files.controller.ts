@@ -2,6 +2,7 @@ import {
   Controller,
   Param,
   Get,
+  Patch,
   StreamableFile,
   Response,
   Request,
@@ -16,16 +17,22 @@ import {
   Body,
   Query,
   ParseIntPipe,
-  HttpStatus
+  HttpStatus,
+  ForbiddenException
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 // services
 import { FilesService } from './files.service';
 import { TempStorageService } from '../temp-storage/temp-storage.service';
 import { UtilsService } from '../utils/utils.service';
+import { TreeFilesService } from '../treefiles/treeFiles.service';
 // dtos
 import { BlobFPDTO } from './dtos/blobfp.dto';
 import { FileInitDTO } from './dtos/fileInit.dto';
+import { RenameDTO } from './dtos/rename.dto';
+import { MoveFileDTO } from './dtos/moceFile.dto';
+import { MoveFilesDTO } from './dtos/moveFiles.dto';
+import { DeleteFilesDTO } from './dtos/deletefiles.dto';
 // guards
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { SpaceGuard } from './guards/space.guard';
@@ -34,11 +41,10 @@ import { MessageResponse } from '../auth/interfaces/response.interface';
 import { ListFile, File, Folder, UsedSpaceType } from './interfaces/list-file.interface';
 import { FilePTempResponse } from '../temp-storage/interfaces/filep.interface';
 import { UserPayload } from '../auth/interfaces/userPayload.interface';
+import { IndexList } from 'src/treefiles/interfaces/indexelement.interface';
 // mime
 import { contentType } from 'mime-types';
 import { join } from 'path';
-// RXJS
-import { Observable } from 'rxjs';
 
 @UseGuards(JwtAuthGuard)
 @Controller('files')
@@ -46,7 +52,8 @@ export class FilesController {
   constructor(
     private readonly filesService: FilesService,
     private readonly storageService: TempStorageService,
-    private readonly utils: UtilsService
+    private readonly utils: UtilsService,
+    private readonly treeServ: TreeFilesService
   ) {}
 
   @Get('/stats/type')
@@ -64,50 +71,45 @@ export class FilesController {
   }
 
   @Get('/list/*')
-  async getFiles(@Param() path: string[], @Response({ passthrough: true }) res, @Request() req, @Query('d') downloadOpc) {
-    const pathString = Object.keys(path)
-      .map((key) => path[key])
-      .join('/');
+  async getFiles(@Param() path: Record<any, string>, @Response({ passthrough: true }) res, @Request() req, @Query('d') downloadOpc) {
+    const pathString = this.utils.processPath(path);
+
     if (await this.filesService.isDirectoryUser(pathString, req.user)) {
       return this.filesService.getListFiles(pathString, req.user);
     }
     const fileName = pathString.split('/').pop();
     const properties = await this.filesService.getFilePropertiesUser(pathString, req.user);
-    const CD = downloadOpc ? 'attachment' : 'inline';
+    const CD = Number(downloadOpc) === 1 ? 'attachment' : 'inline';
+    const contentTypeHeader = contentType(fileName);
     res.set({
-      'Content-Type': contentType(fileName),
+      'Content-Type': contentTypeHeader,
       'Content-Disposition': `${CD}; filename="${fileName}";`,
-      'Content-Length': properties.size
+      'Content-Length': properties.size,
+      'Keep-Alive': contentTypeHeader.toString().startsWith('video/') ? 'timeout=36000' : 'timeout=10'
     });
     return new StreamableFile(await this.filesService.getFile(pathString, req.user));
   }
 
   @Get('/properties/*')
-  async getFileProperties(@Param() path: string[], @Request() req) {
-    const pathString = Object.keys(path)
-      .map((key) => path[key])
-      .join('/');
+  async getFileProperties(@Param() path: Record<any, string>, @Request() req) {
+    const pathString = this.utils.processPath(path);
 
     return this.filesService.getFileProperties(pathString, req.user);
   }
 
   @Post('/folder/*')
-  async createFolder(@Param() path: string[], @Request() req) {
-    const pathString = Object.keys(path)
-      .map((key) => path[key])
-      .join('/');
-    if (!this.filesService.exists(pathString, req.user)) {
+  async createFolder(@Param() path: Record<any, string>, @Request() req) {
+    const pathString = this.utils.processPath(path);
+    if (!(await this.filesService.exists(pathString, req.user))) {
       return this.filesService.createFolder(pathString, req.user);
     }
-    throw new InternalServerErrorException();
+    throw new BadRequestException('diretorio ya existe');
   }
 
   @Post('upload/*')
   @UseInterceptors(FilesInterceptor('file', 1, { limits: { fileSize: 104857600 } }))
-  async uploadFile(@Param() path: string[], @Request() req, @UploadedFiles() file: Array<Express.Multer.File>) {
-    const pathString = Object.keys(path)
-      .map((key) => path[key])
-      .join('/');
+  async uploadFile(@Param() path: Record<any, string>, @Request() req, @UploadedFiles() file: Array<Express.Multer.File>) {
+    const pathString = this.utils.processPath(path);
     return this.filesService.createFile(pathString, file[0], req.user);
   }
 
@@ -119,40 +121,24 @@ export class FilesController {
 
   @UseGuards(SpaceGuard)
   @Post('initialize/*')
-  async initializeFile(@Param() path: string[], @Body() body: FileInitDTO, @Request() req): Promise<MessageResponse> {
-    const pathString = Object.keys(path)
-      .map((key) => path[key])
-      .join('/');
+  async initializeFile(@Param() path: Record<any, string>, @Body() body: FileInitDTO, @Request() req): Promise<MessageResponse> {
+    const pathString = this.utils.processPath(path);
     const userId = req.user.userId;
     const pathStringC = join(userId, pathString);
-    if (this.filesService.exists(pathString, req.user)) {
+    if (this.storageService.existsFile(pathStringC)) {
+      throw new ForbiddenException('Archivo ya inicializado');
+    }
+    if (await this.filesService.exists(pathString, req.user)) {
       throw new BadRequestException('archivo ya existe');
     }
-    if (this.storageService.existsFile(pathStringC)) {
-      throw new BadRequestException('Archivo ya inicializado');
-    }
-    this.storageService.createFileTemp(pathStringC, body.size, this.filesService.root);
+    this.storageService.createFileTemp(pathStringC, body.size, req.user, pathString);
     return { message: 'Inicializado' };
-  }
-
-  @Post('writebase64/*')
-  async allocateBase64Blob(@Param() path: string[], @Body() body: BlobFPDTO, @Request() req): Promise<MessageResponse> {
-    const pathString = Object.keys(path)
-      .map((key) => path[key])
-      .join('/');
-    const userId = req.user.userId;
-    const pathStringC = join(userId, pathString);
-    if (this.storageService.existsFile(pathStringC)) {
-      this.storageService.allocateBlob(pathStringC, body.position, this.utils.base64ToBuffer(body.blob));
-      return { message: 'Blob Recived' };
-    }
-    throw new NotFoundException('Archivo no encontrado');
   }
 
   @Post('write/*')
   @UseInterceptors(FilesInterceptor('file'))
   async reciveBlob(
-    @Param() path: string[],
+    @Param() path: Record<any, string>,
     @UploadedFiles() files: Array<Express.Multer.File>,
     @Request() req,
     @Query('pos', new ParseIntPipe({ errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) position: number
@@ -161,9 +147,7 @@ export class FilesController {
       throw new BadRequestException('no file');
     }
     const fileM = files[0];
-    const pathString = Object.keys(path)
-      .map((key) => path[key])
-      .join('/');
+    const pathString = this.utils.processPath(path);
     const userId = req.user.userId;
     const pathStringC = join(userId, pathString);
     if (this.storageService.existsFile(pathStringC)) {
@@ -174,10 +158,8 @@ export class FilesController {
   }
 
   @Post('close/*')
-  async closeFile(@Param() path: string[], @Request() req) {
-    const pathString = Object.keys(path)
-      .map((key) => path[key])
-      .join('/');
+  async closeFile(@Param() path: Record<any, string>, @Request() req) {
+    const pathString = this.utils.processPath(path);
     const userId = req.user.userId;
     const pathStringC = join(userId, pathString);
     if (this.storageService.isCompleted(pathStringC)) {
@@ -188,10 +170,8 @@ export class FilesController {
   }
 
   @Get('/status/*')
-  async getFileStatusUpload(@Param() path: string[], @Request() req): Promise<FilePTempResponse> {
-    const pathString = Object.keys(path)
-      .map((key) => path[key])
-      .join('/');
+  async getFileStatusUpload(@Param() path: Record<any, string>, @Request() req): Promise<FilePTempResponse> {
+    const pathString = this.utils.processPath(path);
     const userId = req.user.userId;
     const pathStringC = join(userId, pathString);
 
@@ -201,65 +181,55 @@ export class FilesController {
     return this.storageService.getFileStatus(pathStringC);
   }
 
-  @Get('/obs/status/*')
-  getFileStatusUploadObs(@Param() path: string[], @Request() req): Observable<FilePTempResponse> {
-    const pathString = Object.keys(path)
-      .map((key) => path[key])
-      .join('/');
-    const userId = req.user.userId;
-    const pathStringC = join(userId, pathString);
-
-    if (!this.storageService.existsFile(pathStringC)) {
-      throw new NotFoundException('File No encontrado');
-    }
-
-    return new Observable((subs) => {
-      subs.next(this.storageService.getFileStatus(pathStringC));
-    });
-  }
-
   @Delete('/*')
-  async deleteFile(@Param() path: string[], @Request() req) {
-    const pathString = Object.keys(path)
-      .map((key) => path[key])
-      .join('/');
+  async deleteFile(@Param() path: Record<any, string>, @Request() req) {
+    const pathString = this.utils.processPath(path);
     return this.filesService.deleteFile(pathString, req.user);
   }
 
+  @Patch('deletemp/*')
+  async deleteFiles(@Param() path: Record<any, string>, @Body() body: DeleteFilesDTO, @Request() req) {
+    const pathString = this.utils.processPath(path);
+    return this.filesService.deleteFiles(pathString, body.files, req.user);
+  }
+
+  @Get('exists/*')
+  async existsFile(@Param() path: Record<any, string>, @Request() req) {
+    const pathString = this.utils.processPath(path);
+    const exists = await this.filesService.exists(pathString, req.user);
+    return { exists };
+  }
+
+  @Get('/index')
+  async getindexRoot(@Request() req): Promise<IndexList> {
+    return this.treeServ.getIndexCache(req.user.userId);
+  }
   @Get('/tree')
-  async getTreeRoot(@Request() req) {
-    return this.filesService.GenerateTree('', req.user, false, false);
+  async getTreeRoot(@Request() req): Promise<File | Folder> {
+    const tree = await this.filesService.GetTreeC(req.user);
+    if (tree.type === 'Folder') {
+      tree.content = tree.content.filter((f) => f !== null);
+      return tree;
+    } else {
+      return tree;
+    }
+  }
+
+  @Patch('/tree')
+  async updateTree(@Request() req): Promise<{ message: string }> {
+    this.filesService.updateTree(req.user);
+    return { message: 'Updating Tree' };
   }
 
   @Get('/tree/*')
-  async GetTree(@Param() path: string[], @Request() req): Promise<File | Folder> {
-    const pathString = Object.keys(path)
-      .map((key) => path[key])
-      .join('/');
-
-    return this.filesService.GenerateTree(pathString, req.user, false, false);
-  }
-
-  @Get('obs/tree')
-  getTreeRootObs(@Request() req): Observable<File | Folder> {
-    return new Observable((subs) => {
-      this.filesService.GenerateTree('', req.user, false).then((arbol) => {
-        subs.next(arbol);
-      });
-    });
-  }
-
-  @Get('obs/tree/*')
-  GetTreeObs(@Param() path: string[], @Request() req): Observable<File | Folder> {
-    const pathString = Object.keys(path)
-      .map((key) => path[key])
-      .join('/');
-
-    return new Observable((subs) => {
-      this.filesService.GenerateTree(pathString, req.user, false).then((arbol) => {
-        subs.next(arbol);
-      });
-    });
+  async GetTree(@Param() path: Record<any, string>, @Request() req): Promise<File | Folder> {
+    const pathString = this.utils.processPath(path);
+    const tree = await this.filesService.GenerateTree(pathString, req.user, false, false);
+    if (tree.type === 'Folder') {
+      return tree;
+    } else {
+      return tree;
+    }
   }
 
   @Get('zip/*')
@@ -274,5 +244,29 @@ export class FilesController {
       'Content-Disposition': `attachment; filename="${fileName}.zip";`
     });
     return new StreamableFile(streamZip);
+  }
+
+  @Post('rename/*')
+  async renameFile(@Param() path: string[], @Request() req, @Body() body: RenameDTO) {
+    const pathString = Object.keys(path)
+      .map((key) => path[key])
+      .join('/');
+    return this.filesService.renameFile(pathString, body.newName, req.user);
+  }
+
+  @Post('move/file/*')
+  async moveFileFolder(@Param() path: string[], @Request() req, @Body() body: MoveFileDTO) {
+    const pathString = Object.keys(path)
+      .map((key) => path[key])
+      .join('/');
+    return this.filesService.moveFileFolder(pathString, body.newpath, req.user);
+  }
+
+  @Post('move/files/*')
+  async moveFiles(@Param() path: string[], @Request() req, @Body() body: MoveFilesDTO) {
+    const pathString = Object.keys(path)
+      .map((key) => path[key])
+      .join('/');
+    return this.filesService.moveFiles(pathString, body.newPath, body.files, req.user);
   }
 }

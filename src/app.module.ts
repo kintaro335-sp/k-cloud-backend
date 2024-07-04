@@ -13,14 +13,26 @@ import { TokenFilesModule } from './token-files/token-files.module';
 import { UtilsModule } from './utils/utils.module';
 import { SharedFileModule } from './shared-file/shared-file.module';
 import { SetupModule } from './setup/setup.module';
+import { JwtModule } from '@nestjs/jwt';
+import { jwtConstants } from './auth/constants';
+import { WebSocketModule } from './websockets/websocket.module';
+import { SessionsModule } from './sessions/sessions.module';
 // middlewares
 import { LoggerMiddleware } from './middlewares/logger.middleware';
 import { LogsModule } from './logs/logs.module';
+import { MonitorModule } from './monitor/monitor.module';
 
 @Module({
   imports: [
     FilesModule,
     ConfigModule.forRoot({ isGlobal: true }),
+    JwtModule.register({
+      secret: jwtConstants.secret,
+      signOptions: {  },
+      global: true,
+      verifyOptions: { algorithms: ['HS256'] }
+    }),
+    SessionsModule,
     UsersModule,
     AuthModule,
     AdminModule,
@@ -30,13 +42,15 @@ import { LogsModule } from './logs/logs.module';
     ScheduleModule.forRoot(),
     SharedFileModule,
     SetupModule,
-    LogsModule
+    LogsModule,
+    MonitorModule,
+    WebSocketModule
   ],
   controllers: [AppController],
-  providers: [AppService, ConfigService, PrismaService]
+  providers: [AppService, ConfigService],
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(LoggerMiddleware).forRoutes('*')
+    consumer.apply(LoggerMiddleware).forRoutes('/shared-file/*');
   }
 }

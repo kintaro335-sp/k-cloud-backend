@@ -6,9 +6,12 @@ import { FilesModule } from '../files/files.module';
 import { AuthModule } from '../auth/auth.module';
 import { UsersModule } from '../users/users.module';
 import { LogsModule } from '../logs/logs.module';
+import { MonitorModule } from '../monitor/monitor.module';
+import { SystemModule } from '../system/system.module';
+import { SessionsModule } from '../sessions/sessions.module';
 
 @Module({
-  imports: [AuthModule, forwardRef(() => FilesModule), UsersModule, LogsModule],
+  imports: [AuthModule, forwardRef(() => FilesModule), UsersModule, LogsModule, MonitorModule, SystemModule, SessionsModule],
   exports: [AdminService],
   controllers: [AdminController],
   providers: [AdminService]
