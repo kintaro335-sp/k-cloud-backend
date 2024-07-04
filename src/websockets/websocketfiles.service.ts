@@ -38,8 +38,8 @@ export class WebSocketFilesService implements OnApplicationBootstrap {
           if (this.connections[idC].userId === data.userId) {
             this.connections[idC].client.emit('token-change', { path: data.path });
           }
-          if(this.connections[idC].userId === "Guest") {
-            this.connections[idC].client.emit('token-change', { path: "" });
+          if (this.connections[idC].userId === 'Guest') {
+            this.connections[idC].client.emit('token-change', { path: '' });
           }
         } catch (_err) {}
       });
@@ -105,6 +105,30 @@ export class WebSocketFilesService implements OnApplicationBootstrap {
         } catch (_err) {}
       });
     });
+    this.system.addChangeSessionsListener((userId: string) => {
+      const connectionsArray = Object.keys(this.connections);
+      connectionsArray.forEach((idC) => {
+        try {
+          if (this.connections[idC].user.userId !== userId) return;
+          this.connections[idC].client.emit('sessions-update', userId);
+        } catch (_err) {}
+      });
+    });
+    this.system.addLogoutListener((sessionId) => {
+      const connectionsArray = Object.keys(this.connections);
+      connectionsArray.forEach((idC) => {
+        try {
+          if (this.connections[idC].user.sessionId !== sessionId) return;
+          this.connections[idC].client.emit('message', 'Logout');
+          this.handleDisconnect(this.connections[idC].client);
+          this.connections[idC].client.disconnect();
+        } catch (_err) {}
+      });
+    });
+  }
+
+  getUserInfo(clientId: string) {
+    return this.connections[clientId].userId;
   }
 
   handleConnect(client: Socket, user: UserPayload) {

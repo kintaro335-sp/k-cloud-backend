@@ -183,7 +183,11 @@ export class AdminService implements OnModuleInit, OnModuleDestroy {
   }
 
   getSpaceConfig(): SpaceConfig {
-    return { unitType: this.config.core.unitType, dedicatedSpace: this.config.core.dedicatedSpace };
+    return {
+      unitType: this.config.core.unitType,
+      dedicatedSpace: this.config.core.dedicatedSpace,
+      usedSpaceBytes: this.config.core.usedSpaceBytes
+    };
   }
 
   // convertions

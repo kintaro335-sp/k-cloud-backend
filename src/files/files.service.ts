@@ -44,13 +44,13 @@ export class FilesService {
     this.userIndexUpdateScheduled.push(userId);
   }
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_10_MINUTES)
   private async updateIndexes() {
     try {
       while (this.userIndexUpdateScheduled.length !== 0) {
         try {
           const u = this.userIndexUpdateScheduled.pop();
-          await this.updateTree({ userId: u, username: '', isadmin: false });
+          await this.updateTree({ sessionId: '', userId: u, username: '', isadmin: false });
         } catch (err) {
           console.error(err);
         }
@@ -85,7 +85,7 @@ export class FilesService {
               pathArr.pop();
               const pathH = pathArr.join('/');
 
-              const newFile = await this.getFileP(fileInfo.path, { isadmin: false, username: '', userId: fileInfo.userId });
+              const newFile = await this.getFileP(fileInfo.path, { sessionId: '', isadmin: false, username: '', userId: fileInfo.userId });
               if (newFile !== null) {
                 this.system.emitChangeFileUpdateEvent({ path: pathH, type: 'add', content: newFile, userid: fileInfo.userId });
               } else {
@@ -464,7 +464,7 @@ export class FilesService {
   async updateAllTrees() {
     const users = await this.usersService.findAll();
     for (const user of users) {
-      await this.updateTree({ userId: user.id, username: user.username, isadmin: false });
+      await this.updateTree({ sessionId: '', userId: user.id, username: user.username, isadmin: false });
     }
     return { message: 'arobles actualizados' };
   }
@@ -527,8 +527,8 @@ export class FilesService {
    * @returns {Promise<number>} espacio usado por el usuario
    */
   async getUsedSpaceUser(userId: string): Promise<number> {
-    if (!this.exists('', { isadmin: false, userId, username: '' })) return 0;
-    const filesTree = await this.GetTreeC({ isadmin: false, username: '', userId });
+    if (!this.exists('', { sessionId: '', isadmin: false, userId, username: '' })) return 0;
+    const filesTree = await this.GetTreeC({ sessionId: '', isadmin: false, username: '', userId });
     const usedSpace = { value: 0 };
     if (filesTree.type === 'Folder') {
       const onForEach = (file: File | Folder) => {

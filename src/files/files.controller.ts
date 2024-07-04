@@ -193,6 +193,13 @@ export class FilesController {
     return this.filesService.deleteFiles(pathString, body.files, req.user);
   }
 
+  @Get('exists/*')
+  async existsFile(@Param() path: Record<any, string>, @Request() req) {
+    const pathString = this.utils.processPath(path);
+    const exists = await this.filesService.exists(pathString, req.user);
+    return { exists };
+  }
+
   @Get('/index')
   async getindexRoot(@Request() req): Promise<IndexList> {
     return this.treeServ.getIndexCache(req.user.userId);

@@ -14,8 +14,24 @@ model User {
   username String @unique
   passwordu String
   isadmin Boolean @default(false)
+  sessions Sessions[]
   files Sharedfile[]
   tree Tree[]
+}
+
+model Sessions {
+  @@index([id])
+  @@index([userid])
+  @@index([type])
+  id String @id
+  name String @default("")
+  userid String
+  type String
+  token String
+  doesexpire Boolean @default(false)
+  expire DateTime
+  device String @default("")
+  owner User @relation(fields: [userid], references: [id])
 }
 
 model Sharedfile {
