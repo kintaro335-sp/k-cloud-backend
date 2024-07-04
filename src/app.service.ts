@@ -5,7 +5,7 @@ export class AppService {
   getAbout() {
     return {
       app: 'k-cloud-backend',
-      version: 'v0.9.0'
+      version: 'v1.0.0'
     };
   }
 }
