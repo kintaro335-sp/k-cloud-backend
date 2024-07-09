@@ -30,7 +30,11 @@ import { UtilsService } from '../utils/utils.service';
 
 @Controller('shared-file')
 export class SharedFileController {
-  constructor(private readonly SFService: SharedFileService, private readonly tokenServ: TokenFilesService, private utils: UtilsService) {}
+  constructor(
+    private readonly SFService: SharedFileService,
+    private readonly tokenServ: TokenFilesService,
+    private utils: UtilsService
+  ) {}
 
   @UseGuards(JwtAuthGuard)
   @Post('share/*')
@@ -152,30 +156,46 @@ export class SharedFileController {
 
   @UseGuards(JwtAuthGuard)
   @Get('tokens/path/*')
-  async getTokensByPath(@Param() path: Record<any, string>, @Request() req) {
+  async getTokensByPath(@Param() path: Record<any, string>, @Request() req, @Response({ passthrough: true }) res) {
+    res.set({
+      'Cache-Control': 'no-store'
+    });
     const pathString = this.utils.processPath(path);
     return this.SFService.getTokensByPath(pathString, req.user);
   }
 
   @Get('tokens/list')
-  async getTokensList(@Query('page', ParseIntPipe) page: number) {
+  async getTokensList(@Query('page', ParseIntPipe) page: number, @Response({ passthrough: true }) res) {
+    res.set({
+      'Cache-Control': 'no-store'
+    });
+
     return this.SFService.getTokensList(page);
   }
 
   @Get('tokens/pages')
-  async getTokensPages() {
+  async getTokensPages(@Response({ passthrough: true }) res) {
+    res.set({
+      'Cache-Control': 'no-store'
+    });
     return { pages: await this.SFService.getTokensPages() };
   }
 
   @Get('tokens/user/page/:page')
   @UseGuards(JwtAuthGuard)
-  async getTokensByUser(@Param('page', ParseIntPipe) page: number, @Request() req) {
+  async getTokensByUser(@Param('page', ParseIntPipe) page: number, @Request() req, @Response({ passthrough: true }) res) {
+    res.set({
+      'Cache-Control': 'no-store'
+    });
     return this.SFService.getTokensByUser(req.user, page);
   }
 
   @Get('tokens/user/pages')
   @UseGuards(JwtAuthGuard)
-  async getTokensPagesByUser(@Request() req) {
+  async getTokensPagesByUser(@Request() req, @Response({ passthrough: true }) res) {
+    res.set({
+      'Cache-Control': 'no-store'
+    });
     const pages = await this.SFService.getPagesTokensByUser(req.user);
     return { pages };
   }
@@ -188,7 +208,10 @@ export class SharedFileController {
 
   @UseGuards(JwtAuthGuard, OwnerShipGuard)
   @Get('tokens/user/info/:id')
-  async getSFInfoUser(@Param('id') id: string) {
+  async getSFInfoUser(@Param('id') id: string, @Response({ passthrough: true }) res) {
+    res.set({
+      'Cache-Control': 'no-store'
+    });
     return this.SFService.getSFInfo(id);
   }
 
@@ -209,7 +232,8 @@ export class SharedFileController {
         'Content-Type': contentType(SFReg.name),
         'Content-Disposition': `${CD}; filename="${SFReg.name}";`,
         'Content-Length': fileProps.size,
-        'Keep-Alive': contentTypeHeader.toString().startsWith('video/') ? 'timeout=36000' : 'timeout=10'
+        'Keep-Alive': contentTypeHeader.toString().startsWith('video/') ? 'timeout=36000' : 'timeout=10',
+        'Cache-Control': 'no-store'
       });
       return new StreamableFile(await this.SFService.getContentSFFile(SFReg, ''));
     }
@@ -238,7 +262,8 @@ export class SharedFileController {
         'Content-Type': contentType(SFReg.name),
         'Content-Disposition': `${CD}; filename="${SFReg.name}";`,
         'Content-Length': fileProps.size,
-        'Keep-Alive': contentTypeHeader.toString().startsWith('video/') ? 'timeout=36000' : 'timeout=10'
+        'Keep-Alive': contentTypeHeader.toString().startsWith('video/') ? 'timeout=36000' : 'timeout=10',
+        'Cache-Control': 'no-store'
       });
       return new StreamableFile(await this.SFService.getContentSFFile(SFReg, pathString));
     }
