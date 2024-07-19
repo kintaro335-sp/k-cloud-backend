@@ -359,10 +359,12 @@ export class FilesService {
   }
 
   async deleteFiles(path: string, files: string[], userPayload: UserPayload) {
-    const delFiles = files.map((file) => {
+    const delFiles = files.map(async (file) => {
       const pathFile = join(path, file);
-      this.deleteFile(pathFile, userPayload);
+      await this.deleteFile(pathFile, userPayload);
     });
+    await Promise.all(delFiles);
+    this.system.emitChangeFileEvent({ path, userId: userPayload.userId });
     return { message: 'files deleted', files: files.length };
   }
 

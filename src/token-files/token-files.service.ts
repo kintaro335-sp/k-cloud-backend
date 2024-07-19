@@ -1,11 +1,27 @@
 import { Injectable } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma.service';
 import { Prisma, Sharedfile } from '@prisma/client';
+// interfaces
+import { TokensCache } from './interfaces/token-cache.interface';
 
 @Injectable()
 export class TokenFilesService {
   private group = 64;
   constructor(private readonly prismaService: PrismaService) {}
+
+  private cacheToken: TokensCache = {};
+
+  @Cron(CronExpression.EVERY_10_MINUTES)
+  async cleanCache() {
+    const today = new Date();
+    const keys = Object.keys(this.cacheToken);
+    keys.forEach((key) => {
+      if (today.getTime() - this.cacheToken[key].lastUsed.getTime() > 1000 * 60 * 10) {
+        delete this.cacheToken[key];
+      }
+    });
+  }
 
   async addSharedFile(sharedFile: Prisma.SharedfileCreateInput) {
     while (true) {
@@ -16,9 +32,16 @@ export class TokenFilesService {
   }
 
   async getSharedFileByID(id: string) {
+    if (this.cacheToken[id]) {
+      this.cacheToken[id].lastUsed = new Date();
+      return this.cacheToken[id].data;
+    }
+
     while (true) {
       try {
-        return this.prismaService.sharedfile.findUnique({ where: { id } });
+        const tokenDB = await this.prismaService.sharedfile.findUnique({ where: { id } });
+        this.cacheToken[id] = { data: tokenDB, lastUsed: new Date() };
+        return tokenDB;
       } catch (err) {}
     }
   }
