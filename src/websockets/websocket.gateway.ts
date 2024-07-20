@@ -10,7 +10,7 @@ import { isInvalidSessionError } from '../sessions/errors/invalidsession.error';
 import { UserPayload } from 'src/auth/interfaces/userPayload.interface';
 import { Interval } from '@nestjs/schedule';
 
-@WebSocketGateway(5001, { cors: true, namespace: '/' })
+@WebSocketGateway(5001, { cors: true, namespace: '/', transports: ['websocket'] })
 export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private wsFiles: WebSocketFilesService,
