@@ -364,7 +364,6 @@ export class FilesService {
       await this.deleteFile(pathFile, userPayload);
     });
     await Promise.all(delFiles);
-    this.system.emitChangeFileEvent({ path, userId: userPayload.userId });
     return { message: 'files deleted', files: files.length };
   }
 
@@ -458,7 +457,6 @@ export class FilesService {
     };
     return folder;
   }
-
 
   /**
    * Actualizar todos los arboles de los usuarios
