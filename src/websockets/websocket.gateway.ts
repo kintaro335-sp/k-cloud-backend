@@ -12,7 +12,11 @@ import { Interval } from '@nestjs/schedule';
 
 @WebSocketGateway(5001, { cors: true, namespace: '/' })
 export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
-  constructor(private wsFiles: WebSocketFilesService, private jwtService: JwtService, private sessionsService: SessionsService) {}
+  constructor(
+    private wsFiles: WebSocketFilesService,
+    private jwtService: JwtService,
+    private sessionsService: SessionsService
+  ) {}
 
   @WebSocketServer() wss: Server;
 
@@ -34,6 +38,20 @@ export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnec
       this.wsFiles.handleConnect(client, { sessionId: 'Guest', userId: 'Guest', isadmin: false, username: 'Guest' });
       return;
     }
+  }
+
+  @SubscribeMessage('auth')
+  onAuth(client: Socket, data: string) {
+    try {
+      const payload = this.jwtService.verify(data) as UserPayload;
+      this.wsFiles.handleAuth(client, payload);
+      client.emit('message', 'authenticated');
+    } catch (error) {}
+  }
+
+  @SubscribeMessage('logout')
+  onLogout(client: Socket) {
+    this.wsFiles.handleLogout(client);
   }
 
   @SubscribeMessage('new-file')

@@ -127,6 +127,16 @@ export class WebSocketFilesService implements OnApplicationBootstrap {
     });
   }
 
+  handleAuth(client: Socket, user: UserPayload) {
+    this.connections[client.id]['user'] = user;
+    this.connections[client.id]['userId'] = user.userId;
+  }
+
+  handleLogout(client: Socket) {
+    this.connections[client.id]['user'] = { sessionId: 'Guest', userId: 'Guest', isadmin: false, username: 'Guest' };
+    this.connections[client.id]['userId'] = 'Guest';
+  }
+
   getUserInfo(clientId: string) {
     return this.connections[clientId].userId;
   }
