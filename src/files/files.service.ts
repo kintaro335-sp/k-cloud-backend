@@ -657,6 +657,8 @@ export class FilesService {
             sumBytes('video', file.size);
           } else if (file.mime_type.includes('audio/')) {
             sumBytes('audio', file.size);
+          } else if (file.mime_type.includes('audio/')) {
+            sumBytes('audio', file.size);
           } else if (file.mime_type.includes('pdf')) {
             sumBytes('pdf', file.size);
           } else if (file.mime_type.includes('7z')) {
