@@ -1,14 +1,37 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma.service';
 import { Prisma, Sharedfile } from '@prisma/client';
 // interfaces
 import { TokensCache } from './interfaces/token-cache.interface';
+import * as dayjs from 'dayjs';
+
+const timeTextRegex = new RegExp(/[0-9]+[h|m]/);
+
+const numberRegex = new RegExp(/[0-9]+/);
+
+const typeRegex = new RegExp(/[h|m]/);
 
 @Injectable()
-export class TokenFilesService {
+export class TokenFilesService implements OnModuleInit {
   private group = 64;
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(private readonly prismaService: PrismaService, private configService: ConfigService) {}
+
+  private cacheExpireInType: dayjs.ManipulateType = 'hour';
+  private cacheExpireInNum = 1;
+
+  onModuleInit() {
+    const expireInStr = this.configService.get<string>('TOKEN_CACHE_EXPIRE');
+
+    if (timeTextRegex.test(expireInStr)) {
+      const match = timeTextRegex.exec(expireInStr)[0];
+      const number = numberRegex.exec(match)[0];
+      const type = typeRegex.exec(match)[0] as dayjs.ManipulateType;
+      this.cacheExpireInNum = Number(number);
+      this.cacheExpireInType = type;
+    }
+  }  
 
   private cacheToken: TokensCache = {};
 
@@ -17,7 +40,8 @@ export class TokenFilesService {
     const today = new Date();
     const keys = Object.keys(this.cacheToken);
     keys.forEach((key) => {
-      if (today.getTime() - this.cacheToken[key].lastUsed.getTime() > 1000 * 60 * 10) {
+      const expirationDate = dayjs(this.cacheToken[key].lastUsed).add(this.cacheExpireInNum, this.cacheExpireInType).toDate();
+      if (today > expirationDate) {
         delete this.cacheToken[key];
       }
     });

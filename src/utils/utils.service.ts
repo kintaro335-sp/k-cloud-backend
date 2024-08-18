@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { IndexList } from 'src/treefiles/interfaces/indexelement.interface';
-// uniqid
+// misc
 import { v1 } from 'uuid';
 import { orderBy } from 'lodash';
 
