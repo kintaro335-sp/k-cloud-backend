@@ -4,7 +4,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../prisma.service';
 import { Prisma, Sharedfile } from '@prisma/client';
 // interfaces
-import { TokensCache } from './interfaces/token-cache.interface';
+import { TokensCache, TokensCachePage } from './interfaces/token-cache.interface';
 import * as dayjs from 'dayjs';
 
 const timeTextRegex = new RegExp(/[0-9]+[h|m]/);
@@ -33,21 +33,47 @@ export class TokenFilesService implements OnModuleInit {
     }
   }  
 
-  private cacheToken: TokensCache = {};
+  private cacheTokens: TokensCache = {};
+
+  private tokensPagesCache: TokensCachePage = {};
+
+  private tokensTotalPagesCache: number | null = null
 
   @Cron(CronExpression.EVERY_10_MINUTES)
   async cleanCache() {
     const today = new Date();
-    const keys = Object.keys(this.cacheToken);
-    keys.forEach((key) => {
-      const expirationDate = dayjs(this.cacheToken[key].lastUsed).add(this.cacheExpireInNum, this.cacheExpireInType).toDate();
+    const cacheTokensKeys = Object.keys(this.cacheTokens);
+    cacheTokensKeys.forEach((key) => {
+      const expirationDate = dayjs(this.cacheTokens[key].lastUsed).add(this.cacheExpireInNum, this.cacheExpireInType).toDate();
       if (today > expirationDate) {
-        delete this.cacheToken[key];
+        delete this.cacheTokens[key];
+      }
+    });
+
+    const tokensPagesCacheKeys = Object.keys(this.tokensPagesCache);
+    tokensPagesCacheKeys.forEach((key) => {
+      const expirationDate = dayjs(this.tokensPagesCache[key].lastUsed).add(this.cacheExpireInNum, this.cacheExpireInType).toDate();
+      if (today > expirationDate) {
+        delete this.tokensPagesCache[key];
       }
     });
   }
 
+  private invalidateAllCache() {
+    this.cacheTokens = {};
+    this.tokensPagesCache = {};
+    this.tokensTotalPagesCache = null
+  }
+
+  private invalidatePagesCache() {
+    this.tokensPagesCache = {};
+    this.tokensTotalPagesCache = null
+  }
+
   async addSharedFile(sharedFile: Prisma.SharedfileCreateInput) {
+    if (sharedFile.public) {
+      this.invalidatePagesCache();
+    }
     while (true) {
       try {
         return await this.prismaService.sharedfile.create({ data: sharedFile });
@@ -56,15 +82,15 @@ export class TokenFilesService implements OnModuleInit {
   }
 
   async getSharedFileByID(id: string) {
-    if (this.cacheToken[id]) {
-      this.cacheToken[id].lastUsed = new Date();
-      return this.cacheToken[id].data;
+    if (this.cacheTokens[id]) {
+      this.cacheTokens[id].lastUsed = new Date();
+      return this.cacheTokens[id].data;
     }
 
     while (true) {
       try {
         const tokenDB = await this.prismaService.sharedfile.findUnique({ where: { id } });
-        this.cacheToken[id] = { data: tokenDB, lastUsed: new Date() };
+        this.cacheTokens[id] = { data: tokenDB, lastUsed: new Date() };
         return tokenDB;
       } catch (err) {}
     }
@@ -79,11 +105,16 @@ export class TokenFilesService implements OnModuleInit {
   }
 
   async getSharedFiles(page: number): Promise<Sharedfile[]> {
+    if (this.tokensPagesCache[page]) {
+      this.tokensPagesCache[page].lastUsed = new Date();
+      return this.tokensPagesCache[page].tokens;
+    }
+
     while (true) {
       const today = new Date();
       try {
         const skip = page * this.group;
-        return this.prismaService.sharedfile.findMany({
+        const sharedFiles = await this.prismaService.sharedfile.findMany({
           take: this.group,
           skip,
           where: {
@@ -93,11 +124,17 @@ export class TokenFilesService implements OnModuleInit {
             ]
           }
         });
+        this.tokensPagesCache[page] = { tokens: sharedFiles, lastUsed: new Date() };
+        return sharedFiles;
       } catch (err) {}
     }
   }
 
   async getCountSharedPages(): Promise<number> {
+    if (this.tokensTotalPagesCache !== null) {
+      return this.tokensTotalPagesCache;
+    }
+
     while (true) {
       const today = new Date();
       try {
@@ -109,7 +146,9 @@ export class TokenFilesService implements OnModuleInit {
             ]
           }
         });
-        return Math.ceil(count / this.group);
+        const pages = Math.ceil(count / this.group);
+        this.tokensTotalPagesCache = pages;
+        return pages;
       } catch (err) {}
     }
   }
@@ -123,15 +162,16 @@ export class TokenFilesService implements OnModuleInit {
   }
 
   async removeSharedFile(id: string) {
+    this.invalidateAllCache();
     while (true) {
       try {
-        await this.prismaService.sharedfile.delete({ where: { id } });
-        return;
+        return this.prismaService.sharedfile.delete({ where: { id } });
       } catch (err) {}
     }
   }
 
   async deleteTokensByPath(path: string, userid: string) {
+    this.invalidateAllCache();
     while (true) {
       try {
         await this.prismaService.sharedfile.deleteMany({ where: { path, userid } });
@@ -141,6 +181,7 @@ export class TokenFilesService implements OnModuleInit {
   }
 
   async updateSF(id: string, newData: Prisma.SharedfileUpdateInput) {
+    this.invalidateAllCache();
     while (true) {
       try {
         return await this.prismaService.sharedfile.update({ where: { id }, data: newData });
@@ -149,6 +190,7 @@ export class TokenFilesService implements OnModuleInit {
   }
 
   async updatePathTokens(oldpath: string, newPath: string) {
+    this.invalidateAllCache();
     await this.prismaService.sharedfile.updateMany({ data: { path: newPath }, where: { path: oldpath } });
     const tokens = await this.prismaService.sharedfile.findMany({ where: { path: { startsWith: oldpath } } });
     tokens.forEach(async (t) => {
