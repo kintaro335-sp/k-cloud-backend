@@ -2,6 +2,6 @@ export interface MessageResponse {
   message: string;
 }
 
-export interface AuthResponse {
+export interface AuthResponseI {
   access_token: string;
 }

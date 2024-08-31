@@ -1,8 +1,8 @@
 import { IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
-export class DeleteFilesDTO {
-  @IsString({ each: true })
+export class AuthResponse {
   @ApiProperty()
-  files: string[];
+  @IsString()
+  access_token: string;
 }

@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { SwaggerModule, DocumentBuilder, ApiBearerAuth } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { AppClusterService } from './app-cluster.service';
 import * as compression from 'compression';
@@ -14,6 +15,15 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe());
   app.enableCors({ credentials: true, origin: whiteList });
   app.use(compression());
+    const config = new DocumentBuilder()
+    .setTitle('k-cloud-backend')
+    .setDescription('NAS API')
+    .setVersion('1.0')
+    .addTag('k-cloud')
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('/docs', app, document);
+
   await app.listen(5000);
 }
 

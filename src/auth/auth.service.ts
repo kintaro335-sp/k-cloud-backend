@@ -9,7 +9,7 @@ import { SystemService } from '../system/system.service';
 // interfaces
 import { UserPayload } from './interfaces/userPayload.interface';
 import { ApiKeysResponse, SessionsResponse } from './interfaces/apikey.interface';
-import { MessageResponse, AuthResponse } from './interfaces/response.interface';
+import { MessageResponse, AuthResponseI } from './interfaces/response.interface';
 import { UserL } from '../users/interfaces/userl.interface';
 
 /**
@@ -30,9 +30,9 @@ export class AuthService {
    * Crear un usuario con un usuario y contraseña
    * @param {string} userName Nombre del usuario
    * @param {string} pasword contraseña en texto plano
-   * @returns {Promise<AuthResponse>} Token de Auth por JWT
+   * @returns {Promise<AuthResponseI>} Token de Auth por JWT
    */
-  async login(userName: string, pasword: string, device: string = ''): Promise<AuthResponse> {
+  async login(userName: string, pasword: string, device: string = ''): Promise<AuthResponseI> {
     const user = await this.usersService.findOne({ username: userName });
     if (!user) {
       throw new BadRequestException('Usuario o contraseña incorrectos');
@@ -52,9 +52,9 @@ export class AuthService {
   /**
    * Crear un api key de un usuario con apikey
    * @param {UserPayload} user datos de usuario
-   * @returns {Promise<AuthResponse>} apikey
+   * @returns {Promise<AuthResponseI>} apikey
    * */
-  async createApiKey(user: UserPayload, name: string): Promise<AuthResponse> {
+  async createApiKey(user: UserPayload, name: string): Promise<AuthResponseI> {
     const sessionId = this.sessionsService.createSesionId();
     const payload: UserPayload = { sessionId, userId: user.userId, username: user.username, isadmin: user.isadmin };
     const access_token = this.jwtService.sign(payload);
@@ -67,9 +67,9 @@ export class AuthService {
    * Crear un nuevo usuario
    * @param {string} userName Nombre del usuario nuevo
    * @param {string} pasword Contraseña en texto plano
-   * @returns {Promise<AuthResponse>} el Access Token del Usuario
+   * @returns {Promise<AuthResponseI>} el Access Token del Usuario
    */
-  async register(userName: string, pasword: string, device: string = ''): Promise<AuthResponse> {
+  async register(userName: string, pasword: string, device: string = ''): Promise<AuthResponseI> {
     const user = await this.usersService.findOne({ username: userName });
     if (user) {
       throw new BadRequestException('Usuario ya existe');
@@ -106,9 +106,9 @@ export class AuthService {
    * Crear un nuevo usuario con admin
    * @param {string} userName Nombre del usuario nuevo
    * @param {string} pasword Contraseña en texto plano
-   * @returns {Promise<AuthResponse>} el Access Token del Usuario
+   * @returns {Promise<AuthResponseI>} el Access Token del Usuario
    */
-  async registerAdmin(userName: string, pasword: string): Promise<AuthResponse & { idUser: string }> {
+  async registerAdmin(userName: string, pasword: string): Promise<AuthResponseI & { idUser: string }> {
     const user = await this.usersService.findOne({ username: userName });
     if (user) {
       throw new BadRequestException('Usuario ya existe');

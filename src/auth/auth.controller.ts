@@ -1,4 +1,8 @@
 import { Controller, Post, Get, UseGuards, Request, Body, Put, Headers, Param } from '@nestjs/common';
+import { ApiTags, ApiOkResponse } from '@nestjs/swagger';
+// swagger
+import { UsePayloadRespose } from './reponses/userPayload.resp';
+import { AuthResponse } from './reponses/authResponse.resp';
 // services
 import { AuthService } from './auth.service';
 // guards
@@ -12,25 +16,29 @@ import { ApiKeyNameDto } from './dtos/apikeyname.dto';
 // interfaces
 import { UserPayload } from './interfaces/userPayload.interface';
 import { ApiKeysResponse, SessionsResponse } from './interfaces/apikey.interface';
-import { AuthResponse, MessageResponse } from './interfaces/response.interface';
+import { AuthResponseI, MessageResponse } from './interfaces/response.interface';
 
 @Controller('auth')
+@ApiTags('Auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Get()
   @UseGuards(JwtAuthGuard)
+  @ApiOkResponse({ type: UsePayloadRespose })
   async checkToken(@Request() req): Promise<UserPayload> {
     return req.user
   }
 
   @Post('login')
-  async login(@Body() body: LoginDTO, @Headers('User-Agent') device: string): Promise<AuthResponse> {
+  @ApiOkResponse({ type: AuthResponse })
+  async login(@Body() body: LoginDTO, @Headers('User-Agent') device: string): Promise<AuthResponseI> {
     return this.authService.login(body.username, body.password, device);
   }
 
   @Post('register')
-  async register(@Body() body: RegisterDTO, @Headers('User-Agent') device: string): Promise<AuthResponse> {
+  @ApiOkResponse({ type: AuthResponse })
+  async register(@Body() body: RegisterDTO, @Headers('User-Agent') device: string): Promise<AuthResponseI> {
     return this.authService.register(body.username, body.password, device);
   }
 
@@ -50,7 +58,8 @@ export class AuthController {
 
   @Post('apikeys')
   @UseGuards(JwtAuthGuard, ApiKeyGuard)
-  async createApiKey(@Request() req, @Body() body: ApiKeyNameDto): Promise<AuthResponse> {
+  @ApiOkResponse({ type: AuthResponse })
+  async createApiKey(@Request() req, @Body() body: ApiKeyNameDto): Promise<AuthResponseI> {
     const user: UserPayload = req.user;
     return this.authService.createApiKey(user, body.name);
   }

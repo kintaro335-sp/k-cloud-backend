@@ -21,6 +21,9 @@ import {
   ForbiddenException
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiOkResponse, ApiUnauthorizedResponse } from '@nestjs/swagger';
+// swagger
+import { FileListResponse, FileResponse } from './responses/fileList.resp';
 // services
 import { FilesService } from './files.service';
 import { TempStorageService } from '../temp-storage/temp-storage.service';
@@ -48,6 +51,7 @@ import { join } from 'path';
 
 @UseGuards(JwtAuthGuard)
 @Controller('files')
+@ApiTags('Files')
 export class FilesController {
   constructor(
     private readonly filesService: FilesService,
@@ -63,6 +67,7 @@ export class FilesController {
   }
 
   @Get('/list')
+  @ApiOkResponse({ type: FileListResponse })
   async getAllFiles(@Response({ passthrough: true }) res, @Request() req): Promise<ListFile> {
     if (await this.filesService.isDirectoryUser('', req.user)) {
       return this.filesService.getListFiles('', req.user);
@@ -71,6 +76,7 @@ export class FilesController {
   }
 
   @Get('/list/*')
+  @ApiOkResponse({ type: FileListResponse })
   async getFiles(@Param() path: Record<any, string>, @Response({ passthrough: true }) res, @Request() req, @Query('d') downloadOpc) {
     const pathString = this.utils.processPath(path);
 
@@ -91,6 +97,7 @@ export class FilesController {
   }
 
   @Get('/properties/*')
+  @ApiOkResponse({ type: FileResponse })
   async getFileProperties(@Param() path: Record<any, string>, @Request() req) {
     const pathString = this.utils.processPath(path);
 

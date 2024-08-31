@@ -1,4 +1,6 @@
 import { Controller, Get, Post, Body, UseGuards } from '@nestjs/common';
+import { ApiTags, ApiAcceptedResponse } from '@nestjs/swagger';
+// swagger
 // service
 import { SetupService } from './setup.service';
 // interfaces
@@ -10,6 +12,7 @@ import { userIdDTO } from './dto/userid.dto';
 import { UserSetupGuard } from './guards/user-setup.guard';
 
 @Controller('setup')
+@ApiTags('Setup')
 export class SetupController {
   constructor(private readonly setupserv: SetupService) {}
 

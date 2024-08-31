@@ -14,6 +14,8 @@ import {
   ParseIntPipe,
   Patch
 } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiBody, ApiQuery } from '@nestjs/swagger';
+// swagger
 // guards
 import { OwnerShipGuard } from './ownership.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -29,6 +31,7 @@ import { TokensIdsDTO } from './dtos/tokensIds.dto';
 import { UtilsService } from '../utils/utils.service';
 
 @Controller('shared-file')
+@ApiTags('Shared File')
 export class SharedFileController {
   constructor(
     private readonly SFService: SharedFileService,
