@@ -7,7 +7,7 @@ import { LogsService } from '../logs/logs.service';
 import { MonitorService } from '../monitor/monitor.service';
 import { SystemService } from '../system/system.service';
 // ineterfaces
-import { MessageResponse } from '../auth/interfaces/response.interface';
+import { MessageResponseI } from '../auth/interfaces/response.interface';
 import { SpaceUsed, UsedSpaceUser } from './interfaces/spaceused.interface';
 import { UsedSpaceType } from 'src/files/interfaces/list-file.interface';
 import { TIMEOPTION } from 'src/logs/interfaces/options.interface';
@@ -96,14 +96,14 @@ export class AdminController {
   @RequireAdmin(true)
   @Post('/users/password/:userid')
   @UseGuards(NotOwnerGuard)
-  async setUserPasword(@Param('userid') userid: string, @Body() body: SetPasswordDTO): Promise<MessageResponse> {
+  async setUserPasword(@Param('userid') userid: string, @Body() body: SetPasswordDTO): Promise<MessageResponseI> {
     return this.authServ.setPaswword(userid, body.password);
   }
 
   @RequireAdmin(true)
   @Post('/users/admin/:userid')
   @UseGuards(NotOwnerGuard)
-  async setUserType(@Param('userid') userid: string, @Body() body: SetAdminDTO): Promise<MessageResponse> {
+  async setUserType(@Param('userid') userid: string, @Body() body: SetAdminDTO): Promise<MessageResponseI> {
     return this.authServ.setAdmin(userid, body.admin);
   }
 
@@ -125,7 +125,7 @@ export class AdminController {
 
   @RequireAdmin(true)
   @Post('/users/create')
-  async createUser(@Body() body: RegisterDTO): Promise<MessageResponse> {
+  async createUser(@Body() body: RegisterDTO): Promise<MessageResponseI> {
     await this.authServ.register(body.username, body.password);
     return { message: 'Usuario Creado' };
   }
@@ -133,7 +133,7 @@ export class AdminController {
   @RequireAdmin(true)
   @UseGuards(FirstUserGuard)
   @Delete('/users/delete/:userid')
-  async deleteUser(@Param('userid') userid: string): Promise<MessageResponse> {
+  async deleteUser(@Param('userid') userid: string): Promise<MessageResponseI> {
     return this.authServ.deleteUser(userid);
   }
 

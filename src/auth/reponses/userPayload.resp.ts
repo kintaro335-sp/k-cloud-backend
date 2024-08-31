@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString } from 'class-validator';
+import { IsString, IsBoolean } from 'class-validator';
 
 export class UsePayloadRespose {
   @ApiProperty()
@@ -12,6 +12,6 @@ export class UsePayloadRespose {
   @IsString()
   username: string;
   @ApiProperty()
-  @IsString()
+  @IsBoolean()
   isadmin: boolean;
 }

@@ -40,7 +40,7 @@ import { DeleteFilesDTO } from './dtos/deletefiles.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { SpaceGuard } from './guards/space.guard';
 // interfaces
-import { MessageResponse } from '../auth/interfaces/response.interface';
+import { MessageResponseI } from '../auth/interfaces/response.interface';
 import { ListFile, File, Folder, UsedSpaceType } from './interfaces/list-file.interface';
 import { FilePTempResponse } from '../temp-storage/interfaces/filep.interface';
 import { UserPayload } from '../auth/interfaces/userPayload.interface';
@@ -128,7 +128,7 @@ export class FilesController {
 
   @UseGuards(SpaceGuard)
   @Post('initialize/*')
-  async initializeFile(@Param() path: Record<any, string>, @Body() body: FileInitDTO, @Request() req): Promise<MessageResponse> {
+  async initializeFile(@Param() path: Record<any, string>, @Body() body: FileInitDTO, @Request() req): Promise<MessageResponseI> {
     const pathString = this.utils.processPath(path);
     const userId = req.user.userId;
     const pathStringC = join(userId, pathString);
@@ -149,7 +149,7 @@ export class FilesController {
     @UploadedFiles() files: Array<Express.Multer.File>,
     @Request() req,
     @Query('pos', new ParseIntPipe({ errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) position: number
-  ): Promise<MessageResponse> {
+  ): Promise<MessageResponseI> {
     if (files === undefined) {
       throw new BadRequestException('no file');
     }

@@ -8,8 +8,8 @@ import { FilesService } from '../files/files.service';
 import { SystemService } from '../system/system.service';
 // interfaces
 import { UserPayload } from './interfaces/userPayload.interface';
-import { ApiKeysResponse, SessionsResponse } from './interfaces/apikey.interface';
-import { MessageResponse, AuthResponseI } from './interfaces/response.interface';
+import { ApiKeysResponseI, SessionsResponseI } from './interfaces/apikey.interface';
+import { MessageResponseI, AuthResponseI } from './interfaces/response.interface';
 import { UserL } from '../users/interfaces/userl.interface';
 
 /**
@@ -92,9 +92,9 @@ export class AuthService {
   /**
    * Logout de un usuario
    * @param {string} sessionId Id de Sesion
-   * @returns {Promise<MessageResponse>}
+   * @returns {Promise<MessageResponseI>}
    */
-  async logout(sessionId: string): Promise<MessageResponse> {
+  async logout(sessionId: string): Promise<MessageResponseI> {
     const user = await this.sessionsService.revokeSession(sessionId);
     if (user !== null) {
       this.system.emitChangeSessions(user.userid);
@@ -131,9 +131,9 @@ export class AuthService {
   /**
    * Eliminar un Usuario Por userId
    * @param userid
-   * @returns {Promise<MessageResponse>}
+   * @returns {Promise<MessageResponseI>}
    */
-  async deleteUser(userid: string): Promise<MessageResponse> {
+  async deleteUser(userid: string): Promise<MessageResponseI> {
     const user = this.usersService.findOne({ id: userid });
     if (!user) {
       throw new NotFoundException('usuario no encontrado');
@@ -148,9 +148,9 @@ export class AuthService {
    * @param {string} userId Id de Usuario
    * @param {string} password contraseña actual
    * @param {string} newPassword nueva contraseña
-   * @returns {Promise<MessageResponse>}
+   * @returns {Promise<MessageResponseI>}
    */
-  async changePassword(userId: string, password: string, newPassword: string): Promise<MessageResponse> {
+  async changePassword(userId: string, password: string, newPassword: string): Promise<MessageResponseI> {
     const user = await this.usersService.findOne({ id: userId });
     if (!user) {
       throw new BadRequestException('Usuario no existe');
@@ -167,9 +167,9 @@ export class AuthService {
    * Agregar Validacion
    * @param userId Id de Usuario
    * @param newPassword Nueva Contraseña
-   * @returns {Promise<MessageResponse>}
+   * @returns {Promise<MessageResponseI>}
    */
-  async setPaswword(userId: string, newPassword: string): Promise<MessageResponse> {
+  async setPaswword(userId: string, newPassword: string): Promise<MessageResponseI> {
     const user = await this.usersService.findOne({ id: userId });
     if (!user) {
       throw new BadRequestException('Usuario no existe');
@@ -182,9 +182,9 @@ export class AuthService {
    * Cambiar El Privilegio de Admin
    * @param {string} userId Id de Usuario
    * @param {boolean} admin Nuevo Valor
-   * @returns {Promise<MessageResponse>}
+   * @returns {Promise<MessageResponseI>}
    */
-  async setAdmin(userId: string, admin: boolean): Promise<MessageResponse> {
+  async setAdmin(userId: string, admin: boolean): Promise<MessageResponseI> {
     const user = await this.usersService.findOne({ id: userId });
     if (!user) {
       throw new BadRequestException('Usuario no existe');
@@ -208,7 +208,7 @@ export class AuthService {
    * Obtener las api keys de un usuario
    * @param {UserPayload} user datos de usuario
    */
-  async getApiKeys(user: UserPayload): Promise<ApiKeysResponse> {
+  async getApiKeys(user: UserPayload): Promise<ApiKeysResponseI> {
     const apiKeys = await this.sessionsService.getApiKeysByUserId(user.userId);
     return { data: apiKeys, total: apiKeys.length };
   }
@@ -217,7 +217,7 @@ export class AuthService {
    * Obtener las sesiones de un usuario
    * @param {UserPayload} user datos de usuario
    */
-  async getSessions(user: UserPayload): Promise<SessionsResponse> {
+  async getSessions(user: UserPayload): Promise<SessionsResponseI> {
     const sessions = await this.sessionsService.getSessionsByUserId(user.userId);
     return { data: sessions, total: sessions.length };
   }
