@@ -1,5 +1,5 @@
-import { Controller, Post, Get, UseGuards, Request, Body, Put, Headers, Param } from '@nestjs/common';
-import { ApiSecurity, ApiTags, ApiOkResponse, ApiBadRequestResponse, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import { Controller, Post, Get, UseGuards, Request, Body, Put, Headers, Param, HttpCode } from '@nestjs/common';
+import { ApiSecurity, ApiTags, ApiOkResponse, ApiCreatedResponse, ApiBadRequestResponse, ApiUnauthorizedResponse } from '@nestjs/swagger';
 // swagger
 import { ErrorResponse } from '../responses/errorResponse.resp';
 import { MessageResponse } from '../responses/messageResponse.resp';
@@ -36,6 +36,7 @@ export class AuthController {
   }
 
   @Post('login')
+  @HttpCode(200)
   @ApiOkResponse({ type: AuthResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
   async login(@Body() body: LoginDTO, @Headers('User-Agent') device: string): Promise<AuthResponseI> {
@@ -43,13 +44,14 @@ export class AuthController {
   }
 
   @Post('register')
-  @ApiOkResponse({ type: AuthResponse })
+  @ApiCreatedResponse({ type: AuthResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
   async register(@Body() body: RegisterDTO, @Headers('User-Agent') device: string): Promise<AuthResponseI> {
     return this.authService.register(body.username, body.password, device);
   }
 
   @Post('logout')
+  @HttpCode(200)
   @UseGuards(JwtAuthGuard)
   @ApiSecurity('t')
   @ApiOkResponse({ type: MessageResponse })
@@ -60,6 +62,7 @@ export class AuthController {
   }
 
   @Post('revoke/:sessionId')
+  @HttpCode(200)
   @UseGuards(JwtAuthGuard)
   @ApiSecurity('t')
   @ApiOkResponse({ type: MessageResponse })
@@ -72,7 +75,7 @@ export class AuthController {
   @Post('apikeys')
   @UseGuards(JwtAuthGuard, ApiKeyGuard)
   @ApiSecurity('t')
-  @ApiOkResponse({ type: AuthResponse })
+  @ApiCreatedResponse({ type: AuthResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async createApiKey(@Request() req, @Body() body: ApiKeyNameDto): Promise<AuthResponseI> {
     const user: UserPayload = req.user;

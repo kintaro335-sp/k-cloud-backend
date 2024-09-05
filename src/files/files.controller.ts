@@ -18,10 +18,11 @@ import {
   Query,
   ParseIntPipe,
   HttpStatus,
+  HttpCode,
   ForbiddenException
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiOkResponse, ApiNotFoundResponse, ApiBadRequestResponse, ApiUnauthorizedResponse, ApiParam, ApiQuery, ApiSecurity, ApiConsumes, ApiBody,  } from '@nestjs/swagger';
+import { ApiTags, ApiOkResponse, ApiCreatedResponse, ApiNotFoundResponse, ApiBadRequestResponse, ApiUnauthorizedResponse, ApiParam, ApiQuery, ApiSecurity, ApiConsumes, ApiBody,  } from '@nestjs/swagger';
 // swagger
 import { FileListResponse, FileResponse } from './responses/fileList.resp';
 import { UsedSpaceTypeResp } from './responses/usedSpaceType.resp';
@@ -122,7 +123,7 @@ export class FilesController {
   @Post('/folder/*')
   @ApiSecurity('t')
   @ApiParam({ name: '*', type: String })
-  @ApiOkResponse({ type: MessageResponse })
+  @ApiCreatedResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
   async createFolder(@Param() path: Record<any, string>, @Request() req) {
@@ -136,7 +137,7 @@ export class FilesController {
   @Post('upload/*')
   @ApiSecurity('t')
   @ApiParam({ name: '*', type: String })
-  @ApiOkResponse({ type: MessageResponse })
+  @ApiCreatedResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
   @ApiConsumes('multipart/form-data')
@@ -149,7 +150,7 @@ export class FilesController {
 
   @Post('upload/')
   @ApiSecurity('t')
-  @ApiOkResponse({ type: MessageResponse })
+  @ApiCreatedResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
   @ApiConsumes('multipart/form-data')
@@ -159,13 +160,13 @@ export class FilesController {
     return this.filesService.createFile('', file[0], req.user);
   }
 
+  @Post('initialize/*')
   @UseGuards(SpaceGuard)
   @ApiSecurity('t')
   @ApiParam({ name: '*', type: String })
-  @ApiOkResponse({ type: MessageResponse })
+  @ApiCreatedResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
-  @Post('initialize/*')
   async initializeFile(@Param() path: Record<any, string>, @Body() body: FileInitDTO, @Request() req): Promise<MessageResponseI> {
     const pathString = this.utils.processPath(path);
     const userId = req.user.userId;
@@ -183,7 +184,7 @@ export class FilesController {
   @Post('write/*')
   @ApiSecurity('t')
   @ApiParam({ name: '*', type: String })
-  @ApiOkResponse({ type: MessageResponse })
+  @ApiCreatedResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
   @ApiConsumes('multipart/form-data')
@@ -210,6 +211,7 @@ export class FilesController {
   }
 
   @Post('close/*')
+  @HttpCode(200)
   @ApiSecurity('t')
   @ApiParam({ name: '*', type: String })
   @ApiOkResponse({ type: MessageResponse })
@@ -340,6 +342,7 @@ export class FilesController {
   }
 
   @Post('rename/*')
+  @HttpCode(200)
   @ApiSecurity('t')
   @ApiParam({ name: '*', type: String })
   @ApiOkResponse({ type: MessageResponse })
@@ -353,6 +356,7 @@ export class FilesController {
   }
 
   @Post('move/file/*')
+  @HttpCode(200)
   @ApiSecurity('t')
   @ApiParam({ name: '*', type: String })
   @ApiOkResponse({ type: MessageResponse })
@@ -365,6 +369,7 @@ export class FilesController {
   }
 
   @Post('move/files/*')
+  @HttpCode(200)
   @ApiSecurity('t')
   @ApiParam({ name: '*', type: String })
   @ApiOkResponse({ type: MessageResponse })

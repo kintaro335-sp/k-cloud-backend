@@ -1,4 +1,4 @@
-import { Injectable, CanActivate, ExecutionContext, NotFoundException } from '@nestjs/common';
+import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 // service
 import { SetupService } from '../setup.service';
 import { AdminService } from '../../admin/admin.service';
