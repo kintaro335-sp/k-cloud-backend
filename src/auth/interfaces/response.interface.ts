@@ -1,7 +1,7 @@
-export interface MessageResponse {
+export interface MessageResponseI {
   message: string;
 }
 
-export interface AuthResponse {
+export interface AuthResponseI {
   access_token: string;
 }

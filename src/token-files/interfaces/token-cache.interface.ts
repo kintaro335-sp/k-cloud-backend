@@ -1,16 +1,15 @@
+import { Sharedfile } from '@prisma/client';
+
 interface TokenCacheItem {
-  data: {
-    id: string;
-    userid: string;
-    name: string;
-    path: string;
-    doesexpires: boolean;
-    isdir: boolean;
-    public: boolean;
-    expire: Date;
-    createdAt: Date;
-  };
+  data: Sharedfile;
   lastUsed: Date;
 }
 
 export type TokensCache = Record<string, TokenCacheItem>; 
+
+interface TokensPageCache {
+  tokens: Sharedfile[];
+  lastUsed: Date;
+}
+
+export type TokensCachePage = Record<number, TokensPageCache>;

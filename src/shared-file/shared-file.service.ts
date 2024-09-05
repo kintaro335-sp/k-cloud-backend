@@ -170,9 +170,9 @@ export class SharedFileService {
     const token = await this.tokenService.getSharedFileByID(id);
     const pathEmit = token.path.split('/');
     pathEmit.pop();
-    this.system.emitChangeFileEvent({ path: pathEmit.join('/'), userId: token.userid });
-    this.system.emitChangeTokenEvent({ path: token.path, userId: token.userid });
     await this.tokenService.removeSharedFile(id);
+    this.system.emitChangeFileEvent({ path: pathEmit.join('/'), userId: token.userid });
+    this.system.emitChangeTokenEvent({ path: pathEmit.join('/'), userId: token.userid });
     return { message: 'deleted' };
   }
 

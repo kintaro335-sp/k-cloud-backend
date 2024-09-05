@@ -13,7 +13,7 @@ import { NotFoundException } from './exceptions/NotFound.exception';
 // interfaces
 import { ListFile, File, Folder, UsedSpaceType } from './interfaces/list-file.interface';
 import { UserPayload } from '../auth/interfaces/userPayload.interface';
-import { MessageResponse } from '../auth/interfaces/response.interface';
+import { MessageResponseI } from '../auth/interfaces/response.interface';
 // fs and path
 import { createReadStream, ReadStream, createWriteStream, access, constants } from 'fs';
 import { readdir, lstat, mkdir, rm, rename } from 'fs/promises';
@@ -304,9 +304,9 @@ export class FilesService {
    * @param {string} path directorio
    * @param {Express.Multer.File} file Archivo a guardar
    * @param {UserPayload} userPayload Datos de usuario atenticado
-   * @returns {Promise<MessageResponse>} Respuesta de la accion
+   * @returns {Promise<MessageResponseI>} Respuesta de la accion
    */
-  async createFile(path: string, file: Express.Multer.File, userPayload: UserPayload): Promise<MessageResponse> {
+  async createFile(path: string, file: Express.Multer.File, userPayload: UserPayload): Promise<MessageResponseI> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
     if (await this.existsEP(`${entirePath}`)) {
@@ -328,9 +328,9 @@ export class FilesService {
    * Eliminar un archivo
    * @param {string} path directorio
    * @param {UserPayload} userPayload datos de usuario autenticado
-   * @returns {Promise<MessageResponse>}
+   * @returns {Promise<MessageResponseI>}
    */
-  async deleteFile(path: string, userPayload: UserPayload): Promise<MessageResponse> {
+  async deleteFile(path: string, userPayload: UserPayload): Promise<MessageResponseI> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
     const storagePath = join(userId, path);
@@ -371,9 +371,9 @@ export class FilesService {
    * Creatr una carpeta a partir de una direccion
    * @param {string} path directorio
    * @param {UserPayload} userPayload Datos de usuario autenticado
-   * @returns {Promise<MessageResponse>} mensaje de la accion
+   * @returns {Promise<MessageResponseI>} mensaje de la accion
    */
-  async createFolder(path: string, userPayload: UserPayload): Promise<MessageResponse> {
+  async createFolder(path: string, userPayload: UserPayload): Promise<MessageResponseI> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
     if (await this.existsEP(entirePath)) {
@@ -573,7 +573,7 @@ export class FilesService {
     }
   }
 
-  async moveFileFolder(path: string, newPath: string, userPayload: UserPayload): Promise<MessageResponse> {
+  async moveFileFolder(path: string, newPath: string, userPayload: UserPayload): Promise<MessageResponseI> {
     const { userId } = userPayload;
     const realPath = join(this.root, userId, path);
     const realPathNew = join(this.root, userId, newPath);
@@ -655,6 +655,8 @@ export class FilesService {
             sumBytes('image', file.size);
           } else if (file.mime_type.includes('video/')) {
             sumBytes('video', file.size);
+          } else if (file.mime_type.includes('audio/')) {
+            sumBytes('audio', file.size);
           } else if (file.mime_type.includes('audio/')) {
             sumBytes('audio', file.size);
           } else if (file.mime_type.includes('pdf')) {

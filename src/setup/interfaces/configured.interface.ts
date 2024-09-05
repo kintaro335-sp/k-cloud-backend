@@ -1,3 +1,3 @@
-export interface ConfiguredResponse {
+export interface ConfiguredResponseI {
   configured: boolean;
 }
