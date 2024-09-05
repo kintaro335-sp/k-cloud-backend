@@ -1,5 +1,5 @@
 import { Controller, Post, Get, UseGuards, Request, Body, Put, Headers, Param } from '@nestjs/common';
-import { ApiTags, ApiOkResponse, ApiBadRequestResponse, ApiUnauthorizedResponse } from '@nestjs/swagger';
+import { ApiSecurity, ApiTags, ApiOkResponse, ApiBadRequestResponse, ApiUnauthorizedResponse } from '@nestjs/swagger';
 // swagger
 import { ErrorResponse } from '../responses/errorResponse.resp';
 import { MessageResponse } from '../responses/messageResponse.resp';
@@ -28,6 +28,7 @@ export class AuthController {
 
   @Get()
   @UseGuards(JwtAuthGuard)
+  @ApiSecurity('t')
   @ApiOkResponse({ type: UsePayloadRespose })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async checkToken(@Request() req): Promise<UserPayload> {
@@ -50,6 +51,7 @@ export class AuthController {
 
   @Post('logout')
   @UseGuards(JwtAuthGuard)
+  @ApiSecurity('t')
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async logout(@Request() req): Promise<MessageResponseI> {
@@ -59,6 +61,7 @@ export class AuthController {
 
   @Post('revoke/:sessionId')
   @UseGuards(JwtAuthGuard)
+  @ApiSecurity('t')
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async revokeSession(@Request() req, @Param('sessionId') sessionId: string): Promise<MessageResponseI> {
@@ -68,6 +71,7 @@ export class AuthController {
 
   @Post('apikeys')
   @UseGuards(JwtAuthGuard, ApiKeyGuard)
+  @ApiSecurity('t')
   @ApiOkResponse({ type: AuthResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async createApiKey(@Request() req, @Body() body: ApiKeyNameDto): Promise<AuthResponseI> {
@@ -77,6 +81,7 @@ export class AuthController {
 
   @Put('password')
   @UseGuards(JwtAuthGuard)
+  @ApiSecurity('t')
   @ApiOkResponse({ type: AuthResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
@@ -87,6 +92,7 @@ export class AuthController {
 
   @Get('sessions')
   @UseGuards(JwtAuthGuard)
+  @ApiSecurity('t')
   @ApiOkResponse({ type: SessionsResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async getSessions(@Request() req): Promise<SessionsResponseI> {
@@ -96,6 +102,7 @@ export class AuthController {
 
   @Get('apikeys')
   @UseGuards(JwtAuthGuard)
+  @ApiSecurity('t')
   @ApiOkResponse({ type: ApiKeysResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async getApiKeys(@Request() req): Promise<ApiKeysResponseI> {

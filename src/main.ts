@@ -19,7 +19,7 @@ async function bootstrap() {
     .setTitle('k-cloud-backend')
     .setDescription('NAS API')
     .setVersion('1.0')
-    .addTag('k-cloud')
+    .addSecurity('t', { type: 'apiKey', in: 'query', name: 't' })
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('/docs', app, document);
