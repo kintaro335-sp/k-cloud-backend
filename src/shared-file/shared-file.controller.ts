@@ -240,6 +240,7 @@ export class SharedFileController {
 
   @Get('tokens/user/page/:page')
   @UseGuards(JwtAuthGuard)
+  @ApiSecurity('t')
   @ApiParam({ name: 'page', type: Number, required: true, schema: { default: 1, minimum: 1 } })
   @ApiOkResponse({ type: [TokenElementResp] })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -252,6 +253,7 @@ export class SharedFileController {
 
   @Get('tokens/user/pages')
   @UseGuards(JwtAuthGuard)
+  @ApiSecurity('t')
   @ApiOkResponse({ type: PagesTokensResp })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async getTokensPagesByUser(@Request() req, @Response({ passthrough: true }) res) {
