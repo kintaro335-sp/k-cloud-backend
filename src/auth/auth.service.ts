@@ -1,3 +1,9 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) 2022 Kintaro Ponce
+ * MIT Licensed
+ */
+
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 // services
 import { JwtService } from '@nestjs/jwt';

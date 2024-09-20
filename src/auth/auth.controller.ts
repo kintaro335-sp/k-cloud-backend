@@ -1,3 +1,9 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) 2022 Kintaro Ponce
+ * MIT Licensed
+ */
+
 import { Controller, Post, Get, UseGuards, Request, Body, Put, Headers, Param, HttpCode } from '@nestjs/common';
 import { ApiSecurity, ApiTags, ApiOkResponse, ApiCreatedResponse, ApiBadRequestResponse, ApiUnauthorizedResponse } from '@nestjs/swagger';
 // swagger
