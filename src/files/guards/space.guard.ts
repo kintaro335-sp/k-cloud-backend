@@ -1,3 +1,9 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) 2022 Kintaro Ponce
+ * MIT Licensed
+ */
+
 import { Injectable, CanActivate, ExecutionContext, BadRequestException } from '@nestjs/common';
 import { AdminService } from '../../admin/admin.service';
 import { TempStorageService } from '../../temp-storage/temp-storage.service';

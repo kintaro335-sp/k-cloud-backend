@@ -1,3 +1,9 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) 2022 Kintaro Ponce
+ * MIT Licensed
+ */
+
 import { Injectable, CanActivate, ExecutionContext, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { TokenFilesService } from '../token-files/token-files.service';
 

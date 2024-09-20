@@ -1,3 +1,9 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) 2022 Kintaro Ponce
+ * MIT Licensed
+ */
+
 import { File } from "src/files/interfaces/list-file.interface";
 
 export interface UpdateFileEvent {

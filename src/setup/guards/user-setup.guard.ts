@@ -1,3 +1,9 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) 2022 Kintaro Ponce
+ * MIT Licensed
+ */
+
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 // service
 import { SetupService } from '../setup.service';

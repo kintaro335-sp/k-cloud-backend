@@ -1,3 +1,9 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) 2022 Kintaro Ponce
+ * MIT Licensed
+ */
+
 import { IsArray, IsString, IsNumber, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';

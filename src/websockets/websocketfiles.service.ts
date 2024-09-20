@@ -1,3 +1,9 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) 2022 Kintaro Ponce
+ * MIT Licensed
+ */
+
 import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { Socket } from 'socket.io';
 import { UserPayload } from 'src/auth/interfaces/userPayload.interface';

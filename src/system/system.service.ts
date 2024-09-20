@@ -1,3 +1,9 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) 2022 Kintaro Ponce
+ * MIT Licensed
+ */
+
 import { Injectable } from '@nestjs/common';
 import { EventEmitterWS } from './eventemitter/filesEventEmitter';
 import { ChangeFileData } from './interfaces/changefile.interface';

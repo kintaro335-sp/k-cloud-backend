@@ -1,3 +1,9 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) 2022 Kintaro Ponce
+ * MIT Licensed
+ */
+
 import { ApiProperty } from '@nestjs/swagger';
 import { FileType } from "src/files/interfaces/list-file.interface";
 
