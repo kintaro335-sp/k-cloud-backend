@@ -19,12 +19,14 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   app.useGlobalPipes(new ValidationPipe());
-  app.enableCors({ credentials: true, origin: whiteList });
+  app.enableCors({ credentials: true, origin: whiteList, methods: 'GET,HEAD,PUT,PATCH,POST,DELETE' });
   app.use(compression());
     const config = new DocumentBuilder()
     .setTitle('k-cloud-backend')
     .setDescription('NAS API')
     .setVersion('1.0')
+    .addServer('', 'base')
+    .addServer('/api', 'api prefix')
     .addSecurity('t', { type: 'apiKey', in: 'query', name: 't' })
     .build();
   const document = SwaggerModule.createDocument(app, config);
