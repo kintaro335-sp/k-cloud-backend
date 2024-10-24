@@ -89,7 +89,11 @@ export class SessionsService implements OnModuleInit {
           }
         }
       });
-    } catch (error) {}
+    } catch (error) {
+      if(error.code === 'P2025') {
+        return;
+      }
+    }
   }
 
   createSesionId() {
