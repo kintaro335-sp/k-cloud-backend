@@ -41,7 +41,7 @@ export class UtilsService {
   }
 
   quickSort(arr: IndexList): IndexList {
-    return orderBy(arr, ['name'], ['asc']);
+    return orderBy(arr, ['lowercase_name'], ['asc']);
   }
 
   parseSearchCriteria(search: string) {

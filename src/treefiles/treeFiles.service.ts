@@ -73,10 +73,10 @@ export class TreeFilesService {
     const getOnForEach = (path = '') => {
       return (val: File | Folder) => {
         if (val.type === 'file') {
-          index.push({ name: val.name, path: join(path, val.name), size: val.size, mime_type: val.mime_type, type: 'file' });
+          index.push({ name: val.name, lowercase_name: val.name.toLowerCase(), path: join(path, val.name), size: val.size, mime_type: val.mime_type, type: 'file' });
         }
         if (val.type === 'Folder') {
-          index.push({ name: val.name, path: join(path, val.name), size: val.size, mime_type: 'Folder', type: 'folder' });
+          index.push({ name: val.name, lowercase_name: val.name.toLowerCase(), path: join(path, val.name), size: val.size, mime_type: 'Folder', type: 'folder' });
           val.content.forEach(getOnForEach(join(path, val.name)));
         }
       };
@@ -127,11 +127,19 @@ export class TreeFilesService {
   }
 
   async searchInIndex(userId: string, patternStr: string): Promise<IndexList> {
+    const results: IndexList = [];
     const files = await this.getIndexCache(userId);
-    const pattern = new RegExp(this.utils.parseSearchCriteria(patternStr));
+    const pattern = new RegExp(this.utils.parseSearchCriteria(patternStr).toLocaleLowerCase());
+
+    files.forEach((file, i) => {
+      if (pattern.test(file.name.toLocaleLowerCase())) {
+        results.push(file);
+        files.splice(i, 1);
+      }
+    });
+
     let left = 0;
     let right = files.length - 1;
-    const results: IndexList = [];
 
 
     while (left <= right) {
@@ -142,19 +150,23 @@ export class TreeFilesService {
         results.push(files[mid]);
 
         let i = mid - 1;
-        while (i >= 0 && pattern.test(files[i].name.toLocaleLowerCase())) {
-          results.push(files[i]);
+        while (i >= 0) {
+          if (pattern.test(files[i].name.toLocaleLowerCase())) {
+            results.push(files[i]);
+          }
           i--;
         }
 
         let j = mid + 1;
-        while (j < files.length && pattern.test(files[j].name.toLocaleLowerCase())) {
-          results.push(files[j]);
+        while (j < files.length) {
+          if (pattern.test(files[j].name.toLocaleLowerCase())) {
+            results.push(files[j]);
+          }
           j++;
         }
 
         break;
-      } else if (midName < pattern.source) {
+      } else if (midName < pattern.source.toLocaleLowerCase()) {
         left = mid + 1;
       } else {
         right = mid - 1;
