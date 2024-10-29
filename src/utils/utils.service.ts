@@ -41,6 +41,6 @@ export class UtilsService {
   }
 
   quickSort(arr: IndexList): IndexList {
-    return orderBy(arr, ['path'], ['asc']);
+    return orderBy(arr, ['name'], ['asc']);
   }
 }

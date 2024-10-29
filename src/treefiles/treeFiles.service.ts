@@ -70,10 +70,10 @@ export class TreeFilesService {
     const getOnForEach = (path = '') => {
       return (val: File | Folder) => {
         if (val.type === 'file') {
-          index.push({ name: val.name, path: join(path, val.name), size: val.size, mime_type: val.mime_type });
+          index.push({ name: val.name, path: join(path, val.name), size: val.size, mime_type: val.mime_type, type: 'file' });
         }
         if (val.type === 'Folder') {
-          index.push({ name: val.name, path: join(path, val.name), size: val.size, mime_type: 'Folder' });
+          index.push({ name: val.name, path: join(path, val.name), size: val.size, mime_type: 'Folder', type: 'folder' });
           val.content.forEach(getOnForEach(join(path, val.name)));
         }
       };

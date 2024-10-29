@@ -8,6 +8,7 @@ interface IndexElement {
   name: string;
   path: string;
   size: number;
+  type: 'file' | 'folder';
   mime_type: string;
 }
 
