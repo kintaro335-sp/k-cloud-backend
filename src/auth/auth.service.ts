@@ -68,17 +68,14 @@ export class AuthService {
   private allowLogin(userId: string) {
     const today = new Date();
     const MinutesSinceLastTry = dayjs(today).diff(dayjs(this.lastTries[userId]), 'minute');
-    const timeoutPassed = MinutesSinceLastTry < this.timeout;
-    if (!timeoutPassed) {
+    const timeout = MinutesSinceLastTry < this.timeout;
+    if (!timeout) {
       this.resetTries(userId);
     }
     if (!this.tries[userId]) {
       return true;
     }
-    if (!timeoutPassed) {
-      return false;
-    }
-    return this.tries[userId] < this.maxTries;
+    return this.tries[userId] < this.maxTries && timeout;
   }
 
   /**
