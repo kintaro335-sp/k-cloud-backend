@@ -5,6 +5,7 @@
  */
 
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 // services
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
@@ -17,20 +18,68 @@ import { UserPayload } from './interfaces/userPayload.interface';
 import { ApiKeysResponseI, SessionsResponseI } from './interfaces/apikey.interface';
 import { MessageResponseI, AuthResponseI } from './interfaces/response.interface';
 import { UserL } from '../users/interfaces/userl.interface';
+import { UserTries, Lasttry } from './interfaces/tries.interface';
+// misc
+import * as dayjs from 'dayjs';
 
 /**
  * @class Servicio de Autenticacion
  */
 @Injectable()
 export class AuthService {
+  private timeout = 30;
+  private maxTries = 10;
+  private tries: UserTries = {};
+  private lastTries: Lasttry = {};
+
   constructor(
+    private readonly configService: ConfigService,
     private usersService: UsersService,
     private jwtService: JwtService,
     private cryptoService: CryptoService,
     private filesService: FilesService,
     private sessionsService: SessionsService,
     private system: SystemService
-  ) {}
+  ) {
+    this.maxTries = Number(this.configService.get<number>('AUTH_MAX_TRIES') || 10);
+    this.timeout = Number(this.configService.get<number>('AUTH_TIMEOUT') || 30);
+    if (this.maxTries < 1 || isNaN(this.maxTries)) {
+      this.maxTries = 10;
+    }
+    if (this.timeout < 1 || isNaN(this.timeout)) {
+      this.timeout = 30;
+    }
+  }
+
+  private resetTries(userId: string) {
+    this.tries[userId] = 0;
+  }
+
+  private incrementTries(userId: string) {
+    if (!this.tries[userId]) {
+      this.tries[userId] = 0;
+    }
+    if (!this.lastTries[userId]) {
+      this.lastTries[userId] = dayjs().toDate();
+    }
+    this.tries[userId]++;
+  }
+
+  private allowLogin(userId: string) {
+    const today = new Date();
+    const MinutesSinceLastTry = dayjs(today).diff(dayjs(this.lastTries[userId]), 'minute');
+    const timeoutPassed = MinutesSinceLastTry < this.timeout;
+    if (!timeoutPassed) {
+      this.resetTries(userId);
+    }
+    if (!this.tries[userId]) {
+      return true;
+    }
+    if (!timeoutPassed) {
+      return false;
+    }
+    return this.tries[userId] < this.maxTries;
+  }
 
   /**
    * Crear un usuario con un usuario y contraseña
@@ -43,16 +92,20 @@ export class AuthService {
     if (!user) {
       throw new BadRequestException('Usuario o contraseña incorrectos');
     }
-    if (this.cryptoService.comparePasswords(pasword, user.passwordu)) {
-      const newSessionId = this.sessionsService.createSesionId();
-      const payload: UserPayload = { sessionId: newSessionId, userId: user.id, username: user.username, isadmin: user.isadmin };
-      await this.sessionsService.createSession(newSessionId, payload, device);
-      this.system.emitChangeSessions(user.id);
-      return {
-        access_token: this.jwtService.sign(payload)
-      };
+    if (!this.allowLogin(user.id)) {
+      throw new BadRequestException('Demasiados intentos fallidos');
     }
-    throw new BadRequestException('Usuario o contraseña incorrectos');
+    if (!this.cryptoService.comparePasswords(pasword, user.passwordu)) {
+      this.incrementTries(user.id);
+      throw new BadRequestException('Usuario o contraseña incorrectos');
+    }
+    const newSessionId = this.sessionsService.createSesionId();
+    const payload: UserPayload = { sessionId: newSessionId, userId: user.id, username: user.username, isadmin: user.isadmin };
+    await this.sessionsService.createSession(newSessionId, payload, device);
+    this.system.emitChangeSessions(user.id);
+    return {
+      access_token: this.jwtService.sign(payload)
+    };
   }
 
   /**
