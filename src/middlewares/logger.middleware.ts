@@ -73,6 +73,9 @@ export class LoggerMiddleware implements NestMiddleware {
     const params = req.params;
     const method = req.method;
     const route = req.route.path as string;
+    if (!['/shared-file/content/:id', '/shared-file/info/:id/*'].includes(route)) {
+      return;
+    }
     if (method === 'PATCH') {
       return;
     }
