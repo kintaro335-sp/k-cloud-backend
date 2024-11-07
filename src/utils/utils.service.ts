@@ -41,6 +41,10 @@ export class UtilsService {
   }
 
   quickSort(arr: IndexList): IndexList {
-    return orderBy(arr, ['path'], ['asc']);
+    return orderBy(arr, ['lowercase_name'], ['asc']);
+  }
+
+  parseSearchCriteria(search: string) {
+    return search.replace(",","|").replace("*", "[ a-zA-Z0-9-_]+").toLocaleLowerCase();
   }
 }

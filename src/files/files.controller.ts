@@ -285,9 +285,13 @@ export class FilesController {
 
   @Get('/index')
   @ApiSecurity('t')
+  @ApiQuery({ name: 's', type: String, required: false })
   @ApiOkResponse({ type: [IndexElementResponse] })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
-  async getindexRoot(@Request() req): Promise<IndexList> {
+  async getindexRoot(@Request() req, @Query('s') searchCriteria: string = ''): Promise<IndexList> {
+    if (searchCriteria !== '') {
+      return this.treeServ.searchInIndex(req.user.userId, searchCriteria);
+    }
     return this.treeServ.getIndexCache(req.user.userId);
   }
 

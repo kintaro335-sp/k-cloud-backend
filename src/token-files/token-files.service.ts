@@ -172,7 +172,11 @@ export class TokenFilesService implements OnModuleInit {
     while (true) {
       try {
         return this.prismaService.sharedfile.delete({ where: { id } });
-      } catch (err) {}
+      } catch (err) {
+        if(err.code === 'P2025') {
+          return;
+        }
+      }
     }
   }
 

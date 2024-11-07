@@ -14,7 +14,10 @@ import { IndexList } from './interfaces/indexelement.interface';
 
 @Injectable()
 export class TreeFilesService {
-  constructor(private prismaServ: PrismaService, private utils: UtilsService) {}
+  constructor(
+    private prismaServ: PrismaService,
+    private utils: UtilsService
+  ) {}
 
   private async compressContent(content: Buffer): Promise<null | Buffer> {
     return new Promise((res) => {
@@ -70,10 +73,10 @@ export class TreeFilesService {
     const getOnForEach = (path = '') => {
       return (val: File | Folder) => {
         if (val.type === 'file') {
-          index.push({ name: val.name, path: join(path, val.name), size: val.size, mime_type: val.mime_type });
+          index.push({ name: val.name, lowercase_name: val.name.toLowerCase(), path: join(path, val.name), size: val.size, mime_type: val.mime_type, type: 'file' });
         }
         if (val.type === 'Folder') {
-          index.push({ name: val.name, path: join(path, val.name), size: val.size, mime_type: 'Folder' });
+          index.push({ name: val.name, lowercase_name: val.name.toLowerCase(), path: join(path, val.name), size: val.size, mime_type: 'Folder', type: 'folder' });
           val.content.forEach(getOnForEach(join(path, val.name)));
         }
       };
@@ -110,7 +113,7 @@ export class TreeFilesService {
   async getTree(userId = ''): Promise<Folder> {
     if (userId !== '') {
       const tree = await this.prismaServ.tree.findUnique({ select: { content: true }, where: { userid: userId } });
-      return this.decompressUserTree(tree.content)
+      return this.decompressUserTree(tree.content);
     }
     const FolderRoot: Folder = {
       name: 'root',
@@ -121,6 +124,56 @@ export class TreeFilesService {
     const trees = await this.prismaServ.tree.findMany({ select: { content: true } });
     FolderRoot.content = await Promise.all(trees.map(async (t) => this.decompressUserTree(t.content)));
     return FolderRoot;
+  }
+
+  async searchInIndex(userId: string, patternStr: string): Promise<IndexList> {
+    const results: IndexList = [];
+    const files = await this.getIndexCache(userId);
+    const pattern = new RegExp(this.utils.parseSearchCriteria(patternStr).toLocaleLowerCase());
+
+    files.forEach((file, i) => {
+      if (pattern.test(file.name.toLocaleLowerCase())) {
+        results.push(file);
+        files.splice(i, 1);
+      }
+    });
+
+    let left = 0;
+    let right = files.length - 1;
+
+
+    while (left <= right) {
+      const mid = Math.floor((left + right) / 2);
+      const midName = files[mid].name.toLocaleLowerCase();
+
+      if (pattern.test(midName)) {
+        results.push(files[mid]);
+
+        let i = mid - 1;
+        while (i >= 0) {
+          if (pattern.test(files[i].name.toLocaleLowerCase())) {
+            results.push(files[i]);
+          }
+          i--;
+        }
+
+        let j = mid + 1;
+        while (j < files.length) {
+          if (pattern.test(files[j].name.toLocaleLowerCase())) {
+            results.push(files[j]);
+          }
+          j++;
+        }
+
+        break;
+      } else if (midName < pattern.source.toLocaleLowerCase()) {
+        left = mid + 1;
+      } else {
+        right = mid - 1;
+      }
+    }
+
+    return results;
   }
 
   async existsTree(userid: string) {
