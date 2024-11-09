@@ -50,7 +50,7 @@ export class FilesService {
     this.userIndexUpdateScheduled.push(userId);
   }
 
-  @Cron(CronExpression.EVERY_10_MINUTES)
+  @Cron(CronExpression.EVERY_MINUTE)
   private async updateIndexes() {
     try {
       while (this.userIndexUpdateScheduled.length !== 0) {
@@ -113,6 +113,14 @@ export class FilesService {
         }
       }
     });
+  }
+
+  async revervateFileSpace(path: string, user: UserPayload, size: number): Promise<void> {
+    const { userId } = user;
+    const entirePath = join(this.root, userId, path);
+    const writeStream = createWriteStream(entirePath, { start: size-1, flags: 'w', autoClose: true, emitClose: true });
+    writeStream.write(Buffer.alloc(1, 0));
+    writeStream.close();
   }
 
   /**
