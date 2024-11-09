@@ -73,7 +73,8 @@ export class LoggerMiddleware implements NestMiddleware {
     const params = req.params;
     const method = req.method;
     const route = req.route.path as string;
-    if (!['/shared-file/content/:id', '/shared-file/info/:id/*'].includes(route)) {
+    console.log(route);
+    if (!['/shared-file/content/:id', '/shared-file/content/:id/*', '/shared-file/zip/:id', '/shared-file/zip/:id/*'].includes(route)) {
       return;
     }
     if (method === 'PATCH') {
@@ -90,7 +91,7 @@ export class LoggerMiddleware implements NestMiddleware {
     // @ts-ignore
     const user = req?.user?.userId || '';
     const newEntry = { id, action, status, tokenid, date: new Date(), path, reason, user };
-    this.logServ.createLog(newEntry)
+    this.logServ.createLog(newEntry);
   }
 
   use(req: Request, res: Response, next: NextFunction) {
@@ -98,7 +99,7 @@ export class LoggerMiddleware implements NestMiddleware {
       try {
         this.RegisterActivity(req, res);
       } catch (err) {
-        console.error(err)
+        console.error(err);
       }
     });
     next();
