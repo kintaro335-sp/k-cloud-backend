@@ -187,18 +187,17 @@ export class FilesService {
    * @param {boolean} injectRoot injectar la raiz del directorio (valo por defecto `true`)
    * @returns {Promise<File>}
    */
-  async getFileProperties(path: string, injectRoot: boolean = true): Promise<File> {
-    const entirePath = injectRoot ? join(this.root, path) : path;
-    if (await this.isDirectory(entirePath, false)) {
-      throw new BadRequestException('Es una Carpeta');
-    }
+  async getFileProperties(path: string, userPayload: UserPayload, injectRoot: boolean = true): Promise<File> {
+    const { userId } = userPayload;
+    const entirePath = injectRoot ? join(this.root, userId, path) : join(userId, path);
+    const isDirectory = await this.isDirectory(entirePath, false)
     const fileStat = await lstat(entirePath, { bigint: false });
     const file = entirePath.split('/').pop();
     const tokens = await this.tokenServ.getCountByPath(path);
 
     return {
       name: file,
-      type: 'file',
+      type: isDirectory ? 'folder' : 'file',
       size: fileStat.size,
       tokens,
       extension: file.split('.').pop(),
