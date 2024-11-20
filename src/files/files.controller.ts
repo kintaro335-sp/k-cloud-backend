@@ -96,6 +96,7 @@ export class FilesController {
 
   @Get('/list/*')
   @ApiSecurity('t')
+  @ApiParam({ name: '*', type: String })
   @ApiOkResponse({ type: FileListResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async getFiles(@Param() path: Record<any, string>, @Response({ passthrough: true }) res, @Request() req, @Query('d') downloadOpc) {
@@ -321,6 +322,7 @@ export class FilesController {
 
   @Get('/tree/*')
   @ApiSecurity('t')
+  @ApiParam({ name: '*', type: String })
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async GetTree(@Param() path: Record<any, string>, @Request() req): Promise<File | Folder> {
