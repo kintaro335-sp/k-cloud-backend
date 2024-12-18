@@ -33,6 +33,7 @@ const JSZip = require('jszip');
 export class FilesService {
   public root: string = '~/';
   private userIndexUpdateScheduled = [];
+  private truncateFile = false;
   constructor(
     private readonly configService: ConfigService,
     private readonly storageService: TempStorageService,
@@ -43,6 +44,8 @@ export class FilesService {
     private system: SystemService
   ) {
     this.root = this.configService.get<string>('FILE_ROOT');
+    const opttruncate = this.configService.get<string>('TRUNCATE_FILE') || '0';
+    this.truncateFile = opttruncate === '1' ? true : false;
   }
 
   private addUserIndexUpdateSchedule(userId: string) {
@@ -118,9 +121,11 @@ export class FilesService {
   async revervateFileSpace(path: string, user: UserPayload, size: number): Promise<void> {
     const { userId } = user;
     const entirePath = join(this.root, userId, path);
-    const writeStream = createWriteStream(entirePath, { start: size-1, flags: 'w', autoClose: true, emitClose: true });
-    writeStream.write(Buffer.alloc(1, 0));
-    writeStream.close();
+    if (this.truncateFile) {
+      const writeStream = createWriteStream(entirePath, { start: size-1, flags: 'w', autoClose: true, emitClose: true });
+      writeStream.write(Buffer.alloc(1, 0));
+      writeStream.close();
+    }
   }
 
   /**
