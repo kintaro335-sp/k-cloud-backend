@@ -43,10 +43,10 @@ export class UsersService {
    * @param {Prisma.UserWhereUniqueInput} userWhereUnique
    * @returns {User | null}
    */
-  async findOne(userWhereUnique: Prisma.UserWhereUniqueInput): Promise<User | null> {
+  async findOne(userWhereUnique: Prisma.UserWhereUniqueInput, select?: Prisma.UserSelect): Promise<User | null> {
     while (true) {
       try {
-        return this.prisma.user.findUnique({ where: userWhereUnique });
+        return this.prisma.user.findUnique({ select, where: userWhereUnique });
       } catch (err) {}
     }
   }

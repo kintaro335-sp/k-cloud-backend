@@ -11,3 +11,8 @@ export interface UserPayload {
   username: string;
   isadmin: boolean;
 }
+
+export interface JWTPayload {
+  sessionId: string;
+  userId: string;
+}

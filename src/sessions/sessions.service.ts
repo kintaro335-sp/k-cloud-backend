@@ -10,10 +10,11 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 // services
 import { PrismaService } from '../prisma.service';
 import { SystemService } from '../system/system.service';
+import { UsersService } from '../users/users.service';
 // errors
 import { InvalidSessionError } from './errors/invalidsession.error';
 // interfaces
-import { UserPayload } from 'src/auth/interfaces/userPayload.interface';
+import { JWTPayload, UserPayload } from 'src/auth/interfaces/userPayload.interface';
 import { Session, SessionCache, SessionType } from './interfaces/session.interface';
 // misc
 import { v4 as uuidv4 } from 'uuid';
@@ -29,6 +30,7 @@ const typeRegex = new RegExp(/[h|M|d|y]/);
 export class SessionsService implements OnModuleInit {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly usersService: UsersService,
     private readonly system: SystemService,
     private configService: ConfigService
   ) {}
@@ -105,14 +107,17 @@ export class SessionsService implements OnModuleInit {
     return expireIn;
   }
 
-  async createSession(sessionId: string, user: UserPayload, device: string) {
+  async createSession(sessionId: string, user: JWTPayload, device: string) {
     const expireIn = this.generateExpireDate();
+    const usern = await this.usersService.findOne({ id: user.userId }, { username: true, isadmin: true });
     const newSession: Session = {
       id: sessionId,
+      name: usern.username,
       userid: user.userId,
       token: '',
       type: 'session',
       doesexpire: true,
+      isadmin: usern.isadmin,
       expire: expireIn,
       device
     };
@@ -126,10 +131,13 @@ export class SessionsService implements OnModuleInit {
     }
   }
 
-  async createApiKey(name: string, sessionId: string, user: UserPayload, token: string) {
+  async createApiKey(name: string, sessionId: string, user: JWTPayload, token: string) {
+    const usern = await this.usersService.findOne({ id: user.userId }, { username: true, isadmin: true });
     const newApiKey: Session = {
       id: sessionId,
       name,
+      username: usern.username,
+      isadmin: usern.isadmin,
       userid: user.userId,
       token,
       type: 'api',
@@ -160,9 +168,10 @@ export class SessionsService implements OnModuleInit {
           }
         });
         if (session !== null) {
-          this.sessionsCache[sessionId] = { ...session, type: session.type as SessionType, lastUsed: new Date() };
+          const usern = await this.usersService.findOne({ id: session.userid }, { username: true, isadmin: true });
+          this.sessionsCache[sessionId] = { ...session, type: session.type as SessionType, lastUsed: new Date(), username: usern.username, isadmin: usern.isadmin };
         }
-        return session;
+        return this.sessionsCache[sessionId];
       } catch (error) {}
     }
   }
@@ -183,7 +192,7 @@ export class SessionsService implements OnModuleInit {
     }
   }
 
-  async validateSession(sessionId: string, websocket = false) {
+  async validateSession(sessionId: string, websocket = false): Promise<SessionCache> {
     const session = await this.retrieveSession(sessionId);
 
     if (!session) {
@@ -205,6 +214,7 @@ export class SessionsService implements OnModuleInit {
       const newDate = new Date();
       this.sessionsCache[sessionId].lastUsed = newDate;
     }
+    return session;
   }
 
   async getSessionsByUserId(userId: string) {

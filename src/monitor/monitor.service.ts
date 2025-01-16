@@ -16,7 +16,7 @@ import { loadavg, cpus } from 'node:os';
 @Injectable()
 export class MonitorService {
   constructor(private system: SystemService) {}
-  private memoryInfo: Array<MemoryUsageInfo> = [];
+  private memoryInfo: Array<MemoryUsageInfo> = [...Array(59)].map(() => ({ rss: 0, buffer: 0 }));
   private interval = 3;
   private sec = 0;
 
