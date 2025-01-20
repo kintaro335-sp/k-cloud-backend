@@ -60,6 +60,7 @@ export class FilesService {
         try {
           const u = this.userIndexUpdateScheduled.pop();
           await this.updateTree({ sessionId: '', userId: u, username: '', isadmin: false });
+          this.system.emitTreeUpdate(u);
         } catch (err) {
           console.error(err);
         }
@@ -118,13 +119,17 @@ export class FilesService {
     });
   }
 
-  async revervateFileSpace(path: string, user: UserPayload, size: number): Promise<void> {
+  async reservateFileSpace(path: string, user: UserPayload, size: number): Promise<void> {
     const { userId } = user;
     const entirePath = join(this.root, userId, path);
     if (this.truncateFile) {
       const writeStream = createWriteStream(entirePath, { start: size-1, flags: 'w', autoClose: true, emitClose: true });
       writeStream.write(Buffer.alloc(1, 0));
-      writeStream.close();
+      return new Promise((res) => {
+        writeStream.close(() => {
+          res();
+        });
+      })
     }
   }
 
@@ -603,9 +608,7 @@ export class FilesService {
     const pathMessage = path.split('/');
     pathMessage.pop();
     this.system.emitChangeFileEvent({ path: pathMessage.join('/'), userId: userPayload.userId });
-    this.updateTree(userPayload).then(() => {
-      this.system.emitTreeUpdate(userPayload.userId);
-    });
+    this.addUserIndexUpdateSchedule(userId);
     return { message: 'move success' };
   }
 
@@ -629,9 +632,7 @@ export class FilesService {
         return f;
       })
     );
-    this.updateTree(userPayload).then(() => {
-      this.system.emitTreeUpdate(userPayload.userId);
-    });
+    this.addUserIndexUpdateSchedule(userId);
     this.system.emitChangeFileEvent({ path, userId: userPayload.userId });
     return { message: 'archivos movidos' };
   }
@@ -647,9 +648,7 @@ export class FilesService {
     const pathMessage = path.split('/');
     pathMessage.pop();
     this.system.emitChangeFileEvent({ path: pathMessage.join('/'), userId: userPayload.userId });
-    this.updateTree(userPayload).then(() => {
-      this.system.emitTreeUpdate(userPayload.userId);
-    });
+    this.addUserIndexUpdateSchedule(userId);
     return { message: 'archivo renombradostatFile' };
   }
 
