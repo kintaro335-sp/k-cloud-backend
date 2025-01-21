@@ -123,7 +123,7 @@ export class FilesService {
     const { userId } = user;
     const entirePath = join(this.root, userId, path);
     if (this.truncateFile) {
-      const writeStream = createWriteStream(entirePath, { start: size-1, flags: 'w', autoClose: true, emitClose: true });
+      const writeStream = createWriteStream(entirePath, { start: size-1, flags: 'w', autoClose: false, emitClose: true });
       writeStream.write(Buffer.alloc(1, 0));
       return new Promise((res) => {
         writeStream.close(() => {
