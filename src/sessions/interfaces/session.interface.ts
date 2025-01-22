@@ -8,11 +8,13 @@ export type SessionType = 'session' | 'api';
 
 export interface Session {
   id: string;
+  username?: string;
   name?: string;
   userid: string;
   token: string;
   type: SessionType;
   doesexpire: boolean;
+  isadmin: boolean;
   expire: Date;
   device: string;
 }

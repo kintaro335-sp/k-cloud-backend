@@ -8,10 +8,11 @@ import { Module } from '@nestjs/common';
 import { PrismaService } from '../prisma.service'
 import { SessionsService } from './sessions.service';
 // modules
+import { UsersModule } from '../users/users.module';
 import { SystemModule } from '../system/system.module';
 
 @Module({
-  imports: [SystemModule],
+  imports: [SystemModule, UsersModule],
   providers: [SessionsService, PrismaService],
   exports: [SessionsService],
 })

@@ -14,7 +14,7 @@ import { CryptoService } from '../crypto/crypto.service';
 import { FilesService } from '../files/files.service';
 import { SystemService } from '../system/system.service';
 // interfaces
-import { UserPayload } from './interfaces/userPayload.interface';
+import { JWTPayload, UserPayload } from './interfaces/userPayload.interface';
 import { ApiKeysResponseI, SessionsResponseI } from './interfaces/apikey.interface';
 import { MessageResponseI, AuthResponseI } from './interfaces/response.interface';
 import { UserL } from '../users/interfaces/userl.interface';
@@ -97,7 +97,7 @@ export class AuthService {
       throw new BadRequestException('Usuario o contraseña incorrectos');
     }
     const newSessionId = this.sessionsService.createSesionId();
-    const payload: UserPayload = { sessionId: newSessionId, userId: user.id, username: user.username, isadmin: user.isadmin };
+    const payload: JWTPayload = { sessionId: newSessionId, userId: user.id };
     await this.sessionsService.createSession(newSessionId, payload, device);
     this.system.emitChangeSessions(user.id);
     return {
@@ -112,7 +112,7 @@ export class AuthService {
    * */
   async createApiKey(user: UserPayload, name: string): Promise<AuthResponseI> {
     const sessionId = this.sessionsService.createSesionId();
-    const payload: UserPayload = { sessionId, userId: user.userId, username: user.username, isadmin: user.isadmin };
+    const payload: JWTPayload = { sessionId, userId: user.userId };
     const access_token = this.jwtService.sign(payload);
     await this.sessionsService.createApiKey(name, sessionId, payload, access_token);
     this.system.emitChangeSessions(user.userId);
@@ -136,9 +136,9 @@ export class AuthService {
       passwordu: this.cryptoService.createPassword(pasword)
     });
     const newSessionId = this.sessionsService.createSesionId();
-    const payload: UserPayload = { sessionId: newSessionId, userId: newUser.id, username: newUser.username, isadmin: newUser.isadmin };
+    const payload: JWTPayload = { sessionId: newSessionId, userId: newUser.id };
     await this.sessionsService.createSession(newSessionId, payload, device);
-    this.filesService.createFolder('', payload);
+    this.filesService.createFolder('', { ...payload, username: userName, isadmin: false });
     this.system.emitChangeUsersUpdates();
     return {
       access_token: this.jwtService.sign(payload)

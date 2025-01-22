@@ -19,6 +19,7 @@ import { MemoryUsageResponse } from './responses/memoryUsage.resp';
 import { PagesResp } from './responses/pages.resp';
 import { SharedFileActivityResp } from './responses/sharedFileAct.resp';
 import { SerieLineChartResp } from './responses/statsLineChart.resp';
+import { CPUUsageResp } from './responses/cpuUsage.resp';
 // services
 import { AdminService } from './admin.service';
 import { AuthService } from '../auth/auth.service';
@@ -231,6 +232,15 @@ export class AdminController {
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   getMemorystats(): StatsLineChart {
     return this.monitorServ.getLineChartdataMemoryUsage();
+  }
+
+  @Get('cpu-usage')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @ApiSecurity('t')
+  @ApiOkResponse({ type: CPUUsageResp })
+  @ApiUnauthorizedResponse({ type: ErrorResponse })
+  getCpuUsage(): { usage: number } {
+    return { usage: this.monitorServ.getCPUUsage() };
   }
 
   @Get('logs/stats/:group/line/:time')

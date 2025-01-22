@@ -11,11 +11,12 @@ import { MemoryUsageInfo } from './interfaces/MemoryUsageInfo.interface';
 import { StatsLineChart } from '../logs/interfaces/statslinechart.interface';
 // services
 import { SystemService } from '../system/system.service';
+import { loadavg, cpus } from 'node:os';
 
 @Injectable()
 export class MonitorService {
   constructor(private system: SystemService) {}
-  private memoryInfo: Array<MemoryUsageInfo> = [];
+  private memoryInfo: Array<MemoryUsageInfo> = [...Array(59)].map(() => ({ rss: 0, buffer: 0 }));
   private interval = 3;
   private sec = 0;
 
@@ -44,5 +45,10 @@ export class MonitorService {
         data: this.memoryInfo.map((val, i) => ({ y: val.buffer, x: String(i + 1) }))
       }
     ];
+  }
+
+  getCPUUsage(): number {
+    const load = loadavg();
+    return load[0] / cpus().length;
   }
 }

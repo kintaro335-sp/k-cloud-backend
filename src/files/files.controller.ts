@@ -185,7 +185,7 @@ export class FilesController {
       throw new BadRequestException('archivo ya existe');
     }
     this.storageService.createFileTemp(pathStringC, body.size, req.user, pathString);
-    await this.filesService.revervateFileSpace(pathString, req.user, body.size);
+    await this.filesService.reservateFileSpace(pathString, req.user, body.size);
     return { message: 'Inicializado' };
   }
 
