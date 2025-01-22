@@ -14,6 +14,7 @@ import { UsersService } from '../users/users.service';
 // errors
 import { InvalidSessionError } from './errors/invalidsession.error';
 // interfaces
+import { Sessions } from '@prisma/client';
 import { JWTPayload, UserPayload } from 'src/auth/interfaces/userPayload.interface';
 import { Session, SessionCache, SessionType } from './interfaces/session.interface';
 // misc
@@ -107,26 +108,26 @@ export class SessionsService implements OnModuleInit {
     return expireIn;
   }
 
-  async createSession(sessionId: string, user: JWTPayload, device: string) {
+  async createSession(sessionId: string, user: JWTPayload, device: string): Promise<Session> {
     const expireIn = this.generateExpireDate();
     const usern = await this.usersService.findOne({ id: user.userId }, { username: true, isadmin: true });
-    const newSession: Session = {
+    const newSession: Sessions  = {
       id: sessionId,
       name: usern.username,
       userid: user.userId,
       token: '',
       type: 'session',
       doesexpire: true,
-      isadmin: usern.isadmin,
       expire: expireIn,
       device
     };
 
     while (true) {
       try {
-        return this.prisma.sessions.create({
+        const sessionD = await this.prisma.sessions.create({
           data: newSession
         });
+        return { ...sessionD, type: sessionD.type as SessionType, isadmin: usern.isadmin };
       } catch (error) {}
     }
   }
