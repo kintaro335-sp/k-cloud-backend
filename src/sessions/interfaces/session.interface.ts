@@ -6,6 +6,21 @@
 
 export type SessionType = 'session' | 'api';
 
+export type Scope =
+  | 'files:read'
+  | 'files:create'
+  | 'files:delete'
+  | 'files:rename'
+  | 'files:move'
+  | 'tokens:read'
+  | 'tokens:create'
+  | 'tokens:update'
+  | 'tokens:delete'
+  | 'admin:users'
+  | 'admin:activity-read'
+  | 'admin:memory-usage'
+  | 'auth:create-api-keys';
+
 export interface Session {
   id: string;
   username?: string;
@@ -17,6 +32,7 @@ export interface Session {
   isadmin: boolean;
   expire: Date;
   device: string;
+  scopes: Scope[];
 }
 
 export interface SessionCache extends Session {

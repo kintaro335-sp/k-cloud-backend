@@ -1,6 +1,6 @@
 /*
  * k-cloud-backend
- * Copyright(c) 2022 Kintaro Ponce
+ * Copyright(c) Kintaro Ponce
  * MIT Licensed
  */
 
@@ -8,11 +8,7 @@ import { IsString, IsArray, IsEnum, IsNotEmpty } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Scope } from '../../sessions/interfaces/session.interface';
 
-export class ApiKeyNameDto {
-  @IsString()
-  @IsNotEmpty()
-  @ApiProperty()
-  name: string;
+export class ApiKeyEditScopesDto {
   @ApiProperty()
   @IsArray()
   @IsString({ each: true })

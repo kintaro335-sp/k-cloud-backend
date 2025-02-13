@@ -32,6 +32,7 @@ model Sessions {
   expire DateTime
   device String @default("")
   owner User @relation(fields: [userid], references: [id])
+  scopes String @default("[]")
 }
 
 model Sharedfile {
