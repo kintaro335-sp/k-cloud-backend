@@ -21,6 +21,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
   isAllowedApiKey(apiScopes: Scope[], requiredScopes: Scope[]): boolean {
     const allowedScopes = requiredScopes.filter((scope) => apiScopes.includes(scope));
+    console.log(allowedScopes);
     return allowedScopes.length > 0;
   }
 

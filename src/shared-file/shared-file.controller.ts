@@ -42,6 +42,8 @@ import { TokenFilesService } from '../token-files/token-files.service';
 import { contentType } from 'mime-types';
 import { TokensIdsDTO } from './dtos/tokensIds.dto';
 import { UtilsService } from '../utils/utils.service';
+// metadata
+import { ScopesR } from '../auth/decorators/scopesR.decorator';
 
 @Controller('shared-file')
 @ApiTags('Shared File')
@@ -55,6 +57,7 @@ export class SharedFileController {
   @UseGuards(JwtAuthGuard)
   @Post('share/*')
   @ApiSecurity('t')
+  @ScopesR(['tokens:create'])
   @ApiParam({ name: 'path', type: String })
   @ApiCreatedResponse({ type: SharedFileIdResp })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -67,6 +70,7 @@ export class SharedFileController {
   @UseGuards(JwtAuthGuard)
   @Post('sharemf/*')
   @ApiSecurity('t')
+  @ScopesR(['tokens:create'])
   @ApiParam({ name: 'path', type: String })
   @ApiCreatedResponse({ type: [String] })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -80,6 +84,7 @@ export class SharedFileController {
 
   @UseGuards(ExpireGuard)
   @Get('info/:id')
+  @ApiParam({ name: 'id', type: String })
   @ApiOkResponse({ type: SharedFileInfoResp })
   @ApiNotFoundResponse({ type: ErrorResponse })
   async getSFInfo(@Param('id') id: string) {
@@ -124,6 +129,7 @@ export class SharedFileController {
   @Delete('token/:id')
   @UseGuards(JwtAuthGuard, OwnerShipGuard)
   @ApiSecurity('t')
+  @ScopesR(['tokens:delete'])
   @ApiOkResponse({ type: MessageResponse })
   @ApiNotFoundResponse({ type: ErrorResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -133,6 +139,7 @@ export class SharedFileController {
 
   @Patch('token/delete')
   @UseGuards(JwtAuthGuard)
+  @ScopesR(['tokens:delete'])
   @ApiSecurity('t')
   @ApiOkResponse({ type: [String] })
   @ApiNotFoundResponse({ type: ErrorResponse })
@@ -203,6 +210,7 @@ export class SharedFileController {
   @Delete('tokens/path/*')
   @UseGuards(JwtAuthGuard)
   @ApiSecurity('t')
+  @ScopesR(['tokens:delete'])
   @ApiOkResponse({ type: MessageResponse })
   @ApiNotFoundResponse({ type: ErrorResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -215,6 +223,7 @@ export class SharedFileController {
   @Get('tokens/path/*')
   @UseGuards(JwtAuthGuard)
   @ApiSecurity('t')
+  @ScopesR(['tokens:read'])
   @ApiParam({ name: '*', type: String })
   @ApiOkResponse({ type: [TokenElementResp] })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -249,6 +258,7 @@ export class SharedFileController {
   @Get('tokens/user/page/:page')
   @UseGuards(JwtAuthGuard)
   @ApiSecurity('t')
+  @ScopesR(['tokens:read'])
   @ApiParam({ name: 'page', type: Number, required: true, schema: { default: 1, minimum: 1 } })
   @ApiOkResponse({ type: [TokenElementResp] })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -262,6 +272,7 @@ export class SharedFileController {
   @Get('tokens/user/pages')
   @UseGuards(JwtAuthGuard)
   @ApiSecurity('t')
+  @ScopesR(['tokens:read'])
   @ApiOkResponse({ type: PagesTokensResp })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async getTokensPagesByUser(@Request() req, @Response({ passthrough: true }) res) {
@@ -276,6 +287,7 @@ export class SharedFileController {
   @HttpCode(200)
   @UseGuards(JwtAuthGuard, OwnerShipGuard)
   @ApiSecurity('t')
+  @ScopesR(['tokens:update'])
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async updateTokenByUser(@Param('id') id: string, @Body() body: ShareFileDTO) {
@@ -285,6 +297,7 @@ export class SharedFileController {
   @UseGuards(JwtAuthGuard, OwnerShipGuard)
   @Get('tokens/user/info/:id')
   @ApiSecurity('t')
+  @ScopesR(['tokens:read'])
   @ApiParam({ name: 'id', type: String })
   @ApiOkResponse({ type: SharedFileInfoResp })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -299,6 +312,7 @@ export class SharedFileController {
   @Get('tokens/user/content/:id')
   @UseGuards(JwtAuthGuard, OwnerShipGuard)
   @ApiSecurity('t')
+  @ScopesR(['tokens:read'])
   @ApiParam({ name: 'id', type: String })
   @ApiQuery({ name: 'd', type: Number, enum: [0, 1], required: false })
   @ApiNotFoundResponse({ type: ErrorResponse })
@@ -328,6 +342,7 @@ export class SharedFileController {
   @UseGuards(JwtAuthGuard, OwnerShipGuard)
   @Get('tokens/user/content/:id/*')
   @ApiSecurity('t')
+  @ScopesR(['tokens:read'])
   @ApiParam({ name: 'id', type: String })
   @ApiParam({ name: '*', type: String })
   @ApiQuery({ name: 'd', type: Number, enum: [0, 1], required: false })

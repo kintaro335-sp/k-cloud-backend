@@ -58,6 +58,8 @@ import { ListFile, File, Folder, UsedSpaceType } from './interfaces/list-file.in
 import { FilePTempResponse } from '../temp-storage/interfaces/filep.interface';
 import { UserPayload } from '../auth/interfaces/userPayload.interface';
 import { IndexList } from 'src/treefiles/interfaces/indexelement.interface';
+// metadata
+import { ScopesR } from '../auth/decorators/scopesR.decorator';
 // mime
 import { contentType } from 'mime-types';
 import { join } from 'path';
@@ -85,6 +87,7 @@ export class FilesController {
 
   @Get('/list')
   @ApiSecurity('t')
+  @ScopesR(['files:read'])
   @ApiOkResponse({ type: FileListResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async getAllFiles(@Response({ passthrough: true }) res, @Request() req): Promise<ListFile> {
@@ -96,6 +99,7 @@ export class FilesController {
 
   @Get('/list/*')
   @ApiSecurity('t')
+  @ScopesR(['files:read'])
   @ApiParam({ name: '*', type: String })
   @ApiOkResponse({ type: FileListResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -120,6 +124,7 @@ export class FilesController {
 
   @Get('/properties/*')
   @ApiSecurity('t')
+  @ScopesR(['files:read'])
   @ApiOkResponse({ type: FileResponse })
   async getFileProperties(@Param() path: Record<any, string>, @Request() req) {
     const pathString = this.utils.processPath(path);
@@ -129,6 +134,7 @@ export class FilesController {
 
   @Post('/folder/*')
   @ApiSecurity('t')
+  @ScopesR(['files:create'])
   @ApiParam({ name: '*', type: String })
   @ApiCreatedResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -143,6 +149,7 @@ export class FilesController {
 
   @Post('upload/*')
   @ApiSecurity('t')
+  @ScopesR(['files:create'])
   @ApiParam({ name: '*', type: String })
   @ApiCreatedResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -157,6 +164,7 @@ export class FilesController {
 
   @Post('upload/')
   @ApiSecurity('t')
+  @ScopesR(['files:create'])
   @ApiCreatedResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
@@ -170,6 +178,7 @@ export class FilesController {
   @Post('initialize/*')
   @UseGuards(SpaceGuard)
   @ApiSecurity('t')
+  @ScopesR(['files:create'])
   @ApiParam({ name: '*', type: String })
   @ApiCreatedResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -191,6 +200,7 @@ export class FilesController {
 
   @Post('write/*')
   @ApiSecurity('t')
+  @ScopesR(['files:create'])
   @ApiParam({ name: '*', type: String })
   @ApiCreatedResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -221,6 +231,7 @@ export class FilesController {
   @Post('close/*')
   @HttpCode(200)
   @ApiSecurity('t')
+  @ScopesR(['files:create'])
   @ApiParam({ name: '*', type: String })
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -238,6 +249,7 @@ export class FilesController {
 
   @Get('/status/*')
   @ApiSecurity('t')
+  @ScopesR(['files:read'])
   @ApiParam({ name: '*', type: String })
   @ApiOkResponse({ type: FileTempResp })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -255,6 +267,7 @@ export class FilesController {
 
   @Delete('/*')
   @ApiSecurity('t')
+  @ScopesR(['files:delete'])
   @ApiParam({ name: '*', type: String })
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -266,6 +279,7 @@ export class FilesController {
 
   @Patch('deletemp/*')
   @ApiSecurity('t')
+  @ScopesR(['files:delete'])
   @ApiParam({ name: '*', type: String })
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -276,6 +290,7 @@ export class FilesController {
 
   @Get('exists/*')
   @ApiSecurity('t')
+  @ScopesR(['files:read'])
   @ApiParam({ name: '*', type: String })
   @ApiOkResponse({ type: ExistFileResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -287,6 +302,7 @@ export class FilesController {
 
   @Get('/index')
   @ApiSecurity('t')
+  @ScopesR(['files:read'])
   @ApiQuery({ name: 's', type: String, required: false })
   @ApiOkResponse({ type: [IndexElementResponse] })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -299,6 +315,7 @@ export class FilesController {
 
   @Get('/tree')
   @ApiSecurity('t')
+  @ScopesR(['files:read'])
   @ApiOkResponse({ type: TreeResp })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async getTreeRoot(@Request() req): Promise<File | Folder> {
@@ -313,6 +330,7 @@ export class FilesController {
 
   @Patch('/tree')
   @ApiSecurity('t')
+  @ScopesR(['files:read'])
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async updateTree(@Request() req): Promise<{ message: string }> {
@@ -322,6 +340,7 @@ export class FilesController {
 
   @Get('/tree/*')
   @ApiSecurity('t')
+  @ScopesR(['files:read'])
   @ApiParam({ name: '*', type: String })
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -337,6 +356,7 @@ export class FilesController {
 
   @Get('zip/*')
   @ApiSecurity('t')
+  @ScopesR(['files:read'])
   @ApiParam({ name: '*', type: String })
   @ApiOkResponse({ type: StreamableFile })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -357,6 +377,7 @@ export class FilesController {
   @Post('rename/*')
   @HttpCode(200)
   @ApiSecurity('t')
+  @ScopesR(['files:rename'])
   @ApiParam({ name: '*', type: String })
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -371,6 +392,7 @@ export class FilesController {
   @Post('move/file/*')
   @HttpCode(200)
   @ApiSecurity('t')
+  @ScopesR(['files:move'])
   @ApiParam({ name: '*', type: String })
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -384,6 +406,7 @@ export class FilesController {
   @Post('move/files/*')
   @HttpCode(200)
   @ApiSecurity('t')
+  @ScopesR(['files:move'])
   @ApiParam({ name: '*', type: String })
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
