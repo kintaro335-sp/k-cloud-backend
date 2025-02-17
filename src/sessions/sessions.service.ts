@@ -146,12 +146,27 @@ export class SessionsService implements OnModuleInit {
       doesexpire: false,
       expire: new Date(),
       device: 'none',
-      scopes: []
+      scopes: scopes
     };
     while (true) {
       try {
         return this.prisma.sessions.create({
           data: { ...newApiKey, scopes: JSON.stringify(scopes) }
+        });
+      } catch (error) {}
+    }
+  }
+
+  async editApiKeyScopes(sessionId: string, scopes: Scope[]) {
+    while (true) {
+      try {
+        return this.prisma.sessions.update({
+          where: {
+            id: sessionId
+          },
+          data: {
+            scopes: JSON.stringify(scopes)
+          }
         });
       } catch (error) {}
     }
@@ -256,7 +271,8 @@ export class SessionsService implements OnModuleInit {
           select: {
             id: true,
             name: true,
-            token: true
+            token: true,
+            scopes: true
           },
           where: {
             userid: userId,

@@ -12,7 +12,10 @@ import { Scope } from '../sessions/interfaces/session.interface';
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
-  constructor(private readonly sessionsService: SessionsService, private readonly reflector: Reflector) {
+  constructor(
+    private readonly sessionsService: SessionsService,
+    private readonly reflector: Reflector
+  ) {
     super();
   }
 
@@ -28,7 +31,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
     const sessionInfo = await this.sessionsService.validateSession(request.user.sessionId);
     if (sessionInfo.type === 'api') {
-      if (!this.isAllowedApiKey(sessionInfo.scopes, requiredScopes)) {
+      if (!this.isAllowedApiKey(['npr', ...sessionInfo.scopes], requiredScopes)) {
         throw new UnauthorizedException();
       }
     }

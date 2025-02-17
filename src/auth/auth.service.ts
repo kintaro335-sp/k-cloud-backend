@@ -21,6 +21,7 @@ import { UserL } from '../users/interfaces/userl.interface';
 import { UserTries, Lasttry } from './interfaces/tries.interface';
 // misc
 import * as dayjs from 'dayjs';
+import { Scope } from 'src/sessions/interfaces/session.interface';
 
 /**
  * @class Servicio de Autenticacion
@@ -110,13 +111,25 @@ export class AuthService {
    * @param {UserPayload} user datos de usuario
    * @returns {Promise<AuthResponseI>} apikey
    * */
-  async createApiKey(user: UserPayload, name: string): Promise<AuthResponseI> {
+  async createApiKey(user: UserPayload, name: string, scopes: Scope[]): Promise<AuthResponseI> {
     const sessionId = this.sessionsService.createSesionId();
     const payload: JWTPayload = { sessionId, userId: user.userId };
     const access_token = this.jwtService.sign(payload);
-    await this.sessionsService.createApiKey(name, sessionId, payload, access_token);
+    await this.sessionsService.createApiKey(name, sessionId, payload, access_token, scopes);
     this.system.emitChangeSessions(user.userId);
     return { access_token };
+  }
+
+  async editApiKeyScopes(user: UserPayload, id: string, scopes: Scope[]) {
+    const session = await this.sessionsService.retrieveSession(id);
+    if (!session) {
+      throw new NotFoundException('api key not found');
+    }
+    if (session.userid !== user.userId) {
+      throw new NotFoundException('api key not found');
+    }
+    await this.sessionsService.editApiKeyScopes(id, scopes);
+    return { message: 'api key updated' }
   }
 
   /**

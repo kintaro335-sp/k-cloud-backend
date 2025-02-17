@@ -30,7 +30,10 @@ export class ApiKeyNameDto {
       'admin:users': 'admin:users',
       'admin:activity-read': 'admin:activity-read',
       'admin:memory-usage': 'admin:memory-usage',
-      'auth:create-api-keys': 'auth:create-api-keys'
+      'auth:read-api-keys': 'auth:read-api-keys',
+      'auth:create-api-keys': 'auth:create-api-keys',
+      'auth:read-sessions': 'auth:read-sessions',
+      'auth:delete-sessions': 'auth:delete-sessions'
     },
     { each: true }
   )
