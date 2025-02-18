@@ -279,7 +279,7 @@ export class AuthService {
    */
   async getApiKeys(user: UserPayload): Promise<ApiKeysResponseI> {
     const apiKeys = await this.sessionsService.getApiKeysByUserId(user.userId);
-    return { data: apiKeys, total: apiKeys.length };
+    return { data: apiKeys.map((a) => ({ ...a, scopes: JSON.parse(a.scopes) })), total: apiKeys.length };
   }
 
   /**

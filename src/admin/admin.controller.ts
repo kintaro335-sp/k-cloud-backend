@@ -26,7 +26,7 @@ import { AuthService } from '../auth/auth.service';
 import { LogsService } from '../logs/logs.service';
 import { MonitorService } from '../monitor/monitor.service';
 import { SystemService } from '../system/system.service';
-// ineterfaces
+// interfaces
 import { MessageResponseI } from '../auth/interfaces/response.interface';
 import { SpaceUsed, UsedSpaceUser } from './interfaces/spaceused.interface';
 import { UsedSpaceType } from 'src/files/interfaces/list-file.interface';
@@ -34,6 +34,7 @@ import { TIMEOPTION } from 'src/logs/interfaces/options.interface';
 import { GROUPFILTER } from 'src/logs/interfaces/groupfilter.interface';
 import { StatsLineChart } from 'src/logs/interfaces/statslinechart.interface';
 import { UserL } from 'src/users/interfaces/userl.interface';
+import { SharedFileActivity } from 'src/logs/interfaces/sharedfileActivity.interface';
 // dto
 import { DedicatedSpaceDTO } from './dto/dedicated-space-dto';
 import { SetPasswordDTO } from './dto/set-password.dto';
@@ -44,13 +45,13 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from './guards/admin.guard';
 import { FirstUserGuard } from './guards/first-user-guard';
 import { OwnerGuard } from './guards/owner.guard';
+import { NotOwnerGuard } from './guards/notowner.guard';
 // decorators
 import { RequireAdmin } from './decorators/admin.decorator';
-import { SharedFileActivity } from 'src/logs/interfaces/sharedfileActivity.interface';
-import { NotOwnerGuard } from './guards/notowner.guard';
+import { ScopesR } from '../auth/decorators/scopesR.decorator';
 
-@UseGuards(JwtAuthGuard, AdminGuard)
 @Controller('admin')
+@UseGuards(JwtAuthGuard, AdminGuard)
 @ApiTags('Admin')
 export class AdminController {
   constructor(
@@ -64,6 +65,7 @@ export class AdminController {
   @RequireAdmin(true)
   @Post('/dedicated-space')
   @ApiSecurity('t')
+  @ScopesR(['admin:manage-options'])
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
@@ -76,6 +78,7 @@ export class AdminController {
   @RequireAdmin(true)
   @Get('/dedicated-space')
   @ApiSecurity('t')
+  @ScopesR(['admin:manage-options'])
   @ApiOkResponse({ type: SpaceConfigResp })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
@@ -86,6 +89,7 @@ export class AdminController {
   @RequireAdmin(true)
   @Get('/used-space/update')
   @ApiSecurity('t')
+  @ScopesR(['admin:manage-options'])
   @ApiOkResponse({ type: SpaceUsedResp })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async updateUsedSpace(): Promise<SpaceUsed> {
@@ -95,6 +99,7 @@ export class AdminController {
   @RequireAdmin(true)
   @Get('/used-space')
   @ApiSecurity('t')
+  @ScopesR(['admin:stats'])
   @ApiOkResponse({ type: SpaceUsedResp })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async getUsedSpace(): Promise<SpaceUsed> {
@@ -104,6 +109,7 @@ export class AdminController {
   @RequireAdmin(true)
   @Get('/used-space/users')
   @ApiSecurity('t')
+  @ScopesR(['admin:stats'])
   @ApiOkResponse({ type: [UsedSpaceUserResp] })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async getUsedSpaceByUsers(): Promise<UsedSpaceUser[]> {
@@ -113,6 +119,7 @@ export class AdminController {
   @RequireAdmin(true)
   @Get('/used-space/files')
   @ApiSecurity('t')
+  @ScopesR(['admin:stats'])
   @ApiOkResponse({ type: [UsedSpaceTypeResp] })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async getUsedSpaceByFileType(): Promise<UsedSpaceType[]> {
@@ -122,6 +129,7 @@ export class AdminController {
   @RequireAdmin(true)
   @Patch('/update-users-trees')
   @ApiSecurity('t')
+  @ScopesR(['admin:manage-options'])
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async getUsedSpaceByFileTypeByType(){
@@ -133,6 +141,7 @@ export class AdminController {
   @RequireAdmin(true)
   @Get('/users/list')
   @ApiSecurity('t')
+  @ScopesR(['admin:users'])
   @ApiOkResponse({ type: [UserResp] })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async usersList(): Promise<UserL[]> {
@@ -143,6 +152,7 @@ export class AdminController {
   @Post('/users/password/:userid')
   @UseGuards(NotOwnerGuard)
   @ApiSecurity('t')
+  @ScopesR(['admin:users'])
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
@@ -154,6 +164,7 @@ export class AdminController {
   @Post('/users/admin/:userid')
   @UseGuards(NotOwnerGuard)
   @ApiSecurity('t')
+  @ScopesR(['admin:users'])
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
@@ -164,6 +175,7 @@ export class AdminController {
   @RequireAdmin(true)
   @Get('users/owner')
   @ApiSecurity('t')
+  @ScopesR(['admin:users'])
   @ApiOkResponse({ type: OwnerIdResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async getAdmin(): Promise<{ id: string | null }> {
@@ -174,6 +186,7 @@ export class AdminController {
   @Patch('users/owner/:userid')
   @UseGuards(OwnerGuard)
   @ApiSecurity('t')
+  @ScopesR(['admin:users'])
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
@@ -188,6 +201,7 @@ export class AdminController {
   @RequireAdmin(true)
   @Post('/users/create')
   @ApiSecurity('t')
+  @ScopesR(['admin:users'])
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
@@ -200,6 +214,7 @@ export class AdminController {
   @UseGuards(FirstUserGuard)
   @Delete('/users/delete/:userid')
   @ApiSecurity('t')
+  @ScopesR(['admin:users'])
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiNotFoundResponse({ type: ErrorResponse })
@@ -208,8 +223,8 @@ export class AdminController {
   }
 
   @Get('/memory/rss')
-  @UseGuards(JwtAuthGuard, AdminGuard)
   @ApiSecurity('t')
+  @ScopesR(['admin:memory-usage'])
   @ApiOkResponse({ type: MemoryUsageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   getMemoryUsageRss(): { usage: number } {
@@ -217,8 +232,8 @@ export class AdminController {
   }
 
   @Get('/memory/buffer')
-  @UseGuards(JwtAuthGuard, AdminGuard)
   @ApiSecurity('t')
+  @ScopesR(['admin:memory-usage'])
   @ApiOkResponse({ type: MemoryUsageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   getMemoryUsageBuffer(): { usage: number } {
@@ -226,8 +241,8 @@ export class AdminController {
   }
 
   @Get('memory/stats/line')
-  @UseGuards(JwtAuthGuard, AdminGuard)
   @ApiSecurity('t')
+  @ScopesR(['admin:memory-usage'])
   @ApiOkResponse({ type: [SerieLineChartResp] })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   getMemorystats(): StatsLineChart {
@@ -235,8 +250,8 @@ export class AdminController {
   }
 
   @Get('cpu-usage')
-  @UseGuards(JwtAuthGuard, AdminGuard)
   @ApiSecurity('t')
+  @ScopesR(['admin:memory-usage'])
   @ApiOkResponse({ type: CPUUsageResp })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   getCpuUsage(): { usage: number } {
@@ -244,8 +259,8 @@ export class AdminController {
   }
 
   @Get('logs/stats/:group/line/:time')
-  @UseGuards(JwtAuthGuard, AdminGuard)
   @ApiSecurity('t')
+  @ScopesR(['admin:activity-read'])
   @ApiOkResponse({ type: [SerieLineChartResp] })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiParam({ name: 'group', enum: ['status', 'action', 'reason'], required: true })
@@ -255,8 +270,8 @@ export class AdminController {
   }
 
   @Get('logs/list')
-  @UseGuards(JwtAuthGuard, AdminGuard)
   @ApiSecurity('t')
+  @ScopesR(['admin:activity-read'])
   @ApiQuery({ name: 'page', type: Number, required: true, example: 1 })
   @ApiOkResponse({ type: [SharedFileActivityResp] })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -265,8 +280,8 @@ export class AdminController {
   }
 
   @Get('logs/pages')
-  @UseGuards(JwtAuthGuard, AdminGuard)
   @ApiSecurity('t')
+  @ScopesR(['admin:activity-read'])
   @ApiOkResponse({ type: PagesResp })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async getLogsPages(): Promise<{ pages: number }> {

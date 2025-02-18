@@ -75,6 +75,7 @@ export class AuthController {
   @HttpCode(200)
   @UseGuards(JwtAuthGuard)
   @ApiSecurity('t')
+  @ScopesR(['auth:delete-sessions'])
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async revokeSession(@Request() req, @Param('sessionId') sessionId: string): Promise<MessageResponseI> {
@@ -85,6 +86,7 @@ export class AuthController {
   @Post('apikeys')
   @UseGuards(JwtAuthGuard, ApiKeyGuard)
   @ApiSecurity('t')
+  @ScopesR(['auth:create-api-keys'])
   @ApiCreatedResponse({ type: AuthResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async createApiKey(@Request() req, @Body() body: ApiKeyNameDto): Promise<AuthResponseI> {
@@ -95,6 +97,7 @@ export class AuthController {
   @Patch('apikeys/:id')
   @UseGuards(JwtAuthGuard, ApiKeyGuard)
   @ApiSecurity('t')
+  @ScopesR(['auth:edit-api-keys'])
   @ApiOkResponse({ type: AuthResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async updateApiKey(@Request() req, @Body() body: ApiKeyEditScopesDto, @Param('id') id: string): Promise<MessageResponseI> {
@@ -116,6 +119,7 @@ export class AuthController {
   @Get('sessions')
   @UseGuards(JwtAuthGuard)
   @ApiSecurity('t')
+  @ScopesR(['auth:read-sessions'])
   @ApiOkResponse({ type: SessionsResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async getSessions(@Request() req): Promise<SessionsResponseI> {
@@ -126,6 +130,7 @@ export class AuthController {
   @Get('apikeys')
   @UseGuards(JwtAuthGuard)
   @ApiSecurity('t')
+  @ScopesR(['auth:read-api-keys'])
   @ApiOkResponse({ type: ApiKeysResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async getApiKeys(@Request() req): Promise<ApiKeysResponseI> {

@@ -19,10 +19,13 @@ export type Scope =
   | 'admin:users'
   | 'admin:activity-read'
   | 'admin:memory-usage'
+  | 'admin:manage-options'
+  | 'admin:stats'
   | 'auth:read-api-keys'
   | 'auth:create-api-keys'
   | 'auth:read-sessions'
   | 'auth:delete-sessions'
+  | 'auth:edit-api-keys'
   | 'npr';
 
 export interface Session {
