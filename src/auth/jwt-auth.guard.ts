@@ -21,18 +21,26 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
 
   isAllowedApiKey(apiScopes: Scope[], requiredScopes: Scope[]): boolean {
     const allowedScopes = requiredScopes.filter((scope) => apiScopes.includes(scope));
-    console.log(allowedScopes);
     return allowedScopes.length > 0;
+  }
+
+  evalAdmin(requireAdmin: boolean, isUserAdmin: boolean): boolean {
+    if (requireAdmin) {
+      return !isUserAdmin;
+    } else {
+      return false;
+    }
   }
 
   async canActivate(context: ExecutionContext) {
     const requiredScopes = this.reflector.get<Scope[]>('scopesR', context.getHandler()) || [];
+    const requireAdmin = this.reflector.get<boolean>('adminR', context.getHandler()) || false;
     await super.canActivate(context);
     const request = this.getRequest(context);
 
     const sessionInfo = await this.sessionsService.validateSession(request.user.sessionId);
     if (sessionInfo.type === 'api') {
-      if (!this.isAllowedApiKey(['npr', ...sessionInfo.scopes], requiredScopes)) {
+      if (!this.isAllowedApiKey(['npr', ...sessionInfo.scopes], requiredScopes) && this.evalAdmin(requireAdmin, sessionInfo.isadmin)) {
         throw new UnauthorizedException();
       }
     }

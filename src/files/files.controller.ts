@@ -78,6 +78,7 @@ export class FilesController {
 
   @Get('/stats/type')
   @ApiSecurity('t')
+  @ScopesR(['files:read'])
   @ApiOkResponse({ type: [UsedSpaceTypeResp] })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async userStats(@Request() req): Promise<UsedSpaceType[]> {
