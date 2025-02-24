@@ -129,6 +129,7 @@ export class AuthService {
       throw new NotFoundException('api key not found');
     }
     await this.sessionsService.editApiKeyScopes(id, scopes);
+    this.system.emitChangeSessions(user.userId);
     return { message: 'api key updated' }
   }
 
