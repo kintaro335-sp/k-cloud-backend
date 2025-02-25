@@ -129,6 +129,7 @@ export class AuthService {
       throw new NotFoundException('api key not found');
     }
     await this.sessionsService.editApiKeyScopes(id, scopes);
+    this.sessionsService.invalidateSessionById(id);
     this.system.emitChangeSessions(user.userId);
     return { message: 'api key updated' }
   }
@@ -260,6 +261,7 @@ export class AuthService {
       throw new BadRequestException('Usuario no existe');
     }
     await this.usersService.update({ id: userId }, { isadmin: admin });
+    this.sessionsService.invalidateSessionsByUserId(userId);
     this.system.emitChangeUsersUpdates();
     return { message: 'user type changed' };
   }

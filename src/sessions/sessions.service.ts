@@ -99,6 +99,21 @@ export class SessionsService implements OnModuleInit {
     }
   }
 
+  invalidateSessionsByUserId(userId: string) {
+    Object.keys(this.sessionsCache).forEach((key) => {
+      const session = this.sessionsCache[key];
+      if (session.userid === userId) {
+        delete this.sessionsCache[key];
+      }
+    });
+  }
+
+  invalidateSessionById(sessionId: string) {
+    try {
+      delete this.sessionsCache[sessionId];
+    } catch (error) {}
+  }
+
   createSesionId() {
     return uuidv4();
   }
