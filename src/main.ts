@@ -11,7 +11,6 @@ import { AppModule } from './app.module';
 import { AppClusterService } from './app-cluster.service';
 import * as compression from 'compression';
 import * as cookieParser from 'cookie-parser';
-import * as csurf from 'csurf';
 import whiteList from './cors';
 const cluster = process.env.APP_CLUSTER;
 
@@ -35,8 +34,11 @@ async function bootstrap() {
   await app.listen(5000);
 }
 
-if (cluster === '1') {
-  AppClusterService.clustersize(bootstrap);
-} else {
-  bootstrap();
-}
+// if (cluster === '1') {
+//   AppClusterService.clustersize(bootstrap);
+// } else {
+//   bootstrap();
+// }
+
+bootstrap();
+

@@ -23,12 +23,25 @@ import {
   Body,
   Query,
   ParseIntPipe,
+  ParseBoolPipe,
   HttpStatus,
   HttpCode,
   ForbiddenException
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
-import { ApiTags, ApiOkResponse, ApiCreatedResponse, ApiNotFoundResponse, ApiBadRequestResponse, ApiUnauthorizedResponse, ApiParam, ApiQuery, ApiSecurity, ApiConsumes, ApiBody,  } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOkResponse,
+  ApiCreatedResponse,
+  ApiNotFoundResponse,
+  ApiBadRequestResponse,
+  ApiUnauthorizedResponse,
+  ApiParam,
+  ApiQuery,
+  ApiSecurity,
+  ApiConsumes,
+  ApiBody
+} from '@nestjs/swagger';
 // swagger
 import { FileListResponse, FileResponse } from './responses/fileList.resp';
 import { UsedSpaceTypeResp } from './responses/usedSpaceType.resp';
@@ -184,15 +197,23 @@ export class FilesController {
   @ApiCreatedResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
-  async initializeFile(@Param() path: Record<any, string>, @Body() body: FileInitDTO, @Request() req): Promise<MessageResponseI> {
+  async initializeFile(
+    @Param() path: Record<any, string>,
+    @Body() body: FileInitDTO,
+    @Query('overwrite', new ParseBoolPipe({ optional: true, errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) overwrite = false,
+    @Request() req
+  ): Promise<MessageResponseI> {
     const pathString = this.utils.processPath(path);
     const userId = req.user.userId;
     const pathStringC = join(userId, pathString);
     if (this.storageService.existsFile(pathStringC)) {
       throw new ForbiddenException('Archivo ya inicializado');
     }
-    if (await this.filesService.exists(pathString, req.user)) {
+    if ((await this.filesService.exists(pathString, req.user)) && !overwrite) {
       throw new BadRequestException('archivo ya existe');
+    }
+    if (overwrite) {
+      await this.filesService.deleteFile(pathString, req.user);
     }
     this.storageService.createFileTemp(pathStringC, body.size, req.user, pathString);
     await this.filesService.reservateFileSpace(pathString, req.user, body.size);
