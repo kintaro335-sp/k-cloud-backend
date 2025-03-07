@@ -55,27 +55,27 @@ export class SharedFileController {
   ) {}
 
   @UseGuards(JwtAuthGuard)
-  @Post('share/*')
+  @Post('share/*path')
   @ApiSecurity('t')
   @ScopesR(['tokens:create'])
   @ApiParam({ name: 'path', type: String })
   @ApiCreatedResponse({ type: SharedFileIdResp })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiNotFoundResponse({ type: ErrorResponse })
-  async share(@Param() path: Record<any, string>, @Body() body: ShareFileDTO, @Request() req) {
+  async share(@Param('path') path: Record<any, string>, @Body() body: ShareFileDTO, @Request() req) {
     const pathString = this.utils.processPath(path);
     return this.SFService.share(pathString, req.user, body);
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post('sharemf/*')
+  @Post('sharemf/*path')
   @ApiSecurity('t')
   @ScopesR(['tokens:create'])
   @ApiParam({ name: 'path', type: String })
   @ApiCreatedResponse({ type: [String] })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
-  async shareFiles(@Param() path: string[], @Body() body: ShareFilesDTO, @Request() req) {
+  async shareFiles(@Param('path') path: string[], @Body() body: ShareFilesDTO, @Request() req) {
     const pathString = Object.keys(path)
       .map((key) => path[key])
       .join('/');
@@ -108,12 +108,12 @@ export class SharedFileController {
   }
 
   @UseGuards(ExpireGuard)
-  @Get('zip/:id/*')
+  @Get('zip/:id/*path')
   @ApiParam({ name: 'id', type: String })
-  @ApiParam({ name: '*', type: String })
+ @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: StreamableFile })
   @ApiNotFoundResponse({ type: ErrorResponse })
-  async downloadAsAZipRoute(@Param('id') id: string, @Param() path: Record<any, string>, @Response({ passthrough: true }) res) {
+  async downloadAsAZipRoute(@Param('id') id: string, @Param('path') path: Record<any, string>, @Response({ passthrough: true }) res) {
     const pathString = this.utils.processPath(path);
     const fileName = pathString.split('/').pop();
     const streamFile = await this.SFService.downloadAsZipContent(id, pathString);
@@ -174,16 +174,16 @@ export class SharedFileController {
   }
 
 
-  @Get('content/:id/*')
+  @Get('content/:id/*path')
   @UseGuards(ExpireGuard)
   @ApiParam({ name: 'id', type: String })
-  @ApiParam({ name: '*', type: String })
+ @ApiParam({ name: 'path', type: String })
   @ApiQuery({ name: 'd', type: Number, required: false, enum: [0, 1] })
   @ApiOkResponse({ schema: { type: 'string', format: 'binary' } })
   @ApiNotFoundResponse({ type: ErrorResponse })
   async getSFcontentPath(
     @Param('id') id: string,
-    @Param() path: Record<any, string>,
+    @Param('path') path: Record<any, string>,
     @Response({ passthrough: true }) res,
     @Query('d') downloadOpc: number
   ) {
@@ -207,7 +207,7 @@ export class SharedFileController {
     }
   }
   
-  @Delete('tokens/path/*')
+  @Delete('tokens/path/*path')
   @UseGuards(JwtAuthGuard)
   @ApiSecurity('t')
   @ScopesR(['tokens:delete'])
@@ -215,19 +215,19 @@ export class SharedFileController {
   @ApiNotFoundResponse({ type: ErrorResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
-  async deleteTokensPath(@Param() path: Record<any, string>, @Request() req) {
+  async deleteTokensPath(@Param('path') path: Record<any, string>, @Request() req) {
     const pathString = this.utils.processPath(path);
     return this.SFService.removeTokensByPath(pathString, req.user);
   }
 
-  @Get('tokens/path/*')
+  @Get('tokens/path/*path')
   @UseGuards(JwtAuthGuard)
   @ApiSecurity('t')
   @ScopesR(['tokens:read'])
-  @ApiParam({ name: '*', type: String })
+ @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: [TokenElementResp] })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
-  async getTokensByPath(@Param() path: Record<any, string>, @Request() req, @Response({ passthrough: true }) res) {
+  async getTokensByPath(@Param('path') path: Record<any, string>, @Request() req, @Response({ passthrough: true }) res) {
     res.set({
       'Cache-Control': 'no-store'
     });
@@ -340,18 +340,18 @@ export class SharedFileController {
   }
 
   @UseGuards(JwtAuthGuard, OwnerShipGuard)
-  @Get('tokens/user/content/:id/*')
+  @Get('tokens/user/content/:id/*path')
   @ApiSecurity('t')
   @ScopesR(['tokens:read'])
   @ApiParam({ name: 'id', type: String })
-  @ApiParam({ name: '*', type: String })
+ @ApiParam({ name: 'path', type: String })
   @ApiQuery({ name: 'd', type: Number, enum: [0, 1], required: false })
   @ApiOkResponse({ schema: { type: 'string', format: 'binary' } })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiNotFoundResponse({ type: ErrorResponse })
   async getSFcontentUserPath(
     @Param('id') id: string,
-    @Param() path: Record<string, any>,
+    @Param('path') path: Record<string, any>,
     @Response({ passthrough: true }) res,
     @Query('d') downloadOpc: number
   ) {

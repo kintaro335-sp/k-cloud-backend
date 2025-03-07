@@ -7,6 +7,7 @@
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ServeStaticModule } from '@nestjs/serve-static';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { FilesModule } from './files/files.module';
@@ -28,13 +29,22 @@ import { LoggerMiddleware } from './middlewares/logger.middleware';
 import { LogsModule } from './logs/logs.module';
 import { MonitorModule } from './monitor/monitor.module';
 
+const serveStaticDir = process.env.SERVE_CLIENT;
+const serveStatic = Boolean(process.env.SERVE_CLIENT);
+
+function loadSerStaticModule() {
+  if (!serveStatic) return [];
+  return [ServeStaticModule.forRoot({ rootPath: serveStaticDir })];
+}
+
 @Module({
   imports: [
+    ...loadSerStaticModule(),
     FilesModule,
     ConfigModule.forRoot({ isGlobal: true }),
     JwtModule.register({
       secret: jwtConstants.secret,
-      signOptions: {  },
+      signOptions: {},
       global: true,
       verifyOptions: { algorithms: ['HS256'] }
     }),
@@ -53,10 +63,10 @@ import { MonitorModule } from './monitor/monitor.module';
     WebSocketModule
   ],
   controllers: [AppController],
-  providers: [AppService, ConfigService],
+  providers: [AppService, ConfigService]
 })
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
-    consumer.apply(LoggerMiddleware).forRoutes('/shared-file/*');
+    consumer.apply(LoggerMiddleware).forRoutes('/shared-file/*path');
   }
 }

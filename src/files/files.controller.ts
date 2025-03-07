@@ -111,13 +111,13 @@ export class FilesController {
     return { list: [] };
   }
 
-  @Get('/list/*')
+  @Get('/list/*path')
   @ApiSecurity('t')
   @ScopesR(['files:read'])
-  @ApiParam({ name: '*', type: String })
+  @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: FileListResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
-  async getFiles(@Param() path: Record<any, string>, @Response({ passthrough: true }) res, @Request() req, @Query('d') downloadOpc) {
+  async getFiles(@Param('path') path: Record<any, string>, @Response({ passthrough: true }) res, @Request() req, @Query('d') downloadOpc) {
     const pathString = this.utils.processPath(path);
 
     if (await this.filesService.isDirectoryUser(pathString, req.user)) {
@@ -136,24 +136,24 @@ export class FilesController {
     return new StreamableFile(await this.filesService.getFile(pathString, req.user));
   }
 
-  @Get('/properties/*')
+  @Get('/properties/*path')
   @ApiSecurity('t')
   @ScopesR(['files:read'])
   @ApiOkResponse({ type: FileResponse })
-  async getFileProperties(@Param() path: Record<any, string>, @Request() req) {
+  async getFileProperties(@Param('path') path: Record<any, string>, @Request() req) {
     const pathString = this.utils.processPath(path);
 
     return this.filesService.getFileProperties(pathString, req.user);
   }
 
-  @Post('/folder/*')
+  @Post('/folder/*path')
   @ApiSecurity('t')
   @ScopesR(['files:create'])
-  @ApiParam({ name: '*', type: String })
+ @ApiParam({ name: 'path', type: String })
   @ApiCreatedResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
-  async createFolder(@Param() path: Record<any, string>, @Request() req) {
+  async createFolder(@Param('path') path: Record<any, string>, @Request() req) {
     const pathString = this.utils.processPath(path);
     if (!(await this.filesService.exists(pathString, req.user))) {
       return this.filesService.createFolder(pathString, req.user);
@@ -161,17 +161,17 @@ export class FilesController {
     throw new BadRequestException('diretorio ya existe');
   }
 
-  @Post('upload/*')
+  @Post('upload/*path')
   @ApiSecurity('t')
   @ScopesR(['files:create'])
-  @ApiParam({ name: '*', type: String })
+ @ApiParam({ name: 'path', type: String })
   @ApiCreatedResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
   @ApiConsumes('multipart/form-data')
   @ApiBody({ schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } } } })
   @UseInterceptors(FilesInterceptor('file', 1, { limits: { fileSize: 104857600 } }))
-  async uploadFile(@Param() path: Record<any, string>, @Request() req, @UploadedFiles() file: Array<Express.Multer.File>) {
+  async uploadFile(@Param('path') path: Record<any, string>, @Request() req, @UploadedFiles() file: Array<Express.Multer.File>) {
     const pathString = this.utils.processPath(path);
     return this.filesService.createFile(pathString, file[0], req.user);
   }
@@ -189,16 +189,16 @@ export class FilesController {
     return this.filesService.createFile('', file[0], req.user);
   }
 
-  @Post('initialize/*')
+  @Post('initialize/*path')
   @UseGuards(SpaceGuard)
   @ApiSecurity('t')
   @ScopesR(['files:create'])
-  @ApiParam({ name: '*', type: String })
+ @ApiParam({ name: 'path', type: String })
   @ApiCreatedResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
   async initializeFile(
-    @Param() path: Record<any, string>,
+    @Param('path') path: Record<any, string>,
     @Body() body: FileInitDTO,
     @Query('overwrite', new ParseBoolPipe({ optional: true, errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) overwrite = false,
     @Request() req
@@ -220,10 +220,10 @@ export class FilesController {
     return { message: 'Inicializado' };
   }
 
-  @Post('write/*')
+  @Post('write/*path')
   @ApiSecurity('t')
   @ScopesR(['files:create'])
-  @ApiParam({ name: '*', type: String })
+ @ApiParam({ name: 'path', type: String })
   @ApiCreatedResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
@@ -231,7 +231,7 @@ export class FilesController {
   @ApiBody({ schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } } } })
   @UseInterceptors(FilesInterceptor('file'))
   async reciveBlob(
-    @Param() path: Record<any, string>,
+    @Param('path') path: Record<any, string>,
     @UploadedFiles() files: Array<Express.Multer.File>,
     @Request() req,
     @Query('pos', new ParseIntPipe({ errorHttpStatusCode: HttpStatus.NOT_ACCEPTABLE })) position: number
@@ -250,15 +250,15 @@ export class FilesController {
     throw new NotFoundException('Archivo no encontrado');
   }
 
-  @Post('close/*')
+  @Post('close/*path')
   @HttpCode(200)
   @ApiSecurity('t')
   @ScopesR(['files:create'])
-  @ApiParam({ name: '*', type: String })
+ @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
-  async closeFile(@Param() path: Record<any, string>, @Request() req) {
+  async closeFile(@Param('path') path: Record<any, string>, @Request() req) {
     const pathString = this.utils.processPath(path);
     const userId = req.user.userId;
     const pathStringC = join(userId, pathString);
@@ -269,14 +269,14 @@ export class FilesController {
     return { message: 'not found' };
   }
 
-  @Get('/status/*')
+  @Get('/status/*path')
   @ApiSecurity('t')
   @ScopesR(['files:read'])
-  @ApiParam({ name: '*', type: String })
+ @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: FileTempResp })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiNotFoundResponse({ type: ErrorResponse })
-  async getFileStatusUpload(@Param() path: Record<any, string>, @Request() req): Promise<FilePTempResponse> {
+  async getFileStatusUpload(@Param('path') path: Record<any, string>, @Request() req): Promise<FilePTempResponse> {
     const pathString = this.utils.processPath(path);
     const userId = req.user.userId;
     const pathStringC = join(userId, pathString);
@@ -287,36 +287,36 @@ export class FilesController {
     return this.storageService.getFileStatus(pathStringC);
   }
 
-  @Delete('/*')
+  @Delete('/*path')
   @ApiSecurity('t')
   @ScopesR(['files:delete'])
-  @ApiParam({ name: '*', type: String })
+ @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiNotFoundResponse({ type: ErrorResponse })
-  async deleteFile(@Param() path: Record<any, string>, @Request() req) {
+  async deleteFile(@Param('path') path: Record<any, string>, @Request() req) {
     const pathString = this.utils.processPath(path);
     return this.filesService.deleteFile(pathString, req.user);
   }
 
-  @Patch('deletemp/*')
+  @Patch('deletemp/*path')
   @ApiSecurity('t')
   @ScopesR(['files:delete'])
-  @ApiParam({ name: '*', type: String })
+ @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
-  async deleteFiles(@Param() path: Record<any, string>, @Body() body: DeleteFilesDTO, @Request() req) {
+  async deleteFiles(@Param('path') path: Record<any, string>, @Body() body: DeleteFilesDTO, @Request() req) {
     const pathString = this.utils.processPath(path);
     return this.filesService.deleteFiles(pathString, body.files, req.user);
   }
 
-  @Get('exists/*')
+  @Get('exists/*path')
   @ApiSecurity('t')
   @ScopesR(['files:read'])
-  @ApiParam({ name: '*', type: String })
+ @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: ExistFileResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
-  async existsFile(@Param() path: Record<any, string>, @Request() req) {
+  async existsFile(@Param('path') path: Record<any, string>, @Request() req) {
     const pathString = this.utils.processPath(path);
     const exists = await this.filesService.exists(pathString, req.user);
     return { exists };
@@ -360,13 +360,13 @@ export class FilesController {
     return { message: 'Updating Tree' };
   }
 
-  @Get('/tree/*')
+  @Get('/tree/*path')
   @ApiSecurity('t')
   @ScopesR(['files:read'])
-  @ApiParam({ name: '*', type: String })
+ @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
-  async GetTree(@Param() path: Record<any, string>, @Request() req): Promise<File | Folder> {
+  async GetTree(@Param('path') path: Record<any, string>, @Request() req): Promise<File | Folder> {
     const pathString = this.utils.processPath(path);
     const tree = await this.filesService.GenerateTree(pathString, req.user, false, false);
     if (tree.type === 'Folder') {
@@ -376,14 +376,14 @@ export class FilesController {
     }
   }
 
-  @Get('zip/*')
+  @Get('zip/*path')
   @ApiSecurity('t')
   @ScopesR(['files:read'])
-  @ApiParam({ name: '*', type: String })
+ @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: StreamableFile })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiNotFoundResponse({ type: ErrorResponse })
-  async DownloadZipFile(@Param() path: string[], @Request() req, @Response({ passthrough: true }) res) {
+  async DownloadZipFile(@Param('path') path: string[], @Request() req, @Response({ passthrough: true }) res) {
     const pathString = Object.keys(path)
       .map((key) => path[key])
       .join('/');
@@ -396,43 +396,43 @@ export class FilesController {
     return new StreamableFile(streamZip);
   }
 
-  @Post('rename/*')
+  @Post('rename/*path')
   @HttpCode(200)
   @ApiSecurity('t')
   @ScopesR(['files:rename'])
-  @ApiParam({ name: '*', type: String })
+ @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiNotFoundResponse({ type: ErrorResponse })
-  async renameFile(@Param() path: string[], @Request() req, @Body() body: RenameDTO) {
+  async renameFile(@Param('path') path: string[], @Request() req, @Body() body: RenameDTO) {
     const pathString = Object.keys(path)
       .map((key) => path[key])
       .join('/');
     return this.filesService.renameFile(pathString, body.newName, req.user);
   }
 
-  @Post('move/file/*')
+  @Post('move/file/*path')
   @HttpCode(200)
   @ApiSecurity('t')
   @ScopesR(['files:move'])
-  @ApiParam({ name: '*', type: String })
+ @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
-  async moveFileFolder(@Param() path: string[], @Request() req, @Body() body: MoveFileDTO) {
+  async moveFileFolder(@Param('path') path: string[], @Request() req, @Body() body: MoveFileDTO) {
     const pathString = Object.keys(path)
       .map((key) => path[key])
       .join('/');
     return this.filesService.moveFileFolder(pathString, body.newpath, req.user);
   }
 
-  @Post('move/files/*')
+  @Post('move/files/*path')
   @HttpCode(200)
   @ApiSecurity('t')
   @ScopesR(['files:move'])
-  @ApiParam({ name: '*', type: String })
+ @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
-  async moveFiles(@Param() path: string[], @Request() req, @Body() body: MoveFilesDTO) {
+  async moveFiles(@Param('path') path: string[], @Request() req, @Body() body: MoveFilesDTO) {
     const pathString = Object.keys(path)
       .map((key) => path[key])
       .join('/');

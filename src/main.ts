@@ -13,6 +13,7 @@ import * as compression from 'compression';
 import * as cookieParser from 'cookie-parser';
 import whiteList from './cors';
 const cluster = process.env.APP_CLUSTER;
+const serveStatic = Boolean(process.env.SERVE_CLIENT)
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -30,6 +31,9 @@ async function bootstrap() {
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('/docs', app, document);
+  if(serveStatic) {
+    app.setGlobalPrefix('/api')
+  }
 
   await app.listen(5000);
 }
