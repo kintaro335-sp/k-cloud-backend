@@ -6,12 +6,12 @@
 
 import { Module } from '@nestjs/common';
 import { TreeFilesService } from './treeFiles.service';
-import { PrismaService } from '../prisma.service';
+import { PrismaModule } from 'src/prisma.module';
 import { UtilsModule } from 'src/utils/utils.module';
 
 @Module({
-  imports: [UtilsModule],
-  providers: [TreeFilesService, PrismaService],
+  imports: [UtilsModule, PrismaModule],
+  providers: [TreeFilesService],
   controllers: [],
   exports: [TreeFilesService]
 })

@@ -12,7 +12,6 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { FilesModule } from './files/files.module';
 import { UsersModule } from './users/users.module';
-import { PrismaService } from './prisma.service';
 import { AuthModule } from './auth/auth.module';
 import { AdminModule } from './admin/admin.module';
 import { TempStorageModule } from './temp-storage/temp-storage.module';
@@ -24,10 +23,10 @@ import { JwtModule } from '@nestjs/jwt';
 import { jwtConstants } from './auth/constants';
 import { WebSocketModule } from './websockets/websocket.module';
 import { SessionsModule } from './sessions/sessions.module';
+import { MonitorModule } from './monitor/monitor.module';
+import { LogsModule } from './logs/logs.module';
 // middlewares
 import { LoggerMiddleware } from './middlewares/logger.middleware';
-import { LogsModule } from './logs/logs.module';
-import { MonitorModule } from './monitor/monitor.module';
 
 const serveStaticDir = process.env.SERVE_CLIENT;
 const serveStatic = Boolean(process.env.SERVE_CLIENT);
