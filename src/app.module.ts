@@ -25,6 +25,7 @@ import { WebSocketModule } from './websockets/websocket.module';
 import { SessionsModule } from './sessions/sessions.module';
 import { MonitorModule } from './monitor/monitor.module';
 import { LogsModule } from './logs/logs.module';
+import { PrismaModule } from './prisma.module';
 // middlewares
 import { LoggerMiddleware } from './middlewares/logger.middleware';
 
@@ -39,6 +40,7 @@ function loadSerStaticModule() {
 @Module({
   imports: [
     ...loadSerStaticModule(),
+    PrismaModule,
     FilesModule,
     ConfigModule.forRoot({ isGlobal: true }),
     JwtModule.register({
