@@ -15,13 +15,13 @@ import { ActionT, statusT, reasonT } from '../logs/interfaces/sharedfileActivity
 
 @Injectable()
 export class LoggerMiddleware implements NestMiddleware {
+  private apiPrefix = Boolean(process.env.SERVE_CLIENT) ? '/api' : '';
+
   constructor(private readonly logServ: LogsService) {}
 
-  private processPath(path: Record<string, string>) {
-    const pathString = Object.keys(path)
-      .filter((v) => v !== 'id')
-      .map((key) => path[key])
-      .join('/');
+  private processPath(path: string[] | undefined) {
+    if (path === undefined) return '';
+    const pathString = path.join('/');
     return pathString;
   }
 
@@ -73,7 +73,14 @@ export class LoggerMiddleware implements NestMiddleware {
     const params = req.params;
     const method = req.method;
     const route = req.route.path as string;
-    if (!['/shared-file/content/:id', '/shared-file/content/:id/*', '/shared-file/zip/:id', '/shared-file/zip/:id/*'].includes(route)) {
+    if (
+      ![
+        `${this.apiPrefix}/shared-file/content/:id`,
+        `${this.apiPrefix}/shared-file/content/:id/*path`,
+        `${this.apiPrefix}/shared-file/zip/:id`,
+        `${this.apiPrefix}/shared-file/zip/:id/*path`
+      ].includes(route)
+    ) {
       return;
     }
     if (method === 'PATCH') {
@@ -83,7 +90,8 @@ export class LoggerMiddleware implements NestMiddleware {
       return;
     }
     const tokenid = params.id || '';
-    const path = this.processPath(params);
+    // @ts-ignore
+    const path = this.processPath(params.path);
     const action = this.getAction(method, route, Number(req.query.d));
     const status = this.getStatus(res.statusCode);
     const reason = this.getReason(res.statusCode, route);
