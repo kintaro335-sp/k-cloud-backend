@@ -177,7 +177,7 @@ export class SharedFileController {
   @Get('content/:id/*path')
   @UseGuards(ExpireGuard)
   @ApiParam({ name: 'id', type: String })
- @ApiParam({ name: 'path', type: String })
+  @ApiParam({ name: 'path', type: String })
   @ApiQuery({ name: 'd', type: Number, required: false, enum: [0, 1] })
   @ApiOkResponse({ schema: { type: 'string', format: 'binary' } })
   @ApiNotFoundResponse({ type: ErrorResponse })
