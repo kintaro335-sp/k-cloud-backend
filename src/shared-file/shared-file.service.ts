@@ -76,10 +76,13 @@ export class SharedFileService {
     if (!this.filesService.exists(path, user)) {
       throw new NotFoundException('File or Folder not Found');
     }
-    const uuid = this.utilsServ.createIDSF();
+    let uuid = Boolean(metadata.id) ? metadata.id : this.utilsServ.createIDSF();
     const isFolder = await this.filesService.isDirectoryUser(path, user);
     const nameF = await this.getFName(path, user);
     const expires = new Date(metadata.expire);
+    if (Boolean(metadata.id) && (await this.tokenService.existsTokenById(metadata.id))) {
+      uuid = user.userId + '-' + uuid;
+    }
     await this.tokenService.addSharedFile({
       id: uuid,
       createdAt: new Date(),
@@ -105,7 +108,7 @@ export class SharedFileService {
     }
 
     const realPath = join(SFReg.userid, SFReg.path);
-    const exists = await this.filesService.exists(SFReg.path, { sessionId: '',  isadmin: true, userId: SFReg.userid, username: '' });
+    const exists = await this.filesService.exists(SFReg.path, { sessionId: '', isadmin: true, userId: SFReg.userid, username: '' });
     if (!exists) {
       this.tokenService.removeSharedFile(id);
       this.system.emitChangeTokenEvent({ path: SFReg.path, userId: SFReg.userid });
