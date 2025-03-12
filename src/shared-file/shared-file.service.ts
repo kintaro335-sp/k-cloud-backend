@@ -81,7 +81,7 @@ export class SharedFileService {
     const nameF = await this.getFName(path, user);
     const expires = new Date(metadata.expire);
     if (Boolean(metadata.id) && (await this.tokenService.existsTokenById(metadata.id))) {
-      uuid = user.userId + '-' + uuid;
+      uuid = user.username + '-' + uuid;
     }
     await this.tokenService.addSharedFile({
       id: uuid,
