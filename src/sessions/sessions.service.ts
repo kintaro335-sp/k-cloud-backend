@@ -232,6 +232,25 @@ export class SessionsService implements OnModuleInit {
     }
   }
 
+  private async revenueSession(sessionId: string, newExpirationDate: Date) {
+    if (this.sessionsCache[sessionId] !== undefined) {
+      this.sessionsCache[sessionId].expire = newExpirationDate;
+    }
+    while (true) {
+      try {
+        return this.prisma.sessions.update({ data: { expire: newExpirationDate }, where: { id: sessionId } });
+      } catch (_err) {}
+    }
+  }
+
+  private async checkSessionExpiration(sessionId: string, expirationDate: Date, today: Date) {
+    const diferenceHours = dayjs(expirationDate).diff(dayjs(today), 'hour');
+    if (diferenceHours < 24) {
+      const newExpirationDate = dayjs(expirationDate).add(this.expireInNum, this.expireInType).toDate();
+      await this.revenueSession(sessionId, newExpirationDate);
+    }
+  }
+
   async validateSession(sessionId: string, websocket = false): Promise<SessionCache> {
     const session = await this.retrieveSession(sessionId);
 
@@ -254,6 +273,7 @@ export class SessionsService implements OnModuleInit {
       const newDate = new Date();
       this.sessionsCache[sessionId].lastUsed = newDate;
     }
+    await this.checkSessionExpiration(sessionId, session.expire, today);
     return session;
   }
 
