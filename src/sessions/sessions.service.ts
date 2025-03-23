@@ -16,7 +16,7 @@ import { InvalidSessionError } from './errors/invalidsession.error';
 // interfaces
 import { Sessions } from '@prisma/client';
 import { JWTPayload, UserPayload } from 'src/auth/interfaces/userPayload.interface';
-import { Session, SessionCache, SessionType } from './interfaces/session.interface';
+import { Scope, Session, SessionCache, SessionType } from './interfaces/session.interface';
 // misc
 import { v4 as uuidv4 } from 'uuid';
 import * as dayjs from 'dayjs';
@@ -40,11 +40,11 @@ export class SessionsService implements OnModuleInit {
 
   private expireInType: dayjs.ManipulateType = 'day';
 
-  private expireInNum = 7
+  private expireInNum = 7;
 
-  private expireCacheType: dayjs.ManipulateType = 'hour'
+  private expireCacheType: dayjs.ManipulateType = 'hour';
 
-  private expireCacheNum = 1
+  private expireCacheNum = 1;
 
   onModuleInit() {
     const expireInStr = this.configService.get<string>('SESSION_EXPIRE');
@@ -70,7 +70,7 @@ export class SessionsService implements OnModuleInit {
   @Cron(CronExpression.EVERY_10_MINUTES)
   private cleanSessionsCache() {
     const now = dayjs().toDate();
-    
+
     Object.keys(this.sessionsCache).forEach((key) => {
       const session = this.sessionsCache[key];
       const expirationDateSession = dayjs(session.lastUsed).add(this.expireCacheNum, this.expireCacheType).toDate();
@@ -93,10 +93,25 @@ export class SessionsService implements OnModuleInit {
         }
       });
     } catch (error) {
-      if(error.code === 'P2025') {
+      if (error.code === 'P2025') {
         return;
       }
     }
+  }
+
+  invalidateSessionsByUserId(userId: string) {
+    Object.keys(this.sessionsCache).forEach((key) => {
+      const session = this.sessionsCache[key];
+      if (session.userid === userId) {
+        delete this.sessionsCache[key];
+      }
+    });
+  }
+
+  invalidateSessionById(sessionId: string) {
+    try {
+      delete this.sessionsCache[sessionId];
+    } catch (error) {}
   }
 
   createSesionId() {
@@ -111,7 +126,7 @@ export class SessionsService implements OnModuleInit {
   async createSession(sessionId: string, user: JWTPayload, device: string): Promise<Session> {
     const expireIn = this.generateExpireDate();
     const usern = await this.usersService.findOne({ id: user.userId }, { username: true, isadmin: true });
-    const newSession: Sessions  = {
+    const newSession: Sessions = {
       id: sessionId,
       name: usern.username,
       userid: user.userId,
@@ -119,7 +134,8 @@ export class SessionsService implements OnModuleInit {
       type: 'session',
       doesexpire: true,
       expire: expireIn,
-      device
+      device,
+      scopes: '[]'
     };
 
     while (true) {
@@ -127,12 +143,12 @@ export class SessionsService implements OnModuleInit {
         const sessionD = await this.prisma.sessions.create({
           data: newSession
         });
-        return { ...sessionD, type: sessionD.type as SessionType, isadmin: usern.isadmin };
+        return { ...sessionD, type: sessionD.type as SessionType, isadmin: usern.isadmin, scopes: JSON.parse(sessionD.scopes) as Scope[] };
       } catch (error) {}
     }
   }
 
-  async createApiKey(name: string, sessionId: string, user: JWTPayload, token: string) {
+  async createApiKey(name: string, sessionId: string, user: JWTPayload, token: string, scopes: Scope[] = []) {
     const usern = await this.usersService.findOne({ id: user.userId }, { username: true, isadmin: true });
     const newApiKey: Session = {
       id: sessionId,
@@ -144,12 +160,28 @@ export class SessionsService implements OnModuleInit {
       type: 'api',
       doesexpire: false,
       expire: new Date(),
-      device: 'none'
+      device: 'none',
+      scopes: scopes
     };
     while (true) {
       try {
         return this.prisma.sessions.create({
-          data: newApiKey
+          data: { ...newApiKey, scopes: JSON.stringify(scopes) }
+        });
+      } catch (error) {}
+    }
+  }
+
+  async editApiKeyScopes(sessionId: string, scopes: Scope[]) {
+    while (true) {
+      try {
+        return this.prisma.sessions.update({
+          where: {
+            id: sessionId
+          },
+          data: {
+            scopes: JSON.stringify(scopes)
+          }
         });
       } catch (error) {}
     }
@@ -170,7 +202,14 @@ export class SessionsService implements OnModuleInit {
         });
         if (session !== null) {
           const usern = await this.usersService.findOne({ id: session.userid }, { username: true, isadmin: true });
-          this.sessionsCache[sessionId] = { ...session, type: session.type as SessionType, lastUsed: new Date(), username: usern.username, isadmin: usern.isadmin };
+          this.sessionsCache[sessionId] = {
+            ...session,
+            type: session.type as SessionType,
+            lastUsed: new Date(),
+            username: usern.username,
+            isadmin: usern.isadmin,
+            scopes: JSON.parse(session.scopes) as Scope[]
+          };
         }
         return this.sessionsCache[sessionId];
       } catch (error) {}
@@ -190,6 +229,25 @@ export class SessionsService implements OnModuleInit {
           }
         });
       } catch (error) {}
+    }
+  }
+
+  private async revenueSession(sessionId: string, newExpirationDate: Date) {
+    if (this.sessionsCache[sessionId] !== undefined) {
+      this.sessionsCache[sessionId].expire = newExpirationDate;
+    }
+    while (true) {
+      try {
+        return this.prisma.sessions.update({ data: { expire: newExpirationDate }, where: { id: sessionId } });
+      } catch (_err) {}
+    }
+  }
+
+  private async checkSessionExpiration(sessionId: string, expirationDate: Date, today: Date) {
+    const diferenceHours = dayjs(expirationDate).diff(dayjs(today), 'hour');
+    if (diferenceHours < 24) {
+      const newExpirationDate = dayjs(expirationDate).add(this.expireInNum, this.expireInType).toDate();
+      await this.revenueSession(sessionId, newExpirationDate);
     }
   }
 
@@ -215,6 +273,7 @@ export class SessionsService implements OnModuleInit {
       const newDate = new Date();
       this.sessionsCache[sessionId].lastUsed = newDate;
     }
+    await this.checkSessionExpiration(sessionId, session.expire, today);
     return session;
   }
 
@@ -247,7 +306,8 @@ export class SessionsService implements OnModuleInit {
           select: {
             id: true,
             name: true,
-            token: true
+            token: true,
+            scopes: true
           },
           where: {
             userid: userId,

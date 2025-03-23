@@ -22,7 +22,7 @@ export class AppService {
   getAbout() {
     return {
       app: 'k-cloud-backend',
-      version: 'v1.2.0'
+      version: 'v1.3.0'
     };
   }
 }

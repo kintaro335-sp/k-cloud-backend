@@ -42,6 +42,8 @@ import { TokenFilesService } from '../token-files/token-files.service';
 import { contentType } from 'mime-types';
 import { TokensIdsDTO } from './dtos/tokensIds.dto';
 import { UtilsService } from '../utils/utils.service';
+// metadata
+import { ScopesR } from '../auth/decorators/scopesR.decorator';
 
 @Controller('shared-file')
 @ApiTags('Shared File')
@@ -53,25 +55,27 @@ export class SharedFileController {
   ) {}
 
   @UseGuards(JwtAuthGuard)
-  @Post('share/*')
+  @Post('share/*path')
   @ApiSecurity('t')
+  @ScopesR(['tokens:create'])
   @ApiParam({ name: 'path', type: String })
   @ApiCreatedResponse({ type: SharedFileIdResp })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiNotFoundResponse({ type: ErrorResponse })
-  async share(@Param() path: Record<any, string>, @Body() body: ShareFileDTO, @Request() req) {
+  async share(@Param('path') path: Record<any, string>, @Body() body: ShareFileDTO, @Request() req) {
     const pathString = this.utils.processPath(path);
     return this.SFService.share(pathString, req.user, body);
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post('sharemf/*')
+  @Post('sharemf/*path')
   @ApiSecurity('t')
+  @ScopesR(['tokens:create'])
   @ApiParam({ name: 'path', type: String })
   @ApiCreatedResponse({ type: [String] })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
-  async shareFiles(@Param() path: string[], @Body() body: ShareFilesDTO, @Request() req) {
+  async shareFiles(@Param('path') path: string[], @Body() body: ShareFilesDTO, @Request() req) {
     const pathString = Object.keys(path)
       .map((key) => path[key])
       .join('/');
@@ -80,6 +84,7 @@ export class SharedFileController {
 
   @UseGuards(ExpireGuard)
   @Get('info/:id')
+  @ApiParam({ name: 'id', type: String })
   @ApiOkResponse({ type: SharedFileInfoResp })
   @ApiNotFoundResponse({ type: ErrorResponse })
   async getSFInfo(@Param('id') id: string) {
@@ -103,12 +108,12 @@ export class SharedFileController {
   }
 
   @UseGuards(ExpireGuard)
-  @Get('zip/:id/*')
+  @Get('zip/:id/*path')
   @ApiParam({ name: 'id', type: String })
-  @ApiParam({ name: '*', type: String })
+ @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: StreamableFile })
   @ApiNotFoundResponse({ type: ErrorResponse })
-  async downloadAsAZipRoute(@Param('id') id: string, @Param() path: Record<any, string>, @Response({ passthrough: true }) res) {
+  async downloadAsAZipRoute(@Param('id') id: string, @Param('path') path: Record<any, string>, @Response({ passthrough: true }) res) {
     const pathString = this.utils.processPath(path);
     const fileName = pathString.split('/').pop();
     const streamFile = await this.SFService.downloadAsZipContent(id, pathString);
@@ -124,6 +129,7 @@ export class SharedFileController {
   @Delete('token/:id')
   @UseGuards(JwtAuthGuard, OwnerShipGuard)
   @ApiSecurity('t')
+  @ScopesR(['tokens:delete'])
   @ApiOkResponse({ type: MessageResponse })
   @ApiNotFoundResponse({ type: ErrorResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -133,6 +139,7 @@ export class SharedFileController {
 
   @Patch('token/delete')
   @UseGuards(JwtAuthGuard)
+  @ScopesR(['tokens:delete'])
   @ApiSecurity('t')
   @ApiOkResponse({ type: [String] })
   @ApiNotFoundResponse({ type: ErrorResponse })
@@ -167,16 +174,16 @@ export class SharedFileController {
   }
 
 
-  @Get('content/:id/*')
+  @Get('content/:id/*path')
   @UseGuards(ExpireGuard)
   @ApiParam({ name: 'id', type: String })
-  @ApiParam({ name: '*', type: String })
+  @ApiParam({ name: 'path', type: String })
   @ApiQuery({ name: 'd', type: Number, required: false, enum: [0, 1] })
   @ApiOkResponse({ schema: { type: 'string', format: 'binary' } })
   @ApiNotFoundResponse({ type: ErrorResponse })
   async getSFcontentPath(
     @Param('id') id: string,
-    @Param() path: Record<any, string>,
+    @Param('path') path: Record<any, string>,
     @Response({ passthrough: true }) res,
     @Query('d') downloadOpc: number
   ) {
@@ -200,25 +207,27 @@ export class SharedFileController {
     }
   }
   
-  @Delete('tokens/path/*')
+  @Delete('tokens/path/*path')
   @UseGuards(JwtAuthGuard)
   @ApiSecurity('t')
+  @ScopesR(['tokens:delete'])
   @ApiOkResponse({ type: MessageResponse })
   @ApiNotFoundResponse({ type: ErrorResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
-  async deleteTokensPath(@Param() path: Record<any, string>, @Request() req) {
+  async deleteTokensPath(@Param('path') path: Record<any, string>, @Request() req) {
     const pathString = this.utils.processPath(path);
     return this.SFService.removeTokensByPath(pathString, req.user);
   }
 
-  @Get('tokens/path/*')
+  @Get('tokens/path/*path')
   @UseGuards(JwtAuthGuard)
   @ApiSecurity('t')
-  @ApiParam({ name: '*', type: String })
+  @ScopesR(['tokens:read'])
+ @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: [TokenElementResp] })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
-  async getTokensByPath(@Param() path: Record<any, string>, @Request() req, @Response({ passthrough: true }) res) {
+  async getTokensByPath(@Param('path') path: Record<any, string>, @Request() req, @Response({ passthrough: true }) res) {
     res.set({
       'Cache-Control': 'no-store'
     });
@@ -249,6 +258,7 @@ export class SharedFileController {
   @Get('tokens/user/page/:page')
   @UseGuards(JwtAuthGuard)
   @ApiSecurity('t')
+  @ScopesR(['tokens:read'])
   @ApiParam({ name: 'page', type: Number, required: true, schema: { default: 1, minimum: 1 } })
   @ApiOkResponse({ type: [TokenElementResp] })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -262,6 +272,7 @@ export class SharedFileController {
   @Get('tokens/user/pages')
   @UseGuards(JwtAuthGuard)
   @ApiSecurity('t')
+  @ScopesR(['tokens:read'])
   @ApiOkResponse({ type: PagesTokensResp })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async getTokensPagesByUser(@Request() req, @Response({ passthrough: true }) res) {
@@ -276,6 +287,7 @@ export class SharedFileController {
   @HttpCode(200)
   @UseGuards(JwtAuthGuard, OwnerShipGuard)
   @ApiSecurity('t')
+  @ScopesR(['tokens:update'])
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async updateTokenByUser(@Param('id') id: string, @Body() body: ShareFileDTO) {
@@ -285,6 +297,7 @@ export class SharedFileController {
   @UseGuards(JwtAuthGuard, OwnerShipGuard)
   @Get('tokens/user/info/:id')
   @ApiSecurity('t')
+  @ScopesR(['tokens:read'])
   @ApiParam({ name: 'id', type: String })
   @ApiOkResponse({ type: SharedFileInfoResp })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -299,6 +312,7 @@ export class SharedFileController {
   @Get('tokens/user/content/:id')
   @UseGuards(JwtAuthGuard, OwnerShipGuard)
   @ApiSecurity('t')
+  @ScopesR(['tokens:read'])
   @ApiParam({ name: 'id', type: String })
   @ApiQuery({ name: 'd', type: Number, enum: [0, 1], required: false })
   @ApiNotFoundResponse({ type: ErrorResponse })
@@ -326,17 +340,18 @@ export class SharedFileController {
   }
 
   @UseGuards(JwtAuthGuard, OwnerShipGuard)
-  @Get('tokens/user/content/:id/*')
+  @Get('tokens/user/content/:id/*path')
   @ApiSecurity('t')
+  @ScopesR(['tokens:read'])
   @ApiParam({ name: 'id', type: String })
-  @ApiParam({ name: '*', type: String })
+ @ApiParam({ name: 'path', type: String })
   @ApiQuery({ name: 'd', type: Number, enum: [0, 1], required: false })
   @ApiOkResponse({ schema: { type: 'string', format: 'binary' } })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiNotFoundResponse({ type: ErrorResponse })
   async getSFcontentUserPath(
     @Param('id') id: string,
-    @Param() path: Record<string, any>,
+    @Param('path') path: Record<string, any>,
     @Response({ passthrough: true }) res,
     @Query('d') downloadOpc: number
   ) {

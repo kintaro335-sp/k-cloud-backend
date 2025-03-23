@@ -10,7 +10,6 @@ import { AppModule } from './app.module';
 import { AppClusterService } from './app-cluster.service';
 import * as compression from 'compression';
 import * as cookieParser from 'cookie-parser';
-import * as csurf from 'csurf';
 import whiteList from './cors';
 import { readFileSync } from 'fs';
 

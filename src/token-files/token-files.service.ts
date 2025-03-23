@@ -22,7 +22,10 @@ const typeRegex = new RegExp(/[h|m]/);
 @Injectable()
 export class TokenFilesService implements OnModuleInit {
   private group = 64;
-  constructor(private readonly prismaService: PrismaService, private configService: ConfigService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    private configService: ConfigService
+  ) {}
 
   private cacheExpireInType: dayjs.ManipulateType = 'hour';
   private cacheExpireInNum = 1;
@@ -37,13 +40,13 @@ export class TokenFilesService implements OnModuleInit {
       this.cacheExpireInNum = Number(number);
       this.cacheExpireInType = type;
     }
-  }  
+  }
 
   private cacheTokens: TokensCache = {};
 
   private tokensPagesCache: TokensCachePage = {};
 
-  private tokensTotalPagesCache: number | null = null
+  private tokensTotalPagesCache: number | null = null;
 
   @Cron(CronExpression.EVERY_10_MINUTES)
   async cleanCache() {
@@ -68,12 +71,12 @@ export class TokenFilesService implements OnModuleInit {
   private invalidateAllCache() {
     this.cacheTokens = {};
     this.tokensPagesCache = {};
-    this.tokensTotalPagesCache = null
+    this.tokensTotalPagesCache = null;
   }
 
   private invalidatePagesCache() {
     this.tokensPagesCache = {};
-    this.tokensTotalPagesCache = null
+    this.tokensTotalPagesCache = null;
   }
 
   async addSharedFile(sharedFile: Prisma.SharedfileCreateInput) {
@@ -83,6 +86,14 @@ export class TokenFilesService implements OnModuleInit {
     while (true) {
       try {
         return await this.prismaService.sharedfile.create({ data: sharedFile });
+      } catch (err) {}
+    }
+  }
+
+  async existsTokenById(id: string) {
+    while (true) {
+      try {
+        return (await this.prismaService.sharedfile.count({ where: { id } })) !== 0;
       } catch (err) {}
     }
   }
@@ -173,7 +184,7 @@ export class TokenFilesService implements OnModuleInit {
       try {
         return this.prismaService.sharedfile.delete({ where: { id } });
       } catch (err) {
-        if(err.code === 'P2025') {
+        if (err.code === 'P2025') {
           return;
         }
       }

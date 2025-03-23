@@ -1,6 +1,6 @@
 /*
  * k-cloud-backend
- * Copyright(c) 2022 Kintaro Ponce
+ * Copyright(c) Kintaro Ponce
  * MIT Licensed
  */
 
@@ -9,11 +9,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Scope } from '../../sessions/interfaces/session.interface';
 import { ScopesEnum } from './scopelist';
 
-export class ApiKeyNameDto {
-  @IsString()
-  @IsNotEmpty()
-  @ApiProperty()
-  name: string;
+export class ApiKeyEditScopesDto {
   @ApiProperty()
   @IsArray()
   @IsString({ each: true })

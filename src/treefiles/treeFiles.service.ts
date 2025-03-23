@@ -39,7 +39,7 @@ export class TreeFilesService {
     });
   }
 
-  async unzip(content: Buffer): Promise<Buffer | null> {
+  async unzip(content: Buffer | Uint8Array<ArrayBufferLike>): Promise<Buffer | null> {
     return new Promise((res) => {
       inflateRaw(content, (err, result) => {
         if (err) {
@@ -104,7 +104,7 @@ export class TreeFilesService {
     return this.saveTree(userid, compressedContent, compressedIndex);
   }
 
-  private async decompressUserTree(compressedTree: Buffer): Promise<Folder> {
+  private async decompressUserTree(compressedTree: Buffer | Uint8Array<ArrayBufferLike>): Promise<Folder> {
     const unCompressed = await this.unzip(compressedTree);
     const folder = JSON.parse(unCompressed.toString('utf-8')) as Folder;
     return folder;

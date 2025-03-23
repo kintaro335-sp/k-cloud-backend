@@ -4,7 +4,6 @@
  * MIT Licensed
  */
 
-import {  } from '@nestjs/common';
 import { IsString, IsNumber, IsArray } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -40,7 +39,7 @@ export class TreeResp {
   @ApiProperty()
   @IsNumber()
   size: number;
-  @ApiProperty({ type: [FileResp, TreeResp], items: { discriminator: { propertyName: 'type' },  anyOf: [{ type: 'File' }, { type: 'Folder' }] } })
+  @ApiProperty()
   @IsArray()
   content: Array<TreeResp | FileResp>;
 }

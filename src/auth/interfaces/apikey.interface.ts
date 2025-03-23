@@ -10,6 +10,6 @@ export interface SessionsResponseI {
 }
 
 export interface ApiKeysResponseI {
-  data: { id: string; token: string, name: string; }[];
+  data: { id: string; token: string, name: string; scopes: string[] }[];
   total: number;
 }
