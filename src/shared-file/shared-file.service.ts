@@ -158,6 +158,15 @@ export class SharedFileService {
     return this.filesService.getFile(pseudoPath, user);
   }
 
+  async getContentSFFileChunk(SFReg: Sharedfile, path: string, start:number, end: number) {
+    if (SFReg === null) {
+      throw new NotFoundException('File not found');
+    }
+    const user: UserPayload = { sessionId: '', isadmin: false, userId: SFReg.userid, username: SFReg.id };
+    const pseudoPath = join(SFReg.path, path);
+    return this.filesService.getFileChunk(pseudoPath, user, start, end);
+  }
+
   async getPropsSFFile(SFReg: Sharedfile, path: string) {
     if (SFReg === null) {
       throw new NotFoundException('File not found');

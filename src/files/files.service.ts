@@ -123,13 +123,13 @@ export class FilesService {
     const { userId } = user;
     const entirePath = join(this.root, userId, path);
     if (this.truncateFile) {
-      const writeStream = createWriteStream(entirePath, { start: size-1, flags: 'w', autoClose: false, emitClose: true });
+      const writeStream = createWriteStream(entirePath, { start: size - 1, flags: 'w', autoClose: false, emitClose: true });
       writeStream.write(Buffer.alloc(1, 0));
       return new Promise((res) => {
         writeStream.close(() => {
           res();
         });
-      })
+      });
     }
   }
 
@@ -200,7 +200,7 @@ export class FilesService {
   async getFileProperties(path: string, userPayload: UserPayload, injectRoot: boolean = true): Promise<File> {
     const { userId } = userPayload;
     const entirePath = injectRoot ? join(this.root, userId, path) : join(userId, path);
-    const isDirectory = await this.isDirectory(entirePath, false)
+    const isDirectory = await this.isDirectory(entirePath, false);
     const fileStat = await lstat(entirePath, { bigint: false });
     const file = entirePath.split('/').pop();
     const tokens = await this.tokenServ.getCountByPath(path);
@@ -308,7 +308,7 @@ export class FilesService {
   }
 
   /**
-   * Obtener el `ReadStream` de un archivo para entregaro
+   * Obtener el `ReadStream` de un archivo para entregarlo
    * @param {string} path Directorio
    * @param {UserPayload} userPayload Datos de usuario autenticado
    * @returns {Promise<ReadStream>} Readstream del archivo en cuestion
@@ -320,6 +320,22 @@ export class FilesService {
       throw new NotFoundException();
     }
     return createReadStream(entirePath);
+  }
+
+  /**
+   * Obtener el `ReadStream` de un archivo para entregar un chink de un archivo
+   * @param {string} path Directorio
+   * @param {UserPayload} userPayload Datos de usuario autenticado
+   * @param {number} start desde donde
+   * @returns {Promise<ReadStream>} Readstream del archivo en cuestion
+   */
+  async getFileChunk(path: string, userPayload: UserPayload, start: number, end: number) {
+    const { userId } = userPayload;
+    const entirePath = join(this.root, userId, path);
+    if (!(await this.exists(path, userPayload))) {
+      throw new NotFoundException();
+    }
+    return createReadStream(entirePath, { start, end });
   }
 
   /**
