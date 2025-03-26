@@ -26,7 +26,8 @@ import {
   ParseBoolPipe,
   HttpStatus,
   HttpCode,
-  ForbiddenException
+  ForbiddenException,
+  Headers
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import {
@@ -117,7 +118,13 @@ export class FilesController {
   @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: FileListResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
-  async getFiles(@Param('path') path: Record<any, string>, @Response({ passthrough: true }) res, @Request() req, @Query('d') downloadOpc) {
+  async getFiles(
+    @Param('path') path: Record<any, string>,
+    @Response({ passthrough: true }) res,
+    @Request() req,
+    @Headers('range') range: string,
+    @Query('d') downloadOpc
+  ) {
     const pathString = this.utils.processPath(path);
 
     if (await this.filesService.isDirectoryUser(pathString, req.user)) {
@@ -127,11 +134,21 @@ export class FilesController {
     const properties = await this.filesService.getFilePropertiesUser(pathString, req.user);
     const CD = Number(downloadOpc) === 1 ? 'attachment' : 'inline';
     const contentTypeHeader = contentType(fileName);
+    const isVideo = contentTypeHeader.toString().startsWith('video/');
+    if (range) {
+      const { start, end, headers } = this.utils.getVideoHeaders(properties.size, range);
+      const videoChunk = await this.filesService.getFileChunk(pathString, req.user, start, end);
+      res.writeHead(206, {
+        ...headers,
+        'Content-Type': contentTypeHeader
+      });
+      return new StreamableFile(videoChunk);
+    }
     res.set({
       'Content-Type': contentTypeHeader,
       'Content-Disposition': `${CD}; filename="${fileName}";`,
       'Content-Length': properties.size,
-      'Keep-Alive': contentTypeHeader.toString().startsWith('video/') ? 'timeout=36000' : 'timeout=10'
+      'Keep-Alive': isVideo ? 'timeout=36000' : 'timeout=10'
     });
     return new StreamableFile(await this.filesService.getFile(pathString, req.user));
   }
@@ -149,7 +166,7 @@ export class FilesController {
   @Post('/folder/*path')
   @ApiSecurity('t')
   @ScopesR(['files:create'])
- @ApiParam({ name: 'path', type: String })
+  @ApiParam({ name: 'path', type: String })
   @ApiCreatedResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
@@ -164,7 +181,7 @@ export class FilesController {
   @Post('upload/*path')
   @ApiSecurity('t')
   @ScopesR(['files:create'])
- @ApiParam({ name: 'path', type: String })
+  @ApiParam({ name: 'path', type: String })
   @ApiCreatedResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
@@ -193,7 +210,7 @@ export class FilesController {
   @UseGuards(SpaceGuard)
   @ApiSecurity('t')
   @ScopesR(['files:create'])
- @ApiParam({ name: 'path', type: String })
+  @ApiParam({ name: 'path', type: String })
   @ApiCreatedResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
@@ -223,7 +240,7 @@ export class FilesController {
   @Post('write/*path')
   @ApiSecurity('t')
   @ScopesR(['files:create'])
- @ApiParam({ name: 'path', type: String })
+  @ApiParam({ name: 'path', type: String })
   @ApiCreatedResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
@@ -254,7 +271,7 @@ export class FilesController {
   @HttpCode(200)
   @ApiSecurity('t')
   @ScopesR(['files:create'])
- @ApiParam({ name: 'path', type: String })
+  @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
@@ -272,7 +289,7 @@ export class FilesController {
   @Get('/status/*path')
   @ApiSecurity('t')
   @ScopesR(['files:read'])
- @ApiParam({ name: 'path', type: String })
+  @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: FileTempResp })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiNotFoundResponse({ type: ErrorResponse })
@@ -290,7 +307,7 @@ export class FilesController {
   @Delete('/*path')
   @ApiSecurity('t')
   @ScopesR(['files:delete'])
- @ApiParam({ name: 'path', type: String })
+  @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiNotFoundResponse({ type: ErrorResponse })
@@ -302,7 +319,7 @@ export class FilesController {
   @Patch('deletemp/*path')
   @ApiSecurity('t')
   @ScopesR(['files:delete'])
- @ApiParam({ name: 'path', type: String })
+  @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async deleteFiles(@Param('path') path: Record<any, string>, @Body() body: DeleteFilesDTO, @Request() req) {
@@ -313,7 +330,7 @@ export class FilesController {
   @Get('exists/*path')
   @ApiSecurity('t')
   @ScopesR(['files:read'])
- @ApiParam({ name: 'path', type: String })
+  @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: ExistFileResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async existsFile(@Param('path') path: Record<any, string>, @Request() req) {
@@ -363,7 +380,7 @@ export class FilesController {
   @Get('/tree/*path')
   @ApiSecurity('t')
   @ScopesR(['files:read'])
- @ApiParam({ name: 'path', type: String })
+  @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async GetTree(@Param('path') path: Record<any, string>, @Request() req): Promise<File | Folder> {
@@ -379,7 +396,7 @@ export class FilesController {
   @Get('zip/*path')
   @ApiSecurity('t')
   @ScopesR(['files:read'])
- @ApiParam({ name: 'path', type: String })
+  @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: StreamableFile })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiNotFoundResponse({ type: ErrorResponse })
@@ -400,7 +417,7 @@ export class FilesController {
   @HttpCode(200)
   @ApiSecurity('t')
   @ScopesR(['files:rename'])
- @ApiParam({ name: 'path', type: String })
+  @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiNotFoundResponse({ type: ErrorResponse })
@@ -415,7 +432,7 @@ export class FilesController {
   @HttpCode(200)
   @ApiSecurity('t')
   @ScopesR(['files:move'])
- @ApiParam({ name: 'path', type: String })
+  @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async moveFileFolder(@Param('path') path: string[], @Request() req, @Body() body: MoveFileDTO) {
@@ -429,7 +446,7 @@ export class FilesController {
   @HttpCode(200)
   @ApiSecurity('t')
   @ScopesR(['files:move'])
- @ApiParam({ name: 'path', type: String })
+  @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async moveFiles(@Param('path') path: string[], @Request() req, @Body() body: MoveFilesDTO) {

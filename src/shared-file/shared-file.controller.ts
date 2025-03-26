@@ -19,9 +19,20 @@ import {
   Query,
   ParseIntPipe,
   Patch,
-  HttpCode
+  HttpCode,
+  Headers
 } from '@nestjs/common';
-import { ApiTags, ApiSecurity, ApiParam, ApiQuery, ApiOkResponse, ApiCreatedResponse, ApiBadRequestResponse, ApiUnauthorizedResponse, ApiNotFoundResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiSecurity,
+  ApiParam,
+  ApiQuery,
+  ApiOkResponse,
+  ApiCreatedResponse,
+  ApiBadRequestResponse,
+  ApiUnauthorizedResponse,
+  ApiNotFoundResponse
+} from '@nestjs/swagger';
 // swagger
 import { MessageResponse } from '../responses/messageResponse.resp';
 import { ErrorResponse } from '../responses/errorResponse.resp';
@@ -110,7 +121,7 @@ export class SharedFileController {
   @UseGuards(ExpireGuard)
   @Get('zip/:id/*path')
   @ApiParam({ name: 'id', type: String })
- @ApiParam({ name: 'path', type: String })
+  @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: StreamableFile })
   @ApiNotFoundResponse({ type: ErrorResponse })
   async downloadAsAZipRoute(@Param('id') id: string, @Param('path') path: Record<any, string>, @Response({ passthrough: true }) res) {
@@ -153,7 +164,12 @@ export class SharedFileController {
   @ApiParam({ name: 'id', type: String })
   @ApiOkResponse({ schema: { type: 'string', format: 'binary' } })
   @ApiNotFoundResponse({ type: ErrorResponse })
-  async getSFcontent(@Param('id') id: string, @Response({ passthrough: true }) res, @Query('d') downloadOpc: number) {
+  async getSFcontent(
+    @Param('id') id: string,
+    @Response({ passthrough: true }) res,
+    @Headers('range') range: string,
+    @Query('d') downloadOpc: number
+  ) {
     const SFReg = await this.SFService.getSFAllInfo(id);
     if (SFReg === null) throw new NotFoundException('not found');
 
@@ -163,16 +179,25 @@ export class SharedFileController {
       const fileProps = await this.SFService.getPropsSFFile(SFReg, '');
       const CD = Number(downloadOpc) === 1 ? 'attachment' : 'inline';
       const contentTypeHeader = contentType(SFReg.name);
+      const isVideo = contentTypeHeader.toString().startsWith('video/');
+      if (range) {
+        const { start, end, headers } = this.utils.getVideoHeaders(fileProps.size, range);
+        const videoChunk = await this.SFService.getContentSFFileChunk(SFReg, '', start, end);
+        res.writeHead(206, {
+          ...headers,
+          'Content-Type': contentTypeHeader
+        });
+        return new StreamableFile(videoChunk);
+      }
       res.set({
         'Content-Type': contentTypeHeader,
         'Content-Disposition': `${CD}; filename="${SFReg.name}";`,
         'Content-Length': fileProps.size,
-        'Keep-Alive': contentTypeHeader.toString().startsWith('video/') ? 'timeout=36000' : 'timeout=10'
+        'Keep-Alive': isVideo ? 'timeout=36000' : 'timeout=10'
       });
       return new StreamableFile(await this.SFService.getContentSFFile(SFReg, ''));
     }
   }
-
 
   @Get('content/:id/*path')
   @UseGuards(ExpireGuard)
@@ -185,6 +210,7 @@ export class SharedFileController {
     @Param('id') id: string,
     @Param('path') path: Record<any, string>,
     @Response({ passthrough: true }) res,
+    @Headers('range') range: string,
     @Query('d') downloadOpc: number
   ) {
     const pathString = this.utils.processPath(path);
@@ -197,16 +223,26 @@ export class SharedFileController {
       const fileProps = await this.SFService.getPropsSFFile(SFReg, pathString);
       const CD = Number(downloadOpc) === 1 ? 'attachment' : 'inline';
       const contentTypeHeader = contentType(SFReg.name);
+      const isVideo = contentTypeHeader.toString().startsWith('video/');
+      if (range) {
+        const { start, end, headers } = this.utils.getVideoHeaders(fileProps.size, range);
+        const videoChunk = await this.SFService.getContentSFFileChunk(SFReg, pathString, start, end);
+        res.writeHead(206, {
+          ...headers,
+          'Content-Type': contentTypeHeader
+        });
+        return new StreamableFile(videoChunk);
+      }
       res.set({
         'Content-Type': contentType(fileProps.name),
         'Content-Disposition': `${CD}; filename="${fileProps.name}";`,
         'Content-Length': fileProps.size,
-        'Keep-Alive': contentTypeHeader.toString().startsWith('video/') ? 'timeout=36000' : 'timeout=10'
+        'Keep-Alive': isVideo ? 'timeout=36000' : 'timeout=10'
       });
       return new StreamableFile(await this.SFService.getContentSFFile(SFReg, pathString));
     }
   }
-  
+
   @Delete('tokens/path/*path')
   @UseGuards(JwtAuthGuard)
   @ApiSecurity('t')
@@ -224,7 +260,7 @@ export class SharedFileController {
   @UseGuards(JwtAuthGuard)
   @ApiSecurity('t')
   @ScopesR(['tokens:read'])
- @ApiParam({ name: 'path', type: String })
+  @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: [TokenElementResp] })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async getTokensByPath(@Param('path') path: Record<any, string>, @Request() req, @Response({ passthrough: true }) res) {
@@ -317,7 +353,12 @@ export class SharedFileController {
   @ApiQuery({ name: 'd', type: Number, enum: [0, 1], required: false })
   @ApiNotFoundResponse({ type: ErrorResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
-  async getSFcontentUser(@Param('id') id: string, @Response({ passthrough: true }) res, @Query('d') downloadOpc: number) {
+  async getSFcontentUser(
+    @Param('id') id: string,
+    @Response({ passthrough: true }) res,
+    @Headers('range') range: string,
+    @Query('d') downloadOpc: number
+  ) {
     const SFReg = await this.SFService.getSFAllInfo(id);
     if (SFReg === null) throw new NotFoundException('not found');
 
@@ -328,11 +369,21 @@ export class SharedFileController {
       const fileProps = await this.SFService.getPropsSFFile(SFReg, '');
       const CD = Number(downloadOpc) === 1 ? 'attachment' : 'inline';
       const contentTypeHeader = contentType(filename);
+      const isVideo = contentTypeHeader.toString().startsWith('video/');
+      if (range) {
+        const { start, end, headers } = this.utils.getVideoHeaders(fileProps.size, range);
+        const videoChunk = await this.SFService.getContentSFFileChunk(SFReg, '', start, end);
+        res.writeHead(206, {
+          ...headers,
+          'Content-Type': contentTypeHeader
+        });
+        return new StreamableFile(videoChunk);
+      }
       res.set({
         'Content-Type': contentType(SFReg.name),
         'Content-Disposition': `${CD}; filename="${SFReg.name}";`,
         'Content-Length': fileProps.size,
-        'Keep-Alive': contentTypeHeader.toString().startsWith('video/') ? 'timeout=36000' : 'timeout=10',
+        'Keep-Alive': isVideo ? 'timeout=36000' : 'timeout=10',
         'Cache-Control': 'no-store'
       });
       return new StreamableFile(await this.SFService.getContentSFFile(SFReg, ''));
@@ -344,7 +395,7 @@ export class SharedFileController {
   @ApiSecurity('t')
   @ScopesR(['tokens:read'])
   @ApiParam({ name: 'id', type: String })
- @ApiParam({ name: 'path', type: String })
+  @ApiParam({ name: 'path', type: String })
   @ApiQuery({ name: 'd', type: Number, enum: [0, 1], required: false })
   @ApiOkResponse({ schema: { type: 'string', format: 'binary' } })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -353,6 +404,7 @@ export class SharedFileController {
     @Param('id') id: string,
     @Param('path') path: Record<string, any>,
     @Response({ passthrough: true }) res,
+    @Headers('range') range: string,
     @Query('d') downloadOpc: number
   ) {
     const SFReg = await this.SFService.getSFAllInfo(id);
@@ -366,11 +418,21 @@ export class SharedFileController {
       const fileProps = await this.SFService.getPropsSFFile(SFReg, pathString);
       const CD = Number(downloadOpc) === 1 ? 'attachment' : 'inline';
       const contentTypeHeader = contentType(fileName);
+      const isVideo = contentTypeHeader.toString().startsWith('video/');
+      if (range) {
+        const { start, end, headers } = this.utils.getVideoHeaders(fileProps.size, range);
+        const videoChunk = await this.SFService.getContentSFFileChunk(SFReg, pathString, start, end);
+        res.writeHead(206, {
+          ...headers,
+          'Content-Type': contentTypeHeader
+        });
+        return new StreamableFile(videoChunk);
+      }
       res.set({
         'Content-Type': contentType(SFReg.name),
         'Content-Disposition': `${CD}; filename="${SFReg.name}";`,
         'Content-Length': fileProps.size,
-        'Keep-Alive': contentTypeHeader.toString().startsWith('video/') ? 'timeout=36000' : 'timeout=10',
+        'Keep-Alive': isVideo ? 'timeout=36000' : 'timeout=10',
         'Cache-Control': 'no-store'
       });
       return new StreamableFile(await this.SFService.getContentSFFile(SFReg, pathString));
