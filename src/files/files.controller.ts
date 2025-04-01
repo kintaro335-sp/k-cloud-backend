@@ -400,10 +400,8 @@ export class FilesController {
   @ApiOkResponse({ type: StreamableFile })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiNotFoundResponse({ type: ErrorResponse })
-  async DownloadZipFile(@Param('path') path: string[], @Request() req, @Response({ passthrough: true }) res) {
-    const pathString = Object.keys(path)
-      .map((key) => path[key])
-      .join('/');
+  async DownloadZipFile(@Param('path') path: Record<any, string>, @Request() req, @Response({ passthrough: true }) res) {
+    const pathString = this.utils.processPath(path);
     const fileName = pathString.split('/').pop();
     const streamZip = await this.filesService.getZipFromPathUser(pathString, req.user);
     res.set({
@@ -421,11 +419,9 @@ export class FilesController {
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiNotFoundResponse({ type: ErrorResponse })
-  async renameFile(@Param('path') path: string[], @Request() req, @Body() body: RenameDTO) {
-    const pathString = Object.keys(path)
-      .map((key) => path[key])
-      .join('/');
-    return this.filesService.renameFile(pathString, body.newName, req.user);
+  async renameFile(@Param('path') path: Record<any, string>, @Request() req, @Body() body: RenameDTO) {
+    const pathString = this.utils.processPath(path);
+    return this.filesService.renameFile(pathString, body.newName.replace('../', ''), req.user);
   }
 
   @Post('move/file/*path')
@@ -435,11 +431,9 @@ export class FilesController {
   @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
-  async moveFileFolder(@Param('path') path: string[], @Request() req, @Body() body: MoveFileDTO) {
-    const pathString = Object.keys(path)
-      .map((key) => path[key])
-      .join('/');
-    return this.filesService.moveFileFolder(pathString, body.newpath, req.user);
+  async moveFileFolder(@Param('path') path: Record<any, string>, @Request() req, @Body() body: MoveFileDTO) {
+    const pathString = this.utils.processPath(path);
+    return this.filesService.moveFileFolder(pathString, body.newpath.replace('../', ''), req.user);
   }
 
   @Post('move/files/*path')
@@ -449,10 +443,8 @@ export class FilesController {
   @ApiParam({ name: 'path', type: String })
   @ApiOkResponse({ type: MessageResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
-  async moveFiles(@Param('path') path: string[], @Request() req, @Body() body: MoveFilesDTO) {
-    const pathString = Object.keys(path)
-      .map((key) => path[key])
-      .join('/');
-    return this.filesService.moveFiles(pathString, body.newPath, body.files, req.user);
+  async moveFiles(@Param('path') path: Record<any, string>, @Request() req, @Body() body: MoveFilesDTO) {
+    const pathString = this.utils.processPath(path);
+    return this.filesService.moveFiles(pathString, body.newPath.replace('../', ''), body.files, req.user);
   }
 }

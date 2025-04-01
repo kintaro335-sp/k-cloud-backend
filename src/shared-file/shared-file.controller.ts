@@ -86,10 +86,8 @@ export class SharedFileController {
   @ApiCreatedResponse({ type: [String] })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
-  async shareFiles(@Param('path') path: string[], @Body() body: ShareFilesDTO, @Request() req) {
-    const pathString = Object.keys(path)
-      .map((key) => path[key])
-      .join('/');
+  async shareFiles(@Param('path') path: Record<any, string>, @Body() body: ShareFilesDTO, @Request() req) {
+    const pathString = this.utils.processPath(path);
     return this.SFService.shareFiles(pathString, req.user, body);
   }
 
