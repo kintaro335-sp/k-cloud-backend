@@ -28,7 +28,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     if (requireAdmin) {
       return !isUserAdmin;
     } else {
-      return false;
+      return true;
     }
   }
 
