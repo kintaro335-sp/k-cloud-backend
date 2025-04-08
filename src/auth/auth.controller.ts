@@ -42,7 +42,17 @@ export class AuthController {
   @ApiOkResponse({ type: UsePayloadRespose })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async checkToken(@Request() req): Promise<UserPayload> {
-    return req.user
+    return req.user;
+  }
+
+  @Get('scopes')
+  @UseGuards(JwtAuthGuard)
+  @ScopesR(['npr'])
+  @ApiSecurity('t')
+  @ApiOkResponse({ type: [String] })
+  @ApiUnauthorizedResponse({ type: ErrorResponse })
+  async getScopes(@Request() req): Promise<{ type: string; scopes: string[] }> {
+    return this.authService.getScopes(req.user);
   }
 
   @Post('login')
