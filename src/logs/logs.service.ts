@@ -4,7 +4,8 @@
  * MIT Licensed
  */
 
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 // services
 import { PrismaService } from '../prisma.service';
@@ -23,10 +24,19 @@ import * as dayjs from 'dayjs';
 @Injectable()
 export class LogsService {
   private amount = 30;
-  constructor(private readonly prismaServ: PrismaService, private system: SystemService) {}
+  private delete_logs = false;
+
+  constructor(
+    private readonly prismaServ: PrismaService,
+    private system: SystemService,
+    private configServ: ConfigService
+  ) {
+    this.delete_logs = this.configServ.get('DELETE_OLD_LOGS') === '1';
+  }
 
   @Cron(CronExpression.EVERY_10_HOURS)
   private async DeleteOldLogs() {
+    if (!this.delete_logs) return;
     const oneMonthAgo = dayjs().subtract(1, 'month').toDate();
     await this.prismaServ.sharedfilesactivity.deleteMany({ where: { date: { lt: oneMonthAgo } } });
   }
@@ -64,6 +74,10 @@ export class LogsService {
 
   private async countLogsByReason(route: string, dateFrom: Date, dateTo: Date): Promise<number> {
     return this.prismaServ.sharedfilesactivity.count({ where: { reason: { contains: route }, date: { gte: dateFrom, lte: dateTo } } });
+  }
+
+  private async countLogsByToken(token: string, dateFrom: Date, dateTo: Date): Promise<number> {
+    return this.prismaServ.sharedfilesactivity.count({ where: { status: { contains: 'ALLOWED' }, date: { gte: dateFrom, lte: dateTo } } });
   }
 
   // Generar las line stats
@@ -132,9 +146,21 @@ export class LogsService {
     );
   }
 
+  // obtener logs por token
+
+  async getLineChartDataByToken(token: string, time: TIMEOPTION, from?: Date, to?: Date): Promise<StatsLineChart> {
+    const timedimension = this.getTimeDimension(time, from, to);
+    const data = await Promise.all(
+      timedimension.map(async (t) => {
+        return { x: t.label, y: await this.countLogsByToken(token, from, to) };
+      })
+    );
+    return [{ id: token, data }];
+  }
+
   // Dimension del tiempo
 
-  private getTimeDimension(time: TIMEOPTION): TimeDim[] {
+  private getTimeDimension(time: TIMEOPTION, from?: Date, to?: Date): TimeDim[] {
     switch (time) {
       case TIMEOPTION.TODAY:
         return this.getTimeTodayDimension();
@@ -144,6 +170,11 @@ export class LogsService {
         return this.getTimeThisMonth();
       case TIMEOPTION.LAST30DAYS:
         return this.getTimeLast30Days();
+      case TIMEOPTION.CUSTOM:
+        if (!from && !to) {
+          throw new BadRequestException('from and to dates are required');
+        }
+        return this.getCustomTimeDimesion(from, to);
       default:
         throw new NotFoundException();
     }
@@ -195,6 +226,51 @@ export class LogsService {
       const tomomento = dayjs(submomento.endOf('hour'));
       return {
         label: `${frommomento.format('HH:mm')}-${tomomento.format('HH:mm')}`,
+        from: frommomento.toDate(),
+        to: tomomento.toDate()
+      };
+    });
+    return dimensions;
+  }
+
+  private defineTimeRangesAndLabel(from: Date, to: Date): { rangeC: dayjs.ManipulateType; labelC: string; diffTime: number } {
+    const diffTime = dayjs(from).diff(dayjs(to), 'hour');
+
+    if (diffTime <= 36) {
+      const diffTimeR = dayjs(from).diff(dayjs(to), 'hour');
+      return { rangeC: 'hour', labelC: 'HH:mm', diffTime: diffTimeR };
+    }
+
+    if (diffTime <= 48) {
+      const diffTimeR = dayjs(from).diff(dayjs(to), 'hour');
+      return { rangeC: 'hour', labelC: 'MM-DD  HH:mm', diffTime: diffTimeR };
+    }
+
+    const diffTimeR = dayjs(from).diff(dayjs(to), 'day');
+    return { rangeC: 'day', labelC: 'ddd', diffTime: diffTimeR };
+  }
+
+  private getCustomTimeDimesion(from: Date, to: Date): TimeDim[] {
+    const { labelC, rangeC, diffTime } = this.defineTimeRangesAndLabel(from, to);
+
+    const iterations = [...Array(diffTime)];
+
+    const dimensions: TimeDim[] = iterations.map((_, i) => {
+      if (i === 0) {
+        const submomento = dayjs(from);
+        const tomomento = dayjs(submomento.endOf(rangeC));
+        return { from: submomento.toDate(), to: tomomento.toDate(), label: `${submomento.format(labelC)} - ${tomomento.format(labelC)}` };
+      }
+      if (i === iterations.length - 1) {
+        const submomento = dayjs(to).subtract(i, rangeC);
+        const frommomento = dayjs(submomento.startOf(rangeC));
+        return { from: frommomento.toDate(), to: submomento.toDate(), label: `${frommomento.format(labelC)} - ${submomento.format(labelC)}` };
+      }
+      const submomento = dayjs(from).add(i, rangeC);
+      const frommomento = dayjs(submomento.startOf(rangeC));
+      const tomomento = dayjs(submomento.endOf(rangeC));
+      return {
+        label: `${frommomento.format(labelC)}-${tomomento.format(labelC)}`,
         from: frommomento.toDate(),
         to: tomomento.toDate()
       };
