@@ -84,21 +84,21 @@ export class LogsService {
 
   // Generar las line stats
 
-  async getLineChartData(group: GROUPFILTER, time: TIMEOPTION): Promise<StatsLineChart> {
+  async getLineChartData(group: GROUPFILTER, time: TIMEOPTION, from?: Date, to?: Date): Promise<StatsLineChart> {
     switch (group) {
       case GROUPFILTER.ACTION:
-        return this.getLineChartDataByAction(time);
+        return this.getLineChartDataByAction(time, from, to);
       case GROUPFILTER.REASON:
-        return this.getLineChartDataByReason(time);
+        return this.getLineChartDataByReason(time, from, to);
       case GROUPFILTER.STATUS:
-        return this.getLineChartDataByStatus(time);
+        return this.getLineChartDataByStatus(time, from, to);
       default:
         throw new NotFoundException();
     }
   }
 
-  private async getLineChartDataByReason(time: TIMEOPTION): Promise<StatsLineChart> {
-    const timedimension = this.getTimeDimension(time);
+  private async getLineChartDataByReason(time: TIMEOPTION, from?: Date, to?: Date): Promise<StatsLineChart> {
+    const timedimension = this.getTimeDimension(time, from, to);
     const filteredRoutes = ['NOT_EXIST', 'EXPIRED', 'WRONG_OWNER', 'NONE'];
     return Promise.all(
       filteredRoutes.map(async (m) => {
@@ -114,8 +114,8 @@ export class LogsService {
     );
   }
 
-  private async getLineChartDataByStatus(time: TIMEOPTION): Promise<StatsLineChart> {
-    const timedimension = this.getTimeDimension(time);
+  private async getLineChartDataByStatus(time: TIMEOPTION, from?: Date, to?: Date): Promise<StatsLineChart> {
+    const timedimension = this.getTimeDimension(time, from, to);
     const statusCodes = ['DENIED', 'ALLOWED'];
     return Promise.all(
       statusCodes.map(async (m) => {
@@ -131,8 +131,8 @@ export class LogsService {
     );
   }
 
-  private async getLineChartDataByAction(time: TIMEOPTION): Promise<StatsLineChart> {
-    const timedimension = this.getTimeDimension(time);
+  private async getLineChartDataByAction(time: TIMEOPTION, from?: Date, to?: Date): Promise<StatsLineChart> {
+    const timedimension = this.getTimeDimension(time, from, to);
     const Actions = ['CREATED', 'READ', 'DOWNLOAD', 'DELETE', 'DOWNLOAD_ZIP', 'MODIFY'];
     return Promise.all(
       Actions.map(async (m) => {
