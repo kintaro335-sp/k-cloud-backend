@@ -263,11 +263,6 @@ export class LogsService {
         const tomomento = dayjs(submomento.endOf(rangeC));
         return { from: submomento.toDate(), to: tomomento.toDate(), label: `${submomento.format(labelC)}-${tomomento.format(labelC)}` };
       }
-      if (i === iterations.length - 1) {
-        const submomento = dayjs(to);
-        const frommomento = dayjs(submomento.startOf(rangeC));
-        return { from: frommomento.toDate(), to: submomento.toDate(), label: `${frommomento.format(labelC)}-${submomento.format(labelC)}` };
-      }
       const submomento = dayjs(from).add(i, rangeC);
       const frommomento = dayjs(submomento.startOf(rangeC));
       const tomomento = dayjs(submomento.endOf(rangeC));
@@ -277,6 +272,9 @@ export class LogsService {
         to: tomomento.toDate()
       };
     });
+    const submomento = dayjs(to);
+    const frommomento = dayjs(submomento.startOf(rangeC));
+    dimensions.push({ label: `${frommomento.format(labelC)}-${submomento.format(labelC)}`, from: frommomento.toDate(), to: submomento.toDate() });
     return dimensions.reverse();
   }
 }
