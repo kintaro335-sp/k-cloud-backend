@@ -77,7 +77,9 @@ export class LogsService {
   }
 
   private async countLogsByToken(token: string, dateFrom: Date, dateTo: Date): Promise<number> {
-    return this.prismaServ.sharedfilesactivity.count({ where: { status: { contains: 'ALLOWED' }, date: { gte: dateFrom, lte: dateTo } } });
+    return this.prismaServ.sharedfilesactivity.count({
+      where: { tokenid: { equals: token }, status: { contains: 'ALLOWED' }, date: { gte: dateFrom, lte: dateTo } }
+    });
   }
 
   // Generar las line stats
@@ -152,7 +154,7 @@ export class LogsService {
     const timedimension = this.getTimeDimension(time, from, to);
     const data = await Promise.all(
       timedimension.map(async (t) => {
-        return { x: t.label, y: await this.countLogsByToken(token, from, to) };
+        return { x: t.label, y: await this.countLogsByToken(token, t.from, t.to) };
       })
     );
     return [{ id: token, data }];
@@ -234,37 +236,37 @@ export class LogsService {
   }
 
   private defineTimeRangesAndLabel(from: Date, to: Date): { rangeC: dayjs.ManipulateType; labelC: string; diffTime: number } {
-    const diffTime = dayjs(from).diff(dayjs(to), 'hour');
+    const diffTime = dayjs(to).diff(dayjs(from), 'hour');
 
     if (diffTime <= 36) {
-      const diffTimeR = dayjs(from).diff(dayjs(to), 'hour');
+      const diffTimeR = dayjs(to).diff(dayjs(from), 'hour');
       return { rangeC: 'hour', labelC: 'HH:mm', diffTime: diffTimeR };
     }
 
     if (diffTime <= 48) {
-      const diffTimeR = dayjs(from).diff(dayjs(to), 'hour');
+      const diffTimeR = dayjs(to).diff(dayjs(from), 'hour');
       return { rangeC: 'hour', labelC: 'MM-DD  HH:mm', diffTime: diffTimeR };
     }
 
-    const diffTimeR = dayjs(from).diff(dayjs(to), 'day');
-    return { rangeC: 'day', labelC: 'ddd', diffTime: diffTimeR };
+    const diffTimeR = dayjs(to).diff(dayjs(from), 'day');
+    return { rangeC: 'day', labelC: 'YYYY-MM-DD HH:mm', diffTime: diffTimeR };
   }
 
   private getCustomTimeDimesion(from: Date, to: Date): TimeDim[] {
     const { labelC, rangeC, diffTime } = this.defineTimeRangesAndLabel(from, to);
 
-    const iterations = [...Array(diffTime)];
+    const iterations = [...Array(diffTime + 1)];
 
     const dimensions: TimeDim[] = iterations.map((_, i) => {
       if (i === 0) {
         const submomento = dayjs(from);
         const tomomento = dayjs(submomento.endOf(rangeC));
-        return { from: submomento.toDate(), to: tomomento.toDate(), label: `${submomento.format(labelC)} - ${tomomento.format(labelC)}` };
+        return { from: submomento.toDate(), to: tomomento.toDate(), label: `${submomento.format(labelC)}-${tomomento.format(labelC)}` };
       }
       if (i === iterations.length - 1) {
-        const submomento = dayjs(to).subtract(i, rangeC);
+        const submomento = dayjs(to);
         const frommomento = dayjs(submomento.startOf(rangeC));
-        return { from: frommomento.toDate(), to: submomento.toDate(), label: `${frommomento.format(labelC)} - ${submomento.format(labelC)}` };
+        return { from: frommomento.toDate(), to: submomento.toDate(), label: `${frommomento.format(labelC)}-${submomento.format(labelC)}` };
       }
       const submomento = dayjs(from).add(i, rangeC);
       const frommomento = dayjs(submomento.startOf(rangeC));
@@ -275,6 +277,6 @@ export class LogsService {
         to: tomomento.toDate()
       };
     });
-    return dimensions;
+    return dimensions.reverse();
   }
 }
