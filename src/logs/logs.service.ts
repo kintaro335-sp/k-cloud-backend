@@ -107,7 +107,6 @@ export class LogsService {
             .map(async (t) => {
               return { x: t.label, y: await this.countLogsByReason(m, t.from, t.to) };
             })
-            .reverse()
         );
         return { id: m, data };
       })
@@ -124,7 +123,6 @@ export class LogsService {
             .map(async (t) => {
               return { x: t.label, y: await this.countLogsByStatus(m, t.from, t.to) };
             })
-            .reverse()
         );
         return { id: m, data };
       })
@@ -141,7 +139,6 @@ export class LogsService {
             .map(async (t) => {
               return { x: t.label, y: await this.countLogsByAction(m, t.from, t.to) };
             })
-            .reverse()
         );
         return { id: m, data };
       })
@@ -165,13 +162,13 @@ export class LogsService {
   private getTimeDimension(time: TIMEOPTION, from?: Date, to?: Date): TimeDim[] {
     switch (time) {
       case TIMEOPTION.TODAY:
-        return this.getTimeTodayDimension();
+        return this.getTimeTodayDimension().reverse();
       case TIMEOPTION.LAST7DAYS:
-        return this.getTimeLast7Days();
+        return this.getTimeLast7Days().reverse();
       case TIMEOPTION.THISMONTH:
-        return this.getTimeThisMonth();
+        return this.getTimeThisMonth().reverse();
       case TIMEOPTION.LAST30DAYS:
-        return this.getTimeLast30Days();
+        return this.getTimeLast30Days().reverse();
       case TIMEOPTION.CUSTOM:
         if (!from && !to) {
           throw new BadRequestException('from and to dates are required');
@@ -249,13 +246,13 @@ export class LogsService {
     }
 
     const diffTimeR = dayjs(to).diff(dayjs(from), 'day');
-    return { rangeC: 'day', labelC: 'YYYY-MM-DD HH:mm', diffTime: diffTimeR };
+    return { rangeC: 'day', labelC: 'YYYY-MM-DD', diffTime: diffTimeR };
   }
 
   private getCustomTimeDimesion(from: Date, to: Date): TimeDim[] {
     const { labelC, rangeC, diffTime } = this.defineTimeRangesAndLabel(from, to);
 
-    const iterations = [...Array(diffTime + 1)];
+    const iterations = [...Array(diffTime)];
 
     const dimensions: TimeDim[] = iterations.map((_, i) => {
       if (i === 0) {
@@ -275,6 +272,6 @@ export class LogsService {
     const submomento = dayjs(to);
     const frommomento = dayjs(submomento.startOf(rangeC));
     dimensions.push({ label: `${frommomento.format(labelC)}-${submomento.format(labelC)}`, from: frommomento.toDate(), to: submomento.toDate() });
-    return dimensions.reverse();
+    return dimensions;
   }
 }
