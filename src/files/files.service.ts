@@ -690,8 +690,6 @@ export class FilesService {
             sumBytes('video', file.size);
           } else if (file.mime_type.includes('audio/')) {
             sumBytes('audio', file.size);
-          } else if (file.mime_type.includes('audio/')) {
-            sumBytes('audio', file.size);
           } else if (file.mime_type.includes('pdf')) {
             sumBytes('pdf', file.size);
           } else if (file.mime_type.includes('7z')) {
@@ -700,6 +698,12 @@ export class FilesService {
             sumBytes('zip', file.size);
           } else if (file.mime_type.includes('gzip')) {
             sumBytes('gzip', file.size);
+          } else if (file.mime_type.includes('rar')) {
+            sumBytes('rar', file.size);
+          } else if (file.mime_type.includes('tar')) {
+            sumBytes('tar', file.size);
+          } else if (file.mime_type.includes('iso9660')) {
+            sumBytes('iso', file.size);
           } else {
             sumBytes('other', file.size);
           }
