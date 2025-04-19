@@ -759,10 +759,15 @@ export class FilesService {
               sumBytes('executable', file.size);
               break;
             default:
-              if (file.name.includes('.7z')) {
+              if (
+                file.name.includes('.7z') ||
+                file.name.includes('.zip') ||
+                file.name.includes('.gzip') ||
+                file.name.includes('.tar') ||
+                file.name.includes('.rar')
+              ) {
                 sumBytes('compressed', file.size);
               } else {
-                console.log(file);
                 sumBytes('other', file.size);
               }
               break;
