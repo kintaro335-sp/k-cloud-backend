@@ -41,7 +41,8 @@ import {
   ApiQuery,
   ApiSecurity,
   ApiConsumes,
-  ApiBody
+  ApiBody,
+  ApiHeader
 } from '@nestjs/swagger';
 // swagger
 import { FileListResponse, FileResponse } from './responses/fileList.resp';
@@ -116,6 +117,7 @@ export class FilesController {
   @ApiSecurity('t')
   @ScopesR(['files:read'])
   @ApiParam({ name: 'path', type: String })
+  @ApiHeader({ name: 'range', required: false })
   @ApiOkResponse({ type: FileListResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async getFiles(

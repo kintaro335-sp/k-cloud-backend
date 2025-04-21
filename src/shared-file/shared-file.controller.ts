@@ -28,6 +28,7 @@ import {
   ApiSecurity,
   ApiParam,
   ApiQuery,
+  ApiHeader,
   ApiOkResponse,
   ApiCreatedResponse,
   ApiBadRequestResponse,
@@ -191,6 +192,7 @@ export class SharedFileController {
   @Get('content/:id')
   @UseGuards(ExpireGuard)
   @ApiParam({ name: 'id', type: String })
+  @ApiHeader({ name: 'range', required: false })
   @ApiOkResponse({ schema: { type: 'string', format: 'binary' } })
   @ApiNotFoundResponse({ type: ErrorResponse })
   async getSFcontent(
@@ -232,6 +234,7 @@ export class SharedFileController {
   @UseGuards(ExpireGuard)
   @ApiParam({ name: 'id', type: String })
   @ApiParam({ name: 'path', type: String })
+  @ApiHeader({ name: 'range', required: false })
   @ApiQuery({ name: 'd', type: Number, required: false, enum: [0, 1] })
   @ApiOkResponse({ schema: { type: 'string', format: 'binary' } })
   @ApiNotFoundResponse({ type: ErrorResponse })
@@ -379,6 +382,7 @@ export class SharedFileController {
   @ApiSecurity('t')
   @ScopesR(['tokens:read'])
   @ApiParam({ name: 'id', type: String })
+  @ApiHeader({ name: 'range', description: 'Range header', required: false })
   @ApiQuery({ name: 'd', type: Number, enum: [0, 1], required: false })
   @ApiNotFoundResponse({ type: ErrorResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -425,6 +429,7 @@ export class SharedFileController {
   @ScopesR(['tokens:read'])
   @ApiParam({ name: 'id', type: String })
   @ApiParam({ name: 'path', type: String })
+  @ApiHeader({ name: 'range', description: 'Range header', required: false })
   @ApiQuery({ name: 'd', type: Number, enum: [0, 1], required: false })
   @ApiOkResponse({ schema: { type: 'string', format: 'binary' } })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
