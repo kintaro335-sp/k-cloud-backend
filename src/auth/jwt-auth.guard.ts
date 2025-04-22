@@ -1,6 +1,6 @@
 /*
  * k-cloud-backend
- * Copyright(c) 2022 Kintaro Ponce
+ * Copyright(c) Kintaro Ponce
  * MIT Licensed
  */
 import { Reflector } from '@nestjs/core';
@@ -28,7 +28,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
     if (requireAdmin) {
       return !isUserAdmin;
     } else {
-      return false;
+      return true;
     }
   }
 

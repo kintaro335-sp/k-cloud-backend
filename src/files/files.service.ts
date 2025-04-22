@@ -1,6 +1,6 @@
 /*
  * k-cloud-backend
- * Copyright(c) 2022 Kintaro Ponce
+ * Copyright(c) Kintaro Ponce
  * MIT Licensed
  */
 
@@ -684,24 +684,93 @@ export class FilesService {
           file.content.forEach(onForEach);
         }
         if (file.type === 'file') {
-          if (file.mime_type.includes('image/')) {
-            sumBytes('image', file.size);
-          } else if (file.mime_type.includes('video/')) {
-            sumBytes('video', file.size);
-          } else if (file.mime_type.includes('audio/')) {
-            sumBytes('audio', file.size);
-          } else if (file.mime_type.includes('audio/')) {
-            sumBytes('audio', file.size);
-          } else if (file.mime_type.includes('pdf')) {
-            sumBytes('pdf', file.size);
-          } else if (file.mime_type.includes('7z')) {
-            sumBytes('7zip', file.size);
-          } else if (file.mime_type.includes('zip')) {
-            sumBytes('zip', file.size);
-          } else if (file.mime_type.includes('gzip')) {
-            sumBytes('gzip', file.size);
-          } else {
-            sumBytes('other', file.size);
+          switch (file.extension) {
+            case 'jpg':
+            case 'jpeg':
+            case 'png':
+            case 'gif':
+            case 'svg':
+            case 'webp':
+            case 'bmp':
+            case 'ico':
+            case 'tiff':
+            case 'jfif':
+            case 'avif':
+            case 'viff':
+              sumBytes('image', file.size);
+              break;
+            case 'mp4':
+            case 'mkv':
+            case 'webm':
+            case 'avi':
+            case 'mov':
+              sumBytes('video', file.size);
+              break;
+            case 'mp3':
+            case 'wav':
+            case 'ogg':
+            case 'flac':
+              sumBytes('audio', file.size);
+              break;
+            case 'pdf':
+              sumBytes('pdf', file.size);
+              break;
+            case '7z':
+            case 'zip':
+            case 'gzip':
+            case 'tar':
+            case 'rar':
+            case 'iso':
+            case 'cbz':
+            case 'cb7':
+            case 'gz':
+              sumBytes('compressed', file.size);
+              break;
+            case 'doc':
+            case 'docx':
+            case 'xls':
+            case 'xlsx':
+            case 'ppt':
+            case 'pptx':
+            case 'odt':
+            case 'ods':
+            case 'odp':
+              sumBytes('document', file.size);
+              break;
+            case 'txt':
+            case 'md':
+            case 'json':
+            case 'xml':
+            case 'ini':
+            case 'conf':
+            case 'log':
+            case 'csv':
+            case 'CT':
+            case 'ct':
+              sumBytes('text', file.size);
+              break;
+            case 'sh':
+              sumBytes('bash', file.size);
+              break;
+            case 'swf':
+              sumBytes('flash', file.size);
+              break;
+            case 'exe':
+              sumBytes('executable', file.size);
+              break;
+            default:
+              if (
+                file.name.includes('.7z') ||
+                file.name.includes('.zip') ||
+                file.name.includes('.gzip') ||
+                file.name.includes('.tar') ||
+                file.name.includes('.rar')
+              ) {
+                sumBytes('compressed', file.size);
+              } else {
+                sumBytes('other', file.size);
+              }
+              break;
           }
         }
       };

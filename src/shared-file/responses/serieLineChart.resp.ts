@@ -13,13 +13,9 @@ class DataLineChart {
   y: number;
 }
 
-export class SerieLineChartResp {
+export class SerieLineChartResponse {
   @ApiProperty({ type: String })
   id: string;
-  @ApiProperty({ type: DataLineChart })
+  @ApiProperty({ type: [DataLineChart] })
   data: DataLineChart[];
 }
-
-
-
-

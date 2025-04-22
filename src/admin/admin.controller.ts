@@ -1,10 +1,10 @@
 /*
  * k-cloud-backend
- * Copyright(c) 2022 Kintaro Ponce
+ * Copyright(c) Kintaro Ponce
  * MIT Licensed
  */
 
-import { Controller, Post, Get, Patch, Delete, Body, UseGuards, Param, Query, ParseIntPipe } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Delete, Body, UseGuards, Param, Query, ParseIntPipe, BadRequestException } from '@nestjs/common';
 import { ApiTags, ApiSecurity, ApiQuery, ApiParam, ApiOkResponse, ApiBadRequestResponse, ApiUnauthorizedResponse, ApiNotFoundResponse } from '@nestjs/swagger';
 // swagger
 import { MessageResponse } from '../responses/messageResponse.resp';
@@ -40,6 +40,7 @@ import { DedicatedSpaceDTO } from './dto/dedicated-space-dto';
 import { SetPasswordDTO } from './dto/set-password.dto';
 import { SetAdminDTO } from './dto/set-admin.dto';
 import { RegisterDTO } from '../auth/dtos/Register.dto';
+import { DateRangeDTO } from '../shared-file/dtos/daterange.dto';
 // guards
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from './guards/admin.guard';
@@ -265,8 +266,18 @@ export class AdminController {
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiParam({ name: 'group', enum: ['status', 'action', 'reason'], required: true })
   @ApiParam({ name: 'time', enum: ['today', '7days', 'thismonth', '30days', 'custom'], required: true })
-  async getLineChartData(@Param('group') group: GROUPFILTER, @Param('time') time: TIMEOPTION): Promise<StatsLineChart> {
-    return this.logserv.getLineChartData(group, time);
+  @ApiQuery({ name: 'from', type: String, required: false })
+  @ApiQuery({ name: 'to', type: String, required: false })
+  async getLineChartData(@Param('group') group: GROUPFILTER, @Param('time') time: TIMEOPTION, @Query() query: DateRangeDTO): Promise<StatsLineChart> {
+        const fromDate = query.from ? new Date(query.from) : undefined;
+    const toDate = query.to ? new Date(query.to) : undefined;
+    if (fromDate && toDate && fromDate > toDate && time === TIMEOPTION.CUSTOM) {
+      throw new BadRequestException('invalid date range');
+    }
+    if (!fromDate && !toDate && time === TIMEOPTION.CUSTOM) {
+      throw new BadRequestException('from and to dates are required');
+    } 
+    return this.logserv.getLineChartData(group, time, fromDate, toDate);
   }
 
   @Get('logs/list')

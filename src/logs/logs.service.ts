@@ -1,10 +1,11 @@
 /*
  * k-cloud-backend
- * Copyright(c) 2022 Kintaro Ponce
+ * Copyright(c) Kintaro Ponce
  * MIT Licensed
  */
 
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 // services
 import { PrismaService } from '../prisma.service';
@@ -23,10 +24,19 @@ import * as dayjs from 'dayjs';
 @Injectable()
 export class LogsService {
   private amount = 30;
-  constructor(private readonly prismaServ: PrismaService, private system: SystemService) {}
+  private delete_logs = false;
+
+  constructor(
+    private readonly prismaServ: PrismaService,
+    private system: SystemService,
+    private configServ: ConfigService
+  ) {
+    this.delete_logs = this.configServ.get('DELETE_OLD_LOGS') === '1';
+  }
 
   @Cron(CronExpression.EVERY_10_HOURS)
   private async DeleteOldLogs() {
+    if (!this.delete_logs) return;
     const oneMonthAgo = dayjs().subtract(1, 'month').toDate();
     await this.prismaServ.sharedfilesactivity.deleteMany({ where: { date: { lt: oneMonthAgo } } });
   }
@@ -66,23 +76,29 @@ export class LogsService {
     return this.prismaServ.sharedfilesactivity.count({ where: { reason: { contains: route }, date: { gte: dateFrom, lte: dateTo } } });
   }
 
+  private async countLogsByToken(token: string, dateFrom: Date, dateTo: Date): Promise<number> {
+    return this.prismaServ.sharedfilesactivity.count({
+      where: { tokenid: { equals: token }, status: { contains: 'ALLOWED' }, date: { gte: dateFrom, lte: dateTo } }
+    });
+  }
+
   // Generar las line stats
 
-  async getLineChartData(group: GROUPFILTER, time: TIMEOPTION): Promise<StatsLineChart> {
+  async getLineChartData(group: GROUPFILTER, time: TIMEOPTION, from?: Date, to?: Date): Promise<StatsLineChart> {
     switch (group) {
       case GROUPFILTER.ACTION:
-        return this.getLineChartDataByAction(time);
+        return this.getLineChartDataByAction(time, from, to);
       case GROUPFILTER.REASON:
-        return this.getLineChartDataByReason(time);
+        return this.getLineChartDataByReason(time, from, to);
       case GROUPFILTER.STATUS:
-        return this.getLineChartDataByStatus(time);
+        return this.getLineChartDataByStatus(time, from, to);
       default:
         throw new NotFoundException();
     }
   }
 
-  private async getLineChartDataByReason(time: TIMEOPTION): Promise<StatsLineChart> {
-    const timedimension = this.getTimeDimension(time);
+  private async getLineChartDataByReason(time: TIMEOPTION, from?: Date, to?: Date): Promise<StatsLineChart> {
+    const timedimension = this.getTimeDimension(time, from, to);
     const filteredRoutes = ['NOT_EXIST', 'EXPIRED', 'WRONG_OWNER', 'NONE'];
     return Promise.all(
       filteredRoutes.map(async (m) => {
@@ -91,15 +107,14 @@ export class LogsService {
             .map(async (t) => {
               return { x: t.label, y: await this.countLogsByReason(m, t.from, t.to) };
             })
-            .reverse()
         );
         return { id: m, data };
       })
     );
   }
 
-  private async getLineChartDataByStatus(time: TIMEOPTION): Promise<StatsLineChart> {
-    const timedimension = this.getTimeDimension(time);
+  private async getLineChartDataByStatus(time: TIMEOPTION, from?: Date, to?: Date): Promise<StatsLineChart> {
+    const timedimension = this.getTimeDimension(time, from, to);
     const statusCodes = ['DENIED', 'ALLOWED'];
     return Promise.all(
       statusCodes.map(async (m) => {
@@ -108,15 +123,14 @@ export class LogsService {
             .map(async (t) => {
               return { x: t.label, y: await this.countLogsByStatus(m, t.from, t.to) };
             })
-            .reverse()
         );
         return { id: m, data };
       })
     );
   }
 
-  private async getLineChartDataByAction(time: TIMEOPTION): Promise<StatsLineChart> {
-    const timedimension = this.getTimeDimension(time);
+  private async getLineChartDataByAction(time: TIMEOPTION, from?: Date, to?: Date): Promise<StatsLineChart> {
+    const timedimension = this.getTimeDimension(time, from, to);
     const Actions = ['CREATED', 'READ', 'DOWNLOAD', 'DELETE', 'DOWNLOAD_ZIP', 'MODIFY'];
     return Promise.all(
       Actions.map(async (m) => {
@@ -125,25 +139,41 @@ export class LogsService {
             .map(async (t) => {
               return { x: t.label, y: await this.countLogsByAction(m, t.from, t.to) };
             })
-            .reverse()
         );
         return { id: m, data };
       })
     );
   }
 
+  // obtener logs por token
+
+  async getLineChartDataByToken(token: string, time: TIMEOPTION, from?: Date, to?: Date): Promise<StatsLineChart> {
+    const timedimension = this.getTimeDimension(time, from, to);
+    const data = await Promise.all(
+      timedimension.map(async (t) => {
+        return { x: t.label, y: await this.countLogsByToken(token, t.from, t.to) };
+      })
+    );
+    return [{ id: token, data }];
+  }
+
   // Dimension del tiempo
 
-  private getTimeDimension(time: TIMEOPTION): TimeDim[] {
+  private getTimeDimension(time: TIMEOPTION, from?: Date, to?: Date): TimeDim[] {
     switch (time) {
       case TIMEOPTION.TODAY:
-        return this.getTimeTodayDimension();
+        return this.getTimeTodayDimension().reverse();
       case TIMEOPTION.LAST7DAYS:
-        return this.getTimeLast7Days();
+        return this.getTimeLast7Days().reverse();
       case TIMEOPTION.THISMONTH:
-        return this.getTimeThisMonth();
+        return this.getTimeThisMonth().reverse();
       case TIMEOPTION.LAST30DAYS:
-        return this.getTimeLast30Days();
+        return this.getTimeLast30Days().reverse();
+      case TIMEOPTION.CUSTOM:
+        if (!from && !to) {
+          throw new BadRequestException('from and to dates are required');
+        }
+        return this.getCustomTimeDimesion(from, to);
       default:
         throw new NotFoundException();
     }
@@ -199,6 +229,49 @@ export class LogsService {
         to: tomomento.toDate()
       };
     });
+    return dimensions;
+  }
+
+  private defineTimeRangesAndLabel(from: Date, to: Date): { rangeC: dayjs.ManipulateType; labelC: string; diffTime: number } {
+    const diffTime = dayjs(to).diff(dayjs(from), 'hour');
+
+    if (diffTime <= 36) {
+      const diffTimeR = dayjs(to).diff(dayjs(from), 'hour');
+      return { rangeC: 'hour', labelC: 'HH:mm', diffTime: diffTimeR };
+    }
+
+    if (diffTime <= 48) {
+      const diffTimeR = dayjs(to).diff(dayjs(from), 'hour');
+      return { rangeC: 'hour', labelC: 'MM-DD  HH:mm', diffTime: diffTimeR };
+    }
+
+    const diffTimeR = dayjs(to).diff(dayjs(from), 'day');
+    return { rangeC: 'day', labelC: 'YYYY-MM-DD', diffTime: diffTimeR };
+  }
+
+  private getCustomTimeDimesion(from: Date, to: Date): TimeDim[] {
+    const { labelC, rangeC, diffTime } = this.defineTimeRangesAndLabel(from, to);
+
+    const iterations = [...Array(diffTime)];
+
+    const dimensions: TimeDim[] = iterations.map((_, i) => {
+      if (i === 0) {
+        const submomento = dayjs(from);
+        const tomomento = dayjs(submomento.endOf(rangeC));
+        return { from: submomento.toDate(), to: tomomento.toDate(), label: `${submomento.format(labelC)}-${tomomento.format(labelC)}` };
+      }
+      const submomento = dayjs(from).add(i, rangeC);
+      const frommomento = dayjs(submomento.startOf(rangeC));
+      const tomomento = dayjs(submomento.endOf(rangeC));
+      return {
+        label: `${frommomento.format(labelC)}-${tomomento.format(labelC)}`,
+        from: frommomento.toDate(),
+        to: tomomento.toDate()
+      };
+    });
+    const submomento = dayjs(to);
+    const frommomento = dayjs(submomento.startOf(rangeC));
+    dimensions.push({ label: `${frommomento.format(labelC)}-${submomento.format(labelC)}`, from: frommomento.toDate(), to: submomento.toDate() });
     return dimensions;
   }
 }

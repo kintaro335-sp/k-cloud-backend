@@ -1,6 +1,6 @@
 /*
  * k-cloud-backend
- * Copyright(c) 2022 Kintaro Ponce
+ * Copyright(c) Kintaro Ponce
  * MIT Licensed
  */
 
@@ -10,10 +10,12 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { AppClusterService } from './app-cluster.service';
 import * as compression from 'compression';
+import { doubleCsrf } from 'csrf-csrf';
 import * as cookieParser from 'cookie-parser';
 import whiteList from './cors';
+import { v1 } from 'uuid';
 const cluster = process.env.APP_CLUSTER;
-const serveStatic = Boolean(process.env.SERVE_CLIENT)
+const serveStatic = Boolean(process.env.SERVE_CLIENT);
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -21,7 +23,8 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe());
   app.enableCors({ credentials: true, origin: whiteList, methods: 'GET,HEAD,PUT,PATCH,POST,DELETE' });
   app.use(compression());
-    const config = new DocumentBuilder()
+  app.use(cookieParser());
+  const config = new DocumentBuilder()
     .setTitle('k-cloud-backend')
     .setDescription('NAS API')
     .setVersion('1.0')
@@ -31,8 +34,8 @@ async function bootstrap() {
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('/docs', app, document);
-  if(serveStatic) {
-    app.setGlobalPrefix('/api')
+  if (serveStatic) {
+    app.setGlobalPrefix('/api');
   }
 
   await app.listen(5000);
@@ -45,4 +48,3 @@ async function bootstrap() {
 // }
 
 bootstrap();
-

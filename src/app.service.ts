@@ -1,6 +1,6 @@
 /*
  * k-cloud-backend
- * Copyright(c) 2022 Kintaro Ponce
+ * Copyright(c) Kintaro Ponce
  * MIT Licensed
  */
 
@@ -22,7 +22,7 @@ export class AppService {
   getAbout() {
     return {
       app: 'k-cloud-backend',
-      version: 'v1.3.1'
+      version: 'v1.31.0'
     };
   }
 }

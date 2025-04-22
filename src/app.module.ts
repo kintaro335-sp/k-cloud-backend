@@ -1,6 +1,6 @@
 /*
  * k-cloud-backend
- * Copyright(c) 2022 Kintaro Ponce
+ * Copyright(c) Kintaro Ponce
  * MIT Licensed
  */
 
@@ -28,6 +28,7 @@ import { LogsModule } from './logs/logs.module';
 import { PrismaModule } from './prisma.module';
 // middlewares
 import { LoggerMiddleware } from './middlewares/logger.middleware';
+import { CSRFMiddleware } from './middlewares/crsf.middleware';
 
 const serveStaticDir = process.env.SERVE_CLIENT;
 const serveStatic = Boolean(process.env.SERVE_CLIENT);
@@ -69,5 +70,6 @@ function loadSerStaticModule() {
 export class AppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {
     consumer.apply(LoggerMiddleware).forRoutes('/shared-file/*path');
+    consumer.apply(CSRFMiddleware).forRoutes('*');
   }
 }

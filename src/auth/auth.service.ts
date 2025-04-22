@@ -1,6 +1,6 @@
 /*
  * k-cloud-backend
- * Copyright(c) 2022 Kintaro Ponce
+ * Copyright(c) Kintaro Ponce
  * MIT Licensed
  */
 
@@ -19,9 +19,9 @@ import { ApiKeysResponseI, SessionsResponseI } from './interfaces/apikey.interfa
 import { MessageResponseI, AuthResponseI } from './interfaces/response.interface';
 import { UserL } from '../users/interfaces/userl.interface';
 import { UserTries, Lasttry } from './interfaces/tries.interface';
+import { Scope } from 'src/sessions/interfaces/session.interface';
 // misc
 import * as dayjs from 'dayjs';
-import { Scope } from 'src/sessions/interfaces/session.interface';
 
 /**
  * @class Servicio de Autenticacion
@@ -131,7 +131,7 @@ export class AuthService {
     await this.sessionsService.editApiKeyScopes(id, scopes);
     this.sessionsService.invalidateSessionById(id);
     this.system.emitChangeSessions(user.userId);
-    return { message: 'api key updated' }
+    return { message: 'api key updated' };
   }
 
   /**
@@ -171,6 +171,15 @@ export class AuthService {
       this.system.emitChangeSessions(user.userid);
     }
     return { message: 'logout' };
+  }
+
+  /**
+   * Obtener los scopes de una API key
+   * @param {UserPayload} user informacion de usuario
+   */
+  async getScopes(user: UserPayload): Promise<{ type: string; scopes: Scope[] }> {
+    const sessionInfo = await this.sessionsService.retrieveSession(user.sessionId);
+    return { type: sessionInfo.type, scopes: sessionInfo.scopes };
   }
 
   /**

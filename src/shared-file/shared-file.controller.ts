@@ -1,6 +1,6 @@
 /*
  * k-cloud-backend
- * Copyright(c) 2022 Kintaro Ponce
+ * Copyright(c) Kintaro Ponce
  * MIT Licensed
  */
 
@@ -20,13 +20,15 @@ import {
   ParseIntPipe,
   Patch,
   HttpCode,
-  Headers
+  Headers,
+  BadRequestException
 } from '@nestjs/common';
 import {
   ApiTags,
   ApiSecurity,
   ApiParam,
   ApiQuery,
+  ApiHeader,
   ApiOkResponse,
   ApiCreatedResponse,
   ApiBadRequestResponse,
@@ -40,6 +42,7 @@ import { SharedFileIdResp } from './responses/sharedFileId.resp';
 import { SharedFileInfoResp } from './responses/sharedFileInfo.resp';
 import { TokenElementResp } from './responses/tokenElement.resp';
 import { PagesTokensResp } from './responses/pagesTokens.resp';
+import { SerieLineChartResponse } from './responses/serieLineChart.resp';
 // guards
 import { OwnerShipGuard } from './ownership.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -47,14 +50,19 @@ import { ExpireGuard } from './expire.guard';
 // dto
 import { ShareFileDTO } from './dtos/sharefile.dto';
 import { ShareFilesDTO } from './dtos/sharefiles.dto';
+import { DateRangeDTO } from './dtos/daterange.dto';
 // services
 import { SharedFileService } from './shared-file.service';
 import { TokenFilesService } from '../token-files/token-files.service';
 import { contentType } from 'mime-types';
 import { TokensIdsDTO } from './dtos/tokensIds.dto';
 import { UtilsService } from '../utils/utils.service';
+import { LogsService } from '../logs/logs.service';
 // metadata
 import { ScopesR } from '../auth/decorators/scopesR.decorator';
+// types
+import { TIMEOPTION } from '../logs/interfaces/options.interface';
+import { StatsLineChart } from '../logs/interfaces/statslinechart.interface';
 
 @Controller('shared-file')
 @ApiTags('Shared File')
@@ -62,6 +70,7 @@ export class SharedFileController {
   constructor(
     private readonly SFService: SharedFileService,
     private readonly tokenServ: TokenFilesService,
+    private readonly logsServ: LogsService,
     private utils: UtilsService
   ) {}
 
@@ -86,10 +95,8 @@ export class SharedFileController {
   @ApiCreatedResponse({ type: [String] })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   @ApiBadRequestResponse({ type: ErrorResponse })
-  async shareFiles(@Param('path') path: string[], @Body() body: ShareFilesDTO, @Request() req) {
-    const pathString = Object.keys(path)
-      .map((key) => path[key])
-      .join('/');
+  async shareFiles(@Param('path') path: Record<any, string>, @Body() body: ShareFilesDTO, @Request() req) {
+    const pathString = this.utils.processPath(path);
     return this.SFService.shareFiles(pathString, req.user, body);
   }
 
@@ -100,6 +107,29 @@ export class SharedFileController {
   @ApiNotFoundResponse({ type: ErrorResponse })
   async getSFInfo(@Param('id') id: string) {
     return this.SFService.getSFInfo(id);
+  }
+
+  @UseGuards(JwtAuthGuard, OwnerShipGuard)
+  @ScopesR(['tokens:read'])
+  @Get('activity/:id/:time')
+  @ApiSecurity('t')
+  @ApiParam({ name: 'id', type: String })
+  @ApiParam({ name: 'time', type: String, enum: TIMEOPTION })
+  @ApiQuery({ name: 'from', type: String, required: false })
+  @ApiQuery({ name: 'to', type: String, required: false })
+  @ApiOkResponse({ type: [SerieLineChartResponse] })
+  @ApiNotFoundResponse({ type: ErrorResponse })
+  @ApiBadRequestResponse({ type: ErrorResponse })
+  async getActivitytoken(@Param('id') id: string, @Param('time') time: TIMEOPTION, @Query() query: DateRangeDTO): Promise<StatsLineChart> {
+    const fromDate = query.from ? new Date(query.from) : undefined;
+    const toDate = query.to ? new Date(query.to) : undefined;
+    if (fromDate && toDate && fromDate > toDate && time === TIMEOPTION.CUSTOM) {
+      throw new BadRequestException('invalid date range');
+    }
+    if (!fromDate && !toDate && time === TIMEOPTION.CUSTOM) {
+      throw new BadRequestException('from and to dates are required');
+    }
+    return this.logsServ.getLineChartDataByToken(id, time, fromDate, toDate);
   }
 
   @UseGuards(ExpireGuard)
@@ -162,6 +192,7 @@ export class SharedFileController {
   @Get('content/:id')
   @UseGuards(ExpireGuard)
   @ApiParam({ name: 'id', type: String })
+  @ApiHeader({ name: 'range', required: false })
   @ApiOkResponse({ schema: { type: 'string', format: 'binary' } })
   @ApiNotFoundResponse({ type: ErrorResponse })
   async getSFcontent(
@@ -203,6 +234,7 @@ export class SharedFileController {
   @UseGuards(ExpireGuard)
   @ApiParam({ name: 'id', type: String })
   @ApiParam({ name: 'path', type: String })
+  @ApiHeader({ name: 'range', required: false })
   @ApiQuery({ name: 'd', type: Number, required: false, enum: [0, 1] })
   @ApiOkResponse({ schema: { type: 'string', format: 'binary' } })
   @ApiNotFoundResponse({ type: ErrorResponse })
@@ -350,6 +382,7 @@ export class SharedFileController {
   @ApiSecurity('t')
   @ScopesR(['tokens:read'])
   @ApiParam({ name: 'id', type: String })
+  @ApiHeader({ name: 'range', description: 'Range header', required: false })
   @ApiQuery({ name: 'd', type: Number, enum: [0, 1], required: false })
   @ApiNotFoundResponse({ type: ErrorResponse })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
@@ -396,6 +429,7 @@ export class SharedFileController {
   @ScopesR(['tokens:read'])
   @ApiParam({ name: 'id', type: String })
   @ApiParam({ name: 'path', type: String })
+  @ApiHeader({ name: 'range', description: 'Range header', required: false })
   @ApiQuery({ name: 'd', type: Number, enum: [0, 1], required: false })
   @ApiOkResponse({ schema: { type: 'string', format: 'binary' } })
   @ApiUnauthorizedResponse({ type: ErrorResponse })

@@ -1,6 +1,6 @@
 /*
  * k-cloud-backend
- * Copyright(c) 2022 Kintaro Ponce
+ * Copyright(c) Kintaro Ponce
  * MIT Licensed
  */
 
@@ -166,7 +166,17 @@ export class SessionsService implements OnModuleInit {
     while (true) {
       try {
         return this.prisma.sessions.create({
-          data: { ...newApiKey, scopes: JSON.stringify(scopes) }
+          data: {
+            id: newApiKey.id,
+            name,
+            token,
+            type: newApiKey.type,
+            expire: new Date(),
+            device: newApiKey.device,
+            doesexpire: newApiKey.doesexpire,
+            userid: newApiKey.userid,
+            scopes: JSON.stringify(newApiKey.scopes)
+          }
         });
       } catch (error) {}
     }
