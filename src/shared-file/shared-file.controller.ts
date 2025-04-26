@@ -223,7 +223,7 @@ export class SharedFileController {
       }
       res.set({
         'Content-Type': contentTypeHeader,
-        'Content-Disposition': `${CD}; filename="${SFReg.name}";`,
+        'Content-Disposition': `${CD}; filename="${encodeURI(SFReg.name)}";`,
         'Content-Length': fileProps.size,
         'Keep-Alive': isVideo ? 'timeout=36000' : 'timeout=10'
       });
@@ -268,7 +268,7 @@ export class SharedFileController {
       }
       res.set({
         'Content-Type': contentType(fileProps.name),
-        'Content-Disposition': `${CD}; filename="${fileProps.name}";`,
+        'Content-Disposition': `${CD}; filename="${encodeURI(fileProps.name)}";`,
         'Content-Length': fileProps.size,
         'Keep-Alive': isVideo ? 'timeout=36000' : 'timeout=10'
       });

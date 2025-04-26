@@ -148,7 +148,7 @@ export class FilesController {
     }
     res.set({
       'Content-Type': contentTypeHeader,
-      'Content-Disposition': `${CD}; filename="${fileName}";`,
+      'Content-Disposition': `${CD}; filename="${encodeURI(fileName)}";`,
       'Content-Length': properties.size,
       'Keep-Alive': isVideo ? 'timeout=36000' : 'timeout=10'
     });
