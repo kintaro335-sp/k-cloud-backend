@@ -192,6 +192,7 @@ export class SharedFileController {
   @Get('content/:id')
   @UseGuards(ExpireGuard)
   @ApiParam({ name: 'id', type: String })
+  @ApiQuery({ name: 'd', type: Number, required: false, enum: [0, 1] })
   @ApiHeader({ name: 'range', required: false })
   @ApiOkResponse({ schema: { type: 'string', format: 'binary' } })
   @ApiNotFoundResponse({ type: ErrorResponse })
@@ -222,7 +223,7 @@ export class SharedFileController {
       }
       res.set({
         'Content-Type': contentTypeHeader,
-        'Content-Disposition': `${CD}; filename="${SFReg.name}";`,
+        'Content-Disposition': `${CD}; filename="${encodeURI(SFReg.name)}";`,
         'Content-Length': fileProps.size,
         'Keep-Alive': isVideo ? 'timeout=36000' : 'timeout=10'
       });
@@ -267,7 +268,7 @@ export class SharedFileController {
       }
       res.set({
         'Content-Type': contentType(fileProps.name),
-        'Content-Disposition': `${CD}; filename="${fileProps.name}";`,
+        'Content-Disposition': `${CD}; filename="${encodeURI(fileProps.name)}";`,
         'Content-Length': fileProps.size,
         'Keep-Alive': isVideo ? 'timeout=36000' : 'timeout=10'
       });
