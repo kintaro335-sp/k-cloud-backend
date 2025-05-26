@@ -158,7 +158,7 @@ export class SharedFileService {
     return this.filesService.getFile(pseudoPath, user);
   }
 
-  async getContentSFFileChunk(SFReg: Sharedfile, path: string, start:number, end: number) {
+  async getContentSFFileChunk(SFReg: Sharedfile, path: string, start: number, end: number) {
     if (SFReg === null) {
       throw new NotFoundException('File not found');
     }
@@ -300,5 +300,29 @@ export class SharedFileService {
     pathEmit.pop();
     this.system.emitChangeTokenEvent({ path: pathEmit.join('/'), userId: token.userid });
     return { message: 'token Updated' };
+  }
+
+  async getMostVisitedTokens(type: 'recent' | 'popular' = 'recent'): Promise<TokenElement[]> {
+    const tokensRaw = await this.tokenService.getAllPublicTokens();
+    const tokens: TokenElement[] = tokensRaw.map((t) => {
+      return {
+        id: t.id,
+        name: t.name,
+        type: t.isdir ? 'folder' : 'file',
+        mime_type: contentType(t.name) || '',
+        publict: t.public,
+        expire: t.doesexpires,
+        expires: t.expire.getTime()
+      };
+    });
+    let logs = []
+    if (type === 'popular') {
+      logs = await this.logService.getMostVisitedTokens();
+    }
+    if (type === 'recent') {
+      logs = await this.logService.getRecentViewedLogs();
+    }
+    const mostVisitedTokens = tokens.filter((t) => logs.find((l) => l.tokenid === t.id))
+    return mostVisitedTokens
   }
 }

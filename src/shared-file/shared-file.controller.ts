@@ -63,6 +63,7 @@ import { ScopesR } from '../auth/decorators/scopesR.decorator';
 // types
 import { TIMEOPTION } from '../logs/interfaces/options.interface';
 import { StatsLineChart } from '../logs/interfaces/statslinechart.interface';
+import { TokenElement } from './interfaces/TokenElement.interface';
 
 @Controller('shared-file')
 @ApiTags('Shared File')
@@ -473,4 +474,17 @@ export class SharedFileController {
       return new StreamableFile(await this.SFService.getContentSFFile(SFReg, pathString));
     }
   }
+
+  @Get("most-viewed")
+  @ApiOkResponse({  type: [TokenElementResp] })
+  async getMostViewed(): Promise<TokenElement[]> {
+    return this.SFService.getMostVisitedTokens('popular');
+  }
+
+  @Get("recent-viewed")
+  @ApiOkResponse({  type: [TokenElementResp] })
+  async getMostDownloaded(): Promise<TokenElement[]> {
+    return this.SFService.getMostVisitedTokens('recent');
+  }
+
 }

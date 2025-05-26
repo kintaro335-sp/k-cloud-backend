@@ -20,6 +20,7 @@ import { GROUPFILTER } from './interfaces/groupfilter.interface';
 import { Prisma } from '@prisma/client';
 // utils
 import * as dayjs from 'dayjs';
+import { orderBy } from 'lodash';
 
 @Injectable()
 export class LogsService {
@@ -39,6 +40,34 @@ export class LogsService {
     if (!this.delete_logs) return;
     const oneMonthAgo = dayjs().subtract(1, 'month').toDate();
     await this.prismaServ.sharedfilesactivity.deleteMany({ where: { date: { lt: oneMonthAgo } } });
+  }
+
+  async getMostVisitedTokens() {
+    const logs = await this.prismaServ.sharedfilesactivity.groupBy({
+      by: ['tokenid'],
+      _count: { tokenid: true },
+      orderBy: { _count: { date: 'desc' } },
+      take: 250
+    });
+    return logs;
+  }
+
+  async getRecentViewedLogs() {
+    const logs = await this.prismaServ.sharedfilesactivity.findMany({ take: 500, orderBy: { date: 'asc' } });
+
+    const lastVisitMap: Record<string, Date> = {};
+
+    for (const log of logs) {
+      if (!log[log.tokenid] || log.date > lastVisitMap[log.tokenid]) {
+        lastVisitMap[log.tokenid] = log.date;
+      }
+    }
+
+    const lastVisited = Object.keys(lastVisitMap).map((tokenid) => {
+      return { tokenid, date: lastVisitMap[tokenid] };
+    });
+
+    return orderBy(lastVisited, 'date', 'desc');
   }
 
   async createLog(entry: SharedFileActivity) {
@@ -103,10 +132,9 @@ export class LogsService {
     return Promise.all(
       filteredRoutes.map(async (m) => {
         const data = await Promise.all(
-          timedimension
-            .map(async (t) => {
-              return { x: t.label, y: await this.countLogsByReason(m, t.from, t.to) };
-            })
+          timedimension.map(async (t) => {
+            return { x: t.label, y: await this.countLogsByReason(m, t.from, t.to) };
+          })
         );
         return { id: m, data };
       })
@@ -119,10 +147,9 @@ export class LogsService {
     return Promise.all(
       statusCodes.map(async (m) => {
         const data = await Promise.all(
-          timedimension
-            .map(async (t) => {
-              return { x: t.label, y: await this.countLogsByStatus(m, t.from, t.to) };
-            })
+          timedimension.map(async (t) => {
+            return { x: t.label, y: await this.countLogsByStatus(m, t.from, t.to) };
+          })
         );
         return { id: m, data };
       })
@@ -135,10 +162,9 @@ export class LogsService {
     return Promise.all(
       Actions.map(async (m) => {
         const data = await Promise.all(
-          timedimension
-            .map(async (t) => {
-              return { x: t.label, y: await this.countLogsByAction(m, t.from, t.to) };
-            })
+          timedimension.map(async (t) => {
+            return { x: t.label, y: await this.countLogsByAction(m, t.from, t.to) };
+          })
         );
         return { id: m, data };
       })
