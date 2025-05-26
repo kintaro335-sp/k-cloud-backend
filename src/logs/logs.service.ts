@@ -46,10 +46,10 @@ export class LogsService {
     const logs = await this.prismaServ.sharedfilesactivity.groupBy({
       by: ['tokenid'],
       _count: { tokenid: true },
-      orderBy: { _count: { date: 'desc' } },
-      take: 250
+      orderBy: { _count: { tokenid: 'desc' } },
+      take: 500
     });
-    return logs;
+    return orderBy(logs, '_count.tokenid', 'desc');
   }
 
   async getRecentViewedLogs() {

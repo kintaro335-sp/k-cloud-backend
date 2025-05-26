@@ -323,6 +323,6 @@ export class SharedFileService {
       logs = await this.logService.getRecentViewedLogs();
     }
     const mostVisitedTokens = tokens.filter((t) => logs.find((l) => l.tokenid === t.id))
-    return mostVisitedTokens
+    return logs.map((log) => mostVisitedTokens.find((t) => t.id === log.tokenid)).filter((t) => t !== undefined);
   }
 }
