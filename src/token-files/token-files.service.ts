@@ -242,4 +242,12 @@ export class TokenFilesService implements OnModuleInit {
       } catch (err) {}
     }
   }
+
+  async getAllPublicTokens() {
+    while (true) {
+      try {
+        return this.prismaService.sharedfile.findMany({ where: { public: true } });
+      } catch (err) {}
+    }
+  }
 }
