@@ -42,6 +42,10 @@ export class CSRFMiddleware implements NestMiddleware {
     }
 
     const JWTPayload: JWTPayload = this.jwtServ.decode(token);
+    if (!JWTPayload) {
+      next();
+      return;
+    }
     const sessionInfo = await this.sessionsServ.retrieveSession(JWTPayload.sessionId);
 
     if (sessionInfo.type === 'api') {
