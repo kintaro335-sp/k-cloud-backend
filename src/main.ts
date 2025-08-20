@@ -22,7 +22,7 @@ async function bootstrap() {
 
   app.useGlobalPipes(new ValidationPipe());
   app.enableCors({ credentials: true, origin: whiteList, methods: 'GET,HEAD,PUT,PATCH,POST,DELETE' });
-  app.use(compression());
+  // app.use(compression());
   app.use(cookieParser());
   const config = new DocumentBuilder()
     .setTitle('k-cloud-backend')
