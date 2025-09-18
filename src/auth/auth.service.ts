@@ -1,4 +1,11 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) Kintaro Ponce
+ * MIT Licensed
+ */
+
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 // services
 import { JwtService } from '@nestjs/jwt';
 import { UsersService } from '../users/users.service';
@@ -7,69 +14,133 @@ import { CryptoService } from '../crypto/crypto.service';
 import { FilesService } from '../files/files.service';
 import { SystemService } from '../system/system.service';
 // interfaces
-import { UserPayload } from './interfaces/userPayload.interface';
-import { ApiKeysResponse, SessionsResponse } from './interfaces/apikey.interface';
-import { MessageResponse, AuthResponse } from './interfaces/response.interface';
+import { JWTPayload, UserPayload } from './interfaces/userPayload.interface';
+import { ApiKeysResponseI, SessionsResponseI } from './interfaces/apikey.interface';
+import { MessageResponseI, AuthResponseI } from './interfaces/response.interface';
 import { UserL } from '../users/interfaces/userl.interface';
+import { UserTries, Lasttry } from './interfaces/tries.interface';
+import { Scope } from 'src/sessions/interfaces/session.interface';
+// misc
+import * as dayjs from 'dayjs';
 
 /**
  * @class Servicio de Autenticacion
  */
 @Injectable()
 export class AuthService {
+  private timeout = 30;
+  private maxTries = 10;
+  private tries: UserTries = {};
+  private lastTries: Lasttry = {};
+
   constructor(
+    private readonly configService: ConfigService,
     private usersService: UsersService,
     private jwtService: JwtService,
     private cryptoService: CryptoService,
     private filesService: FilesService,
     private sessionsService: SessionsService,
     private system: SystemService
-  ) {}
+  ) {
+    this.maxTries = Number(this.configService.get<number>('AUTH_MAX_TRIES') || 10);
+    this.timeout = Number(this.configService.get<number>('AUTH_TIMEOUT') || 30);
+    if (this.maxTries < 1 || isNaN(this.maxTries)) {
+      this.maxTries = 10;
+    }
+    if (this.timeout < 1 || isNaN(this.timeout)) {
+      this.timeout = 30;
+    }
+  }
+
+  private resetTries(userId: string) {
+    this.tries[userId] = 0;
+  }
+
+  private incrementTries(userId: string) {
+    if (!this.tries[userId]) {
+      this.tries[userId] = 0;
+    }
+    if (!this.lastTries[userId]) {
+      this.lastTries[userId] = dayjs().toDate();
+    }
+    this.tries[userId]++;
+  }
+
+  private allowLogin(userId: string) {
+    const today = new Date();
+    const MinutesSinceLastTry = dayjs(today).diff(dayjs(this.lastTries[userId]), 'minute');
+    const timeout = MinutesSinceLastTry < this.timeout;
+    if (!timeout) {
+      this.resetTries(userId);
+    }
+    if (!this.tries[userId]) {
+      return true;
+    }
+    return this.tries[userId] < this.maxTries && timeout;
+  }
 
   /**
    * Crear un usuario con un usuario y contraseña
    * @param {string} userName Nombre del usuario
    * @param {string} pasword contraseña en texto plano
-   * @returns {Promise<AuthResponse>} Token de Auth por JWT
+   * @returns {Promise<AuthResponseI>} Token de Auth por JWT
    */
-  async login(userName: string, pasword: string, device: string = ''): Promise<AuthResponse> {
+  async login(userName: string, pasword: string, device: string = ''): Promise<AuthResponseI> {
     const user = await this.usersService.findOne({ username: userName });
     if (!user) {
       throw new BadRequestException('Usuario o contraseña incorrectos');
     }
-    if (this.cryptoService.comparePasswords(pasword, user.passwordu)) {
-      const newSessionId = this.sessionsService.createSesionId();
-      const payload: UserPayload = { sessionId: newSessionId, userId: user.id, username: user.username, isadmin: user.isadmin };
-      await this.sessionsService.createSession(newSessionId, payload, device);
-      this.system.emitChangeSessions(user.id);
-      return {
-        access_token: this.jwtService.sign(payload)
-      };
+    if (!this.allowLogin(user.id)) {
+      throw new BadRequestException('Demasiados intentos fallidos');
     }
-    throw new BadRequestException('Usuario o contraseña incorrectos');
+    if (!this.cryptoService.comparePasswords(pasword, user.passwordu)) {
+      this.incrementTries(user.id);
+      throw new BadRequestException('Usuario o contraseña incorrectos');
+    }
+    const newSessionId = this.sessionsService.createSesionId();
+    const payload: JWTPayload = { sessionId: newSessionId, userId: user.id };
+    await this.sessionsService.createSession(newSessionId, payload, device);
+    this.system.emitChangeSessions(user.id);
+    return {
+      access_token: this.jwtService.sign(payload)
+    };
   }
 
   /**
    * Crear un api key de un usuario con apikey
    * @param {UserPayload} user datos de usuario
-   * @returns {Promise<AuthResponse>} apikey
+   * @returns {Promise<AuthResponseI>} apikey
    * */
-  async createApiKey(user: UserPayload, name: string): Promise<AuthResponse> {
+  async createApiKey(user: UserPayload, name: string, scopes: Scope[]): Promise<AuthResponseI> {
     const sessionId = this.sessionsService.createSesionId();
-    const payload: UserPayload = { sessionId, userId: user.userId, username: user.username, isadmin: user.isadmin };
+    const payload: JWTPayload = { sessionId, userId: user.userId };
     const access_token = this.jwtService.sign(payload);
-    await this.sessionsService.createApiKey(name, sessionId, payload, access_token);
+    await this.sessionsService.createApiKey(name, sessionId, payload, access_token, scopes);
     this.system.emitChangeSessions(user.userId);
     return { access_token };
+  }
+
+  async editApiKeyScopes(user: UserPayload, id: string, scopes: Scope[]) {
+    const session = await this.sessionsService.retrieveSession(id);
+    if (!session) {
+      throw new NotFoundException('api key not found');
+    }
+    if (session.userid !== user.userId) {
+      throw new NotFoundException('api key not found');
+    }
+    await this.sessionsService.editApiKeyScopes(id, scopes);
+    this.sessionsService.invalidateSessionById(id);
+    this.system.emitChangeSessions(user.userId);
+    return { message: 'api key updated' };
   }
 
   /**
    * Crear un nuevo usuario
    * @param {string} userName Nombre del usuario nuevo
    * @param {string} pasword Contraseña en texto plano
-   * @returns {Promise<AuthResponse>} el Access Token del Usuario
+   * @returns {Promise<AuthResponseI>} el Access Token del Usuario
    */
-  async register(userName: string, pasword: string, device: string = ''): Promise<AuthResponse> {
+  async register(userName: string, pasword: string, device: string = ''): Promise<AuthResponseI> {
     const user = await this.usersService.findOne({ username: userName });
     if (user) {
       throw new BadRequestException('Usuario ya existe');
@@ -80,9 +151,9 @@ export class AuthService {
       passwordu: this.cryptoService.createPassword(pasword)
     });
     const newSessionId = this.sessionsService.createSesionId();
-    const payload: UserPayload = { sessionId: newSessionId, userId: newUser.id, username: newUser.username, isadmin: newUser.isadmin };
+    const payload: JWTPayload = { sessionId: newSessionId, userId: newUser.id };
     await this.sessionsService.createSession(newSessionId, payload, device);
-    this.filesService.createFolder('', payload);
+    this.filesService.createFolder('', { ...payload, username: userName, isadmin: false });
     this.system.emitChangeUsersUpdates();
     return {
       access_token: this.jwtService.sign(payload)
@@ -92,9 +163,9 @@ export class AuthService {
   /**
    * Logout de un usuario
    * @param {string} sessionId Id de Sesion
-   * @returns {Promise<MessageResponse>}
+   * @returns {Promise<MessageResponseI>}
    */
-  async logout(sessionId: string): Promise<MessageResponse> {
+  async logout(sessionId: string): Promise<MessageResponseI> {
     const user = await this.sessionsService.revokeSession(sessionId);
     if (user !== null) {
       this.system.emitChangeSessions(user.userid);
@@ -103,12 +174,21 @@ export class AuthService {
   }
 
   /**
+   * Obtener los scopes de una API key
+   * @param {UserPayload} user informacion de usuario
+   */
+  async getScopes(user: UserPayload): Promise<{ type: string; scopes: Scope[] }> {
+    const sessionInfo = await this.sessionsService.retrieveSession(user.sessionId);
+    return { type: sessionInfo.type, scopes: sessionInfo.scopes };
+  }
+
+  /**
    * Crear un nuevo usuario con admin
    * @param {string} userName Nombre del usuario nuevo
    * @param {string} pasword Contraseña en texto plano
-   * @returns {Promise<AuthResponse>} el Access Token del Usuario
+   * @returns {Promise<AuthResponseI>} el Access Token del Usuario
    */
-  async registerAdmin(userName: string, pasword: string): Promise<AuthResponse & { idUser: string }> {
+  async registerAdmin(userName: string, pasword: string): Promise<AuthResponseI & { idUser: string }> {
     const user = await this.usersService.findOne({ username: userName });
     if (user) {
       throw new BadRequestException('Usuario ya existe');
@@ -131,9 +211,9 @@ export class AuthService {
   /**
    * Eliminar un Usuario Por userId
    * @param userid
-   * @returns {Promise<MessageResponse>}
+   * @returns {Promise<MessageResponseI>}
    */
-  async deleteUser(userid: string): Promise<MessageResponse> {
+  async deleteUser(userid: string): Promise<MessageResponseI> {
     const user = this.usersService.findOne({ id: userid });
     if (!user) {
       throw new NotFoundException('usuario no encontrado');
@@ -148,9 +228,9 @@ export class AuthService {
    * @param {string} userId Id de Usuario
    * @param {string} password contraseña actual
    * @param {string} newPassword nueva contraseña
-   * @returns {Promise<MessageResponse>}
+   * @returns {Promise<MessageResponseI>}
    */
-  async changePassword(userId: string, password: string, newPassword: string): Promise<MessageResponse> {
+  async changePassword(userId: string, password: string, newPassword: string): Promise<MessageResponseI> {
     const user = await this.usersService.findOne({ id: userId });
     if (!user) {
       throw new BadRequestException('Usuario no existe');
@@ -167,9 +247,9 @@ export class AuthService {
    * Agregar Validacion
    * @param userId Id de Usuario
    * @param newPassword Nueva Contraseña
-   * @returns {Promise<MessageResponse>}
+   * @returns {Promise<MessageResponseI>}
    */
-  async setPaswword(userId: string, newPassword: string): Promise<MessageResponse> {
+  async setPaswword(userId: string, newPassword: string): Promise<MessageResponseI> {
     const user = await this.usersService.findOne({ id: userId });
     if (!user) {
       throw new BadRequestException('Usuario no existe');
@@ -182,14 +262,15 @@ export class AuthService {
    * Cambiar El Privilegio de Admin
    * @param {string} userId Id de Usuario
    * @param {boolean} admin Nuevo Valor
-   * @returns {Promise<MessageResponse>}
+   * @returns {Promise<MessageResponseI>}
    */
-  async setAdmin(userId: string, admin: boolean): Promise<MessageResponse> {
+  async setAdmin(userId: string, admin: boolean): Promise<MessageResponseI> {
     const user = await this.usersService.findOne({ id: userId });
     if (!user) {
       throw new BadRequestException('Usuario no existe');
     }
     await this.usersService.update({ id: userId }, { isadmin: admin });
+    this.sessionsService.invalidateSessionsByUserId(userId);
     this.system.emitChangeUsersUpdates();
     return { message: 'user type changed' };
   }
@@ -208,16 +289,16 @@ export class AuthService {
    * Obtener las api keys de un usuario
    * @param {UserPayload} user datos de usuario
    */
-  async getApiKeys(user: UserPayload): Promise<ApiKeysResponse> {
+  async getApiKeys(user: UserPayload): Promise<ApiKeysResponseI> {
     const apiKeys = await this.sessionsService.getApiKeysByUserId(user.userId);
-    return { data: apiKeys, total: apiKeys.length };
+    return { data: apiKeys.map((a) => ({ ...a, scopes: JSON.parse(a.scopes) })), total: apiKeys.length };
   }
 
   /**
    * Obtener las sesiones de un usuario
    * @param {UserPayload} user datos de usuario
    */
-  async getSessions(user: UserPayload): Promise<SessionsResponse> {
+  async getSessions(user: UserPayload): Promise<SessionsResponseI> {
     const sessions = await this.sessionsService.getSessionsByUserId(user.userId);
     return { data: sessions, total: sessions.length };
   }

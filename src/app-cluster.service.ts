@@ -1,3 +1,9 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) Kintaro Ponce
+ * MIT Licensed
+ */
+
 import * as cluster from 'cluster';
 import * as os from 'os';
 import { Injectable } from '@nestjs/common';

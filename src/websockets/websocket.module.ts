@@ -1,3 +1,9 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) Kintaro Ponce
+ * MIT Licensed
+ */
+
 import { Module } from '@nestjs/common';
 import { WebsocketGateway } from './websocket.gateway';
 import { WebSocketFilesService } from './websocketfiles.service';

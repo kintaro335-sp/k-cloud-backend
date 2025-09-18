@@ -1,7 +1,12 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) Kintaro Ponce
+ * MIT Licensed
+ */
+
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { User, Prisma } from '@prisma/client';
-import { zip } from 'lodash';
 
 @Injectable()
 export class UsersService {
@@ -37,10 +42,10 @@ export class UsersService {
    * @param {Prisma.UserWhereUniqueInput} userWhereUnique
    * @returns {User | null}
    */
-  async findOne(userWhereUnique: Prisma.UserWhereUniqueInput): Promise<User | null> {
+  async findOne(userWhereUnique: Prisma.UserWhereUniqueInput, select?: Prisma.UserSelect): Promise<User | null> {
     while (true) {
       try {
-        return this.prisma.user.findUnique({ where: userWhereUnique });
+        return this.prisma.user.findUnique({ select, where: userWhereUnique });
       } catch (err) {}
     }
   }

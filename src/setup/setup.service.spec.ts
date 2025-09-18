@@ -1,3 +1,9 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) Kintaro Ponce
+ * MIT Licensed
+ */
+
 import { Test, TestingModule } from '@nestjs/testing';
 import { SetupService } from './setup.service';
 

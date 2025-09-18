@@ -1,3 +1,9 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) Kintaro Ponce
+ * MIT Licensed
+ */
+
 import { Injectable } from '@nestjs/common';
 // service
 import { UsersService } from '../users/users.service';

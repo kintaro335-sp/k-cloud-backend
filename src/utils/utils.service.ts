@@ -1,6 +1,12 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) Kintaro Ponce
+ * MIT Licensed
+ */
+
 import { Injectable } from '@nestjs/common';
 import { IndexList } from 'src/treefiles/interfaces/indexelement.interface';
-// uniqid
+// misc
 import { v1 } from 'uuid';
 import { orderBy } from 'lodash';
 
@@ -35,6 +41,27 @@ export class UtilsService {
   }
 
   quickSort(arr: IndexList): IndexList {
-    return orderBy(arr, ['path'], ['asc']);
+    return orderBy(arr, ['lowercase_name'], ['asc']);
+  }
+
+  parseSearchCriteria(search: string) {
+    return search.replace(',', '|').replace('*', '[ a-zA-Z0-9-_]+').toLocaleLowerCase();
+  }
+
+  getVideoHeaders(fileSize: number, range: string) {
+    const parts = range.replace(/bytes=/, '').split('-');
+    const start = parseInt(parts[0], 10);
+    const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
+    const chunkSize = end - start + 1;
+    return {
+      headers: {
+        'Content-Range': `bytes ${start}-${end}/${fileSize}`,
+        'Accept-Ranges': 'bytes',
+        'Content-Length': chunkSize,
+        'Content-Type': 'video/mp4'
+      },
+      start,
+      end
+    };
   }
 }

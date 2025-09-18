@@ -1,3 +1,9 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) Kintaro Ponce
+ * MIT Licensed
+ */
+
 import { Injectable } from '@nestjs/common';
 import { UtilsService } from '../utils/utils.service';
 import { ConfigService } from '@nestjs/config';

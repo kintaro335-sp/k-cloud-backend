@@ -1,4 +1,10 @@
-import { Injectable, CanActivate, ExecutionContext, NotFoundException } from '@nestjs/common';
+/*
+ * k-cloud-backend
+ * Copyright(c) Kintaro Ponce
+ * MIT Licensed
+ */
+
+import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 // service
 import { SetupService } from '../setup.service';
 import { AdminService } from '../../admin/admin.service';

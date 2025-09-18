@@ -1,3 +1,9 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) Kintaro Ponce
+ * MIT Licensed
+ */
+
 import { EventEmitter } from 'events';
 import { ChangeFileData } from '../interfaces/changefile.interface';
 import { ChangeTokenEvent } from '../interfaces/changetoken.interface';

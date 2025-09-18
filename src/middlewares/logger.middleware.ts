@@ -1,7 +1,14 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) Kintaro Ponce
+ * MIT Licensed
+ */
+
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 // services
 import { LogsService } from '../logs/logs.service';
+import { PrismaService } from '../prisma.service';
 // utils
 import { v4 as uuidv4 } from 'uuid';
 // types
@@ -9,17 +16,31 @@ import { ActionT, statusT, reasonT } from '../logs/interfaces/sharedfileActivity
 
 @Injectable()
 export class LoggerMiddleware implements NestMiddleware {
-  constructor(private readonly logServ: LogsService) {}
+  // constants
+  private apiPrefix = Boolean(process.env.SERVE_CLIENT) ? '/api' : '';
+  private databaseWal = process.env.DATABASE_WAL === '1';
+  // variables
+  private logsWritten = 0;
 
-  private processPath(path: Record<string, string>) {
-    const pathString = Object.keys(path)
-      .filter((v) => v !== 'id')
-      .map((key) => path[key])
-      .join('/');
+  constructor(
+    private readonly logServ: LogsService,
+    private prismaServ: PrismaService
+  ) {}
+
+  private truncateWal() {
+    if (this.logsWritten > 100 && this.databaseWal) {
+      this.prismaServ.$executeRawUnsafe('PRAGMA wal_checkpoint(TRUNCATE);');
+      this.logsWritten = 0;
+    }
+  }
+
+  private processPath(path: string[] | undefined) {
+    if (path === undefined) return '';
+    const pathString = path.join('/');
     return pathString;
   }
 
-  getAction(method: string, path: string, dq = 0): ActionT {
+  private getAction(method: string, path: string, dq = 0): ActionT {
     switch (method) {
       case 'GET':
         if (path.includes('zip')) {
@@ -41,7 +62,7 @@ export class LoggerMiddleware implements NestMiddleware {
     }
   }
 
-  getStatus(statusCode: number): statusT {
+  private getStatus(statusCode: number): statusT {
     if ([200, 201, 304].includes(statusCode)) {
       return 'ALLOWED';
     }
@@ -49,7 +70,7 @@ export class LoggerMiddleware implements NestMiddleware {
     return 'DENIED';
   }
 
-  getReason(statusCode: number, path: string): reasonT {
+  private getReason(statusCode: number, path: string): reasonT {
     if ([200, 201, 304].includes(statusCode)) {
       return 'NONE';
     }
@@ -67,6 +88,16 @@ export class LoggerMiddleware implements NestMiddleware {
     const params = req.params;
     const method = req.method;
     const route = req.route.path as string;
+    if (
+      ![
+        `${this.apiPrefix}/shared-file/content/:id`,
+        `${this.apiPrefix}/shared-file/content/:id/*path`,
+        `${this.apiPrefix}/shared-file/zip/:id`,
+        `${this.apiPrefix}/shared-file/zip/:id/*path`
+      ].includes(route)
+    ) {
+      return;
+    }
     if (method === 'PATCH') {
       return;
     }
@@ -74,14 +105,17 @@ export class LoggerMiddleware implements NestMiddleware {
       return;
     }
     const tokenid = params.id || '';
-    const path = this.processPath(params);
+    // @ts-ignore
+    const path = this.processPath(params.path);
     const action = this.getAction(method, route, Number(req.query.d));
     const status = this.getStatus(res.statusCode);
     const reason = this.getReason(res.statusCode, route);
     // @ts-ignore
     const user = req?.user?.userId || '';
     const newEntry = { id, action, status, tokenid, date: new Date(), path, reason, user };
-    this.logServ.createLog(newEntry)
+    this.logsWritten++;
+    this.truncateWal();
+    this.logServ.createLog(newEntry);
   }
 
   use(req: Request, res: Response, next: NextFunction) {
@@ -89,7 +123,7 @@ export class LoggerMiddleware implements NestMiddleware {
       try {
         this.RegisterActivity(req, res);
       } catch (err) {
-        console.error(err)
+        console.error(err);
       }
     });
     next();

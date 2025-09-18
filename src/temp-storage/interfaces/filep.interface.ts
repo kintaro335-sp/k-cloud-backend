@@ -1,3 +1,9 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) Kintaro Ponce
+ * MIT Licensed
+ */
+
 import { WriteStream } from 'fs';
 
 type BytesWritten = { from: number; to: number };

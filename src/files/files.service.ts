@@ -1,3 +1,9 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) Kintaro Ponce
+ * MIT Licensed
+ */
+
 import { BadRequestException, Injectable, Inject, forwardRef, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Interval, Cron, CronExpression } from '@nestjs/schedule';
@@ -13,7 +19,7 @@ import { NotFoundException } from './exceptions/NotFound.exception';
 // interfaces
 import { ListFile, File, Folder, UsedSpaceType } from './interfaces/list-file.interface';
 import { UserPayload } from '../auth/interfaces/userPayload.interface';
-import { MessageResponse } from '../auth/interfaces/response.interface';
+import { MessageResponseI } from '../auth/interfaces/response.interface';
 // fs and path
 import { createReadStream, ReadStream, createWriteStream, access, constants } from 'fs';
 import { readdir, lstat, mkdir, rm, rename } from 'fs/promises';
@@ -27,6 +33,7 @@ const JSZip = require('jszip');
 export class FilesService {
   public root: string = '~/';
   private userIndexUpdateScheduled = [];
+  private truncateFile = false;
   constructor(
     private readonly configService: ConfigService,
     private readonly storageService: TempStorageService,
@@ -37,6 +44,8 @@ export class FilesService {
     private system: SystemService
   ) {
     this.root = this.configService.get<string>('FILE_ROOT');
+    const opttruncate = this.configService.get<string>('TRUNCATE_FILE') || '0';
+    this.truncateFile = opttruncate === '1' ? true : false;
   }
 
   private addUserIndexUpdateSchedule(userId: string) {
@@ -44,13 +53,14 @@ export class FilesService {
     this.userIndexUpdateScheduled.push(userId);
   }
 
-  @Cron(CronExpression.EVERY_10_MINUTES)
+  @Cron(CronExpression.EVERY_MINUTE)
   private async updateIndexes() {
     try {
       while (this.userIndexUpdateScheduled.length !== 0) {
         try {
           const u = this.userIndexUpdateScheduled.pop();
           await this.updateTree({ sessionId: '', userId: u, username: '', isadmin: false });
+          this.system.emitTreeUpdate(u);
         } catch (err) {
           console.error(err);
         }
@@ -107,6 +117,20 @@ export class FilesService {
         }
       }
     });
+  }
+
+  async reservateFileSpace(path: string, user: UserPayload, size: number): Promise<void> {
+    const { userId } = user;
+    const entirePath = join(this.root, userId, path);
+    if (this.truncateFile) {
+      const writeStream = createWriteStream(entirePath, { start: size - 1, flags: 'w', autoClose: false, emitClose: true });
+      writeStream.write(Buffer.alloc(1, 0));
+      return new Promise((res) => {
+        writeStream.close(() => {
+          res();
+        });
+      });
+    }
   }
 
   /**
@@ -173,18 +197,17 @@ export class FilesService {
    * @param {boolean} injectRoot injectar la raiz del directorio (valo por defecto `true`)
    * @returns {Promise<File>}
    */
-  async getFileProperties(path: string, injectRoot: boolean = true): Promise<File> {
-    const entirePath = injectRoot ? join(this.root, path) : path;
-    if (await this.isDirectory(entirePath, false)) {
-      throw new BadRequestException('Es una Carpeta');
-    }
+  async getFileProperties(path: string, userPayload: UserPayload, injectRoot: boolean = true): Promise<File> {
+    const { userId } = userPayload;
+    const entirePath = injectRoot ? join(this.root, userId, path) : join(userId, path);
+    const isDirectory = await this.isDirectory(entirePath, false);
     const fileStat = await lstat(entirePath, { bigint: false });
     const file = entirePath.split('/').pop();
     const tokens = await this.tokenServ.getCountByPath(path);
 
     return {
       name: file,
-      type: 'file',
+      type: isDirectory ? 'folder' : 'file',
       size: fileStat.size,
       tokens,
       extension: file.split('.').pop(),
@@ -285,7 +308,7 @@ export class FilesService {
   }
 
   /**
-   * Obtener el `ReadStream` de un archivo para entregaro
+   * Obtener el `ReadStream` de un archivo para entregarlo
    * @param {string} path Directorio
    * @param {UserPayload} userPayload Datos de usuario autenticado
    * @returns {Promise<ReadStream>} Readstream del archivo en cuestion
@@ -300,13 +323,29 @@ export class FilesService {
   }
 
   /**
+   * Obtener el `ReadStream` de un archivo para entregar un chink de un archivo
+   * @param {string} path Directorio
+   * @param {UserPayload} userPayload Datos de usuario autenticado
+   * @param {number} start desde donde
+   * @returns {Promise<ReadStream>} Readstream del archivo en cuestion
+   */
+  async getFileChunk(path: string, userPayload: UserPayload, start: number, end: number) {
+    const { userId } = userPayload;
+    const entirePath = join(this.root, userId, path);
+    if (!(await this.exists(path, userPayload))) {
+      throw new NotFoundException();
+    }
+    return createReadStream(entirePath, { start, end });
+  }
+
+  /**
    * Guardar un archivo que se haya recibido
    * @param {string} path directorio
    * @param {Express.Multer.File} file Archivo a guardar
    * @param {UserPayload} userPayload Datos de usuario atenticado
-   * @returns {Promise<MessageResponse>} Respuesta de la accion
+   * @returns {Promise<MessageResponseI>} Respuesta de la accion
    */
-  async createFile(path: string, file: Express.Multer.File, userPayload: UserPayload): Promise<MessageResponse> {
+  async createFile(path: string, file: Express.Multer.File, userPayload: UserPayload): Promise<MessageResponseI> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
     if (await this.existsEP(`${entirePath}`)) {
@@ -328,9 +367,9 @@ export class FilesService {
    * Eliminar un archivo
    * @param {string} path directorio
    * @param {UserPayload} userPayload datos de usuario autenticado
-   * @returns {Promise<MessageResponse>}
+   * @returns {Promise<MessageResponseI>}
    */
-  async deleteFile(path: string, userPayload: UserPayload): Promise<MessageResponse> {
+  async deleteFile(path: string, userPayload: UserPayload): Promise<MessageResponseI> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
     const storagePath = join(userId, path);
@@ -359,10 +398,11 @@ export class FilesService {
   }
 
   async deleteFiles(path: string, files: string[], userPayload: UserPayload) {
-    const delFiles = files.map((file) => {
+    const delFiles = files.map(async (file) => {
       const pathFile = join(path, file);
-      this.deleteFile(pathFile, userPayload);
+      await this.deleteFile(pathFile, userPayload);
     });
+    await Promise.all(delFiles);
     return { message: 'files deleted', files: files.length };
   }
 
@@ -370,9 +410,9 @@ export class FilesService {
    * Creatr una carpeta a partir de una direccion
    * @param {string} path directorio
    * @param {UserPayload} userPayload Datos de usuario autenticado
-   * @returns {Promise<MessageResponse>} mensaje de la accion
+   * @returns {Promise<MessageResponseI>} mensaje de la accion
    */
-  async createFolder(path: string, userPayload: UserPayload): Promise<MessageResponse> {
+  async createFolder(path: string, userPayload: UserPayload): Promise<MessageResponseI> {
     const { userId } = userPayload;
     const entirePath = join(this.root, userId, path);
     if (await this.existsEP(entirePath)) {
@@ -456,7 +496,6 @@ export class FilesService {
     };
     return folder;
   }
-
 
   /**
    * Actualizar todos los arboles de los usuarios
@@ -573,7 +612,7 @@ export class FilesService {
     }
   }
 
-  async moveFileFolder(path: string, newPath: string, userPayload: UserPayload): Promise<MessageResponse> {
+  async moveFileFolder(path: string, newPath: string, userPayload: UserPayload): Promise<MessageResponseI> {
     const { userId } = userPayload;
     const realPath = join(this.root, userId, path);
     const realPathNew = join(this.root, userId, newPath);
@@ -585,9 +624,7 @@ export class FilesService {
     const pathMessage = path.split('/');
     pathMessage.pop();
     this.system.emitChangeFileEvent({ path: pathMessage.join('/'), userId: userPayload.userId });
-    this.updateTree(userPayload).then(() => {
-      this.system.emitTreeUpdate(userPayload.userId);
-    });
+    this.addUserIndexUpdateSchedule(userId);
     return { message: 'move success' };
   }
 
@@ -611,9 +648,7 @@ export class FilesService {
         return f;
       })
     );
-    this.updateTree(userPayload).then(() => {
-      this.system.emitTreeUpdate(userPayload.userId);
-    });
+    this.addUserIndexUpdateSchedule(userId);
     this.system.emitChangeFileEvent({ path, userId: userPayload.userId });
     return { message: 'archivos movidos' };
   }
@@ -629,9 +664,7 @@ export class FilesService {
     const pathMessage = path.split('/');
     pathMessage.pop();
     this.system.emitChangeFileEvent({ path: pathMessage.join('/'), userId: userPayload.userId });
-    this.updateTree(userPayload).then(() => {
-      this.system.emitTreeUpdate(userPayload.userId);
-    });
+    this.addUserIndexUpdateSchedule(userId);
     return { message: 'archivo renombradostatFile' };
   }
 
@@ -651,22 +684,93 @@ export class FilesService {
           file.content.forEach(onForEach);
         }
         if (file.type === 'file') {
-          if (file.mime_type.includes('image/')) {
-            sumBytes('image', file.size);
-          } else if (file.mime_type.includes('video/')) {
-            sumBytes('video', file.size);
-          } else if (file.mime_type.includes('audio/')) {
-            sumBytes('audio', file.size);
-          } else if (file.mime_type.includes('pdf')) {
-            sumBytes('pdf', file.size);
-          } else if (file.mime_type.includes('7z')) {
-            sumBytes('7zip', file.size);
-          } else if (file.mime_type.includes('zip')) {
-            sumBytes('zip', file.size);
-          } else if (file.mime_type.includes('gzip')) {
-            sumBytes('gzip', file.size);
-          } else {
-            sumBytes('other', file.size);
+          switch (file.extension) {
+            case 'jpg':
+            case 'jpeg':
+            case 'png':
+            case 'gif':
+            case 'svg':
+            case 'webp':
+            case 'bmp':
+            case 'ico':
+            case 'tiff':
+            case 'jfif':
+            case 'avif':
+            case 'viff':
+              sumBytes('image', file.size);
+              break;
+            case 'mp4':
+            case 'mkv':
+            case 'webm':
+            case 'avi':
+            case 'mov':
+              sumBytes('video', file.size);
+              break;
+            case 'mp3':
+            case 'wav':
+            case 'ogg':
+            case 'flac':
+              sumBytes('audio', file.size);
+              break;
+            case 'pdf':
+              sumBytes('pdf', file.size);
+              break;
+            case '7z':
+            case 'zip':
+            case 'gzip':
+            case 'tar':
+            case 'rar':
+            case 'iso':
+            case 'cbz':
+            case 'cb7':
+            case 'gz':
+              sumBytes('compressed', file.size);
+              break;
+            case 'doc':
+            case 'docx':
+            case 'xls':
+            case 'xlsx':
+            case 'ppt':
+            case 'pptx':
+            case 'odt':
+            case 'ods':
+            case 'odp':
+              sumBytes('document', file.size);
+              break;
+            case 'txt':
+            case 'md':
+            case 'json':
+            case 'xml':
+            case 'ini':
+            case 'conf':
+            case 'log':
+            case 'csv':
+            case 'CT':
+            case 'ct':
+              sumBytes('text', file.size);
+              break;
+            case 'sh':
+              sumBytes('bash', file.size);
+              break;
+            case 'swf':
+              sumBytes('flash', file.size);
+              break;
+            case 'exe':
+              sumBytes('executable', file.size);
+              break;
+            default:
+              if (
+                file.name.includes('.7z') ||
+                file.name.includes('.zip') ||
+                file.name.includes('.gzip') ||
+                file.name.includes('.tar') ||
+                file.name.includes('.rar')
+              ) {
+                sumBytes('compressed', file.size);
+              } else {
+                sumBytes('other', file.size);
+              }
+              break;
           }
         }
       };

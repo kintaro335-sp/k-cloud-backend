@@ -1,7 +1,15 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) Kintaro Ponce
+ * MIT Licensed
+ */
+
 interface IndexElement {
+  lowercase_name: string;
   name: string;
   path: string;
   size: number;
+  type: 'file' | 'folder';
   mime_type: string;
 }
 

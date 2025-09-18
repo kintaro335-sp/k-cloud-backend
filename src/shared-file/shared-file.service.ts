@@ -1,3 +1,9 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) Kintaro Ponce
+ * MIT Licensed
+ */
+
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 // dto
 import { ShareFileDTO } from './dtos/sharefile.dto';
@@ -70,10 +76,13 @@ export class SharedFileService {
     if (!this.filesService.exists(path, user)) {
       throw new NotFoundException('File or Folder not Found');
     }
-    const uuid = this.utilsServ.createIDSF();
+    let uuid = Boolean(metadata.id) ? metadata.id : this.utilsServ.createIDSF();
     const isFolder = await this.filesService.isDirectoryUser(path, user);
     const nameF = await this.getFName(path, user);
     const expires = new Date(metadata.expire);
+    if (Boolean(metadata.id) && (await this.tokenService.existsTokenById(metadata.id))) {
+      uuid = user.username + '-' + uuid;
+    }
     await this.tokenService.addSharedFile({
       id: uuid,
       createdAt: new Date(),
@@ -99,7 +108,7 @@ export class SharedFileService {
     }
 
     const realPath = join(SFReg.userid, SFReg.path);
-    const exists = await this.filesService.exists(SFReg.path, { sessionId: '',  isadmin: true, userId: SFReg.userid, username: '' });
+    const exists = await this.filesService.exists(SFReg.path, { sessionId: '', isadmin: true, userId: SFReg.userid, username: '' });
     if (!exists) {
       this.tokenService.removeSharedFile(id);
       this.system.emitChangeTokenEvent({ path: SFReg.path, userId: SFReg.userid });
@@ -149,6 +158,15 @@ export class SharedFileService {
     return this.filesService.getFile(pseudoPath, user);
   }
 
+  async getContentSFFileChunk(SFReg: Sharedfile, path: string, start: number, end: number) {
+    if (SFReg === null) {
+      throw new NotFoundException('File not found');
+    }
+    const user: UserPayload = { sessionId: '', isadmin: false, userId: SFReg.userid, username: SFReg.id };
+    const pseudoPath = join(SFReg.path, path);
+    return this.filesService.getFileChunk(pseudoPath, user, start, end);
+  }
+
   async getPropsSFFile(SFReg: Sharedfile, path: string) {
     if (SFReg === null) {
       throw new NotFoundException('File not found');
@@ -170,9 +188,9 @@ export class SharedFileService {
     const token = await this.tokenService.getSharedFileByID(id);
     const pathEmit = token.path.split('/');
     pathEmit.pop();
-    this.system.emitChangeFileEvent({ path: pathEmit.join('/'), userId: token.userid });
-    this.system.emitChangeTokenEvent({ path: token.path, userId: token.userid });
     await this.tokenService.removeSharedFile(id);
+    this.system.emitChangeFileEvent({ path: pathEmit.join('/'), userId: token.userid });
+    this.system.emitChangeTokenEvent({ path: pathEmit.join('/'), userId: token.userid });
     return { message: 'deleted' };
   }
 
@@ -282,5 +300,29 @@ export class SharedFileService {
     pathEmit.pop();
     this.system.emitChangeTokenEvent({ path: pathEmit.join('/'), userId: token.userid });
     return { message: 'token Updated' };
+  }
+
+  async getMostVisitedTokens(type: 'recent' | 'popular' = 'recent'): Promise<TokenElement[]> {
+    const tokensRaw = await this.tokenService.getAllPublicTokens();
+    const tokens: TokenElement[] = tokensRaw.map((t) => {
+      return {
+        id: t.id,
+        name: t.name,
+        type: t.isdir ? 'folder' : 'file',
+        mime_type: contentType(t.name) || '',
+        publict: t.public,
+        expire: t.doesexpires,
+        expires: t.expire.getTime()
+      };
+    });
+    let logs = []
+    if (type === 'popular') {
+      logs = await this.logService.getMostVisitedTokens();
+    }
+    if (type === 'recent') {
+      logs = await this.logService.getRecentViewedLogs();
+    }
+    const mostVisitedTokens = tokens.filter((t) => logs.find((l) => l.tokenid === t.id))
+    return logs.map((log) => mostVisitedTokens.find((t) => t.id === log.tokenid)).filter((t) => t !== undefined);
   }
 }

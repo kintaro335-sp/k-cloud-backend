@@ -1,3 +1,9 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) Kintaro Ponce
+ * MIT Licensed
+ */
+
 
 export type ActionT = 'CREATED' | 'READ' | 'DOWNLOAD' | 'DELETE' | 'DOWNLOAD_ZIP' | 'MODIFY';
 

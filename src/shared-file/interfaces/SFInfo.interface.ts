@@ -1,3 +1,9 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) Kintaro Ponce
+ * MIT Licensed
+ */
+
 import { FileType } from '../../files/interfaces/list-file.interface';
 
 export interface SFInfoResponse {

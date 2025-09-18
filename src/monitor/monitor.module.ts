@@ -1,3 +1,9 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) Kintaro Ponce
+ * MIT Licensed
+ */
+
 import { Module } from '@nestjs/common';
 import { MonitorService } from './monitor.service';
 import { SystemModule } from '../system/system.module'

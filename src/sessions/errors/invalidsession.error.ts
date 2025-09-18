@@ -1,3 +1,9 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) Kintaro Ponce
+ * MIT Licensed
+ */
+
 
 export class InvalidSessionError extends Error {
   constructor(message: string = "Invalid session") {

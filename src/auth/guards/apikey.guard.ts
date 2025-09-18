@@ -1,3 +1,9 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) Kintaro Ponce
+ * MIT Licensed
+ */
+
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 // services
 import { SessionsService } from '../../sessions/sessions.service';

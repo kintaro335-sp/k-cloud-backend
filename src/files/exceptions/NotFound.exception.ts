@@ -1,3 +1,9 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) Kintaro Ponce
+ * MIT Licensed
+ */
+
 import{ HttpException, HttpStatus } from '@nestjs/common';
 
 export class NotFoundException extends HttpException {

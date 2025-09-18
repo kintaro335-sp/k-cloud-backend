@@ -1,3 +1,9 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) Kintaro Ponce
+ * MIT Licensed
+ */
+
 export type UnitByte = 'MB' | 'GB';
 
 export type Categorie = 'core';

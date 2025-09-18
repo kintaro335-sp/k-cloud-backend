@@ -1,3 +1,9 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) Kintaro Ponce
+ * MIT Licensed
+ */
+
 import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { Socket } from 'socket.io';
 import { UserPayload } from 'src/auth/interfaces/userPayload.interface';
@@ -24,9 +30,8 @@ export class WebSocketFilesService implements OnApplicationBootstrap {
 
       connectionsArray.forEach((idC) => {
         try {
-          if (this.connections[idC].userId === data.userId) {
-            this.connections[idC].client.emit('file-change', { path: data.path });
-          }
+          if (this.connections[idC].userId !== data.userId) return;
+          this.connections[idC].client.emit('file-change', { path: data.path });
         } catch (_err) {}
       });
     });
@@ -125,6 +130,16 @@ export class WebSocketFilesService implements OnApplicationBootstrap {
         } catch (_err) {}
       });
     });
+  }
+
+  handleAuth(client: Socket, user: UserPayload) {
+    this.connections[client.id]['user'] = user;
+    this.connections[client.id]['userId'] = user.userId;
+  }
+
+  handleLogout(client: Socket) {
+    this.connections[client.id]['user'] = { sessionId: 'Guest', userId: 'Guest', isadmin: false, username: 'Guest' };
+    this.connections[client.id]['userId'] = 'Guest';
   }
 
   getUserInfo(clientId: string) {

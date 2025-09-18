@@ -1,3 +1,9 @@
+/*
+ * k-cloud-backend
+ * Copyright(c) Kintaro Ponce
+ * MIT Licensed
+ */
+
 import {
   Controller,
   Get,
@@ -12,8 +18,31 @@ import {
   StreamableFile,
   Query,
   ParseIntPipe,
-  Patch
+  Patch,
+  HttpCode,
+  Headers,
+  BadRequestException
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiSecurity,
+  ApiParam,
+  ApiQuery,
+  ApiHeader,
+  ApiOkResponse,
+  ApiCreatedResponse,
+  ApiBadRequestResponse,
+  ApiUnauthorizedResponse,
+  ApiNotFoundResponse
+} from '@nestjs/swagger';
+// swagger
+import { MessageResponse } from '../responses/messageResponse.resp';
+import { ErrorResponse } from '../responses/errorResponse.resp';
+import { SharedFileIdResp } from './responses/sharedFileId.resp';
+import { SharedFileInfoResp } from './responses/sharedFileInfo.resp';
+import { TokenElementResp } from './responses/tokenElement.resp';
+import { PagesTokensResp } from './responses/pagesTokens.resp';
+import { SerieLineChartResponse } from './responses/serieLineChart.resp';
 // guards
 import { OwnerShipGuard } from './ownership.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -21,45 +50,94 @@ import { ExpireGuard } from './expire.guard';
 // dto
 import { ShareFileDTO } from './dtos/sharefile.dto';
 import { ShareFilesDTO } from './dtos/sharefiles.dto';
+import { DateRangeDTO } from './dtos/daterange.dto';
 // services
 import { SharedFileService } from './shared-file.service';
 import { TokenFilesService } from '../token-files/token-files.service';
 import { contentType } from 'mime-types';
 import { TokensIdsDTO } from './dtos/tokensIds.dto';
 import { UtilsService } from '../utils/utils.service';
+import { LogsService } from '../logs/logs.service';
+// metadata
+import { ScopesR } from '../auth/decorators/scopesR.decorator';
+// types
+import { TIMEOPTION } from '../logs/interfaces/options.interface';
+import { StatsLineChart } from '../logs/interfaces/statslinechart.interface';
+import { TokenElement } from './interfaces/TokenElement.interface';
 
 @Controller('shared-file')
+@ApiTags('Shared File')
 export class SharedFileController {
   constructor(
     private readonly SFService: SharedFileService,
     private readonly tokenServ: TokenFilesService,
+    private readonly logsServ: LogsService,
     private utils: UtilsService
   ) {}
 
   @UseGuards(JwtAuthGuard)
-  @Post('share/*')
-  async share(@Param() path: Record<any, string>, @Body() body: ShareFileDTO, @Request() req) {
+  @Post('share/*path')
+  @ApiSecurity('t')
+  @ScopesR(['tokens:create'])
+  @ApiParam({ name: 'path', type: String })
+  @ApiCreatedResponse({ type: SharedFileIdResp })
+  @ApiUnauthorizedResponse({ type: ErrorResponse })
+  @ApiNotFoundResponse({ type: ErrorResponse })
+  async share(@Param('path') path: Record<any, string>, @Body() body: ShareFileDTO, @Request() req) {
     const pathString = this.utils.processPath(path);
     return this.SFService.share(pathString, req.user, body);
   }
 
   @UseGuards(JwtAuthGuard)
-  @Post('sharemf/*')
-  async shareFiles(@Param() path: string[], @Body() body: ShareFilesDTO, @Request() req) {
-    const pathString = Object.keys(path)
-      .map((key) => path[key])
-      .join('/');
+  @Post('sharemf/*path')
+  @ApiSecurity('t')
+  @ScopesR(['tokens:create'])
+  @ApiParam({ name: 'path', type: String })
+  @ApiCreatedResponse({ type: [String] })
+  @ApiUnauthorizedResponse({ type: ErrorResponse })
+  @ApiBadRequestResponse({ type: ErrorResponse })
+  async shareFiles(@Param('path') path: Record<any, string>, @Body() body: ShareFilesDTO, @Request() req) {
+    const pathString = this.utils.processPath(path);
     return this.SFService.shareFiles(pathString, req.user, body);
   }
 
   @UseGuards(ExpireGuard)
   @Get('info/:id')
+  @ApiParam({ name: 'id', type: String })
+  @ApiOkResponse({ type: SharedFileInfoResp })
+  @ApiNotFoundResponse({ type: ErrorResponse })
   async getSFInfo(@Param('id') id: string) {
     return this.SFService.getSFInfo(id);
   }
 
+  @UseGuards(JwtAuthGuard, OwnerShipGuard)
+  @ScopesR(['tokens:read'])
+  @Get('activity/:id/:time')
+  @ApiSecurity('t')
+  @ApiParam({ name: 'id', type: String })
+  @ApiParam({ name: 'time', type: String, enum: TIMEOPTION })
+  @ApiQuery({ name: 'from', type: String, required: false })
+  @ApiQuery({ name: 'to', type: String, required: false })
+  @ApiOkResponse({ type: [SerieLineChartResponse] })
+  @ApiNotFoundResponse({ type: ErrorResponse })
+  @ApiBadRequestResponse({ type: ErrorResponse })
+  async getActivitytoken(@Param('id') id: string, @Param('time') time: TIMEOPTION, @Query() query: DateRangeDTO): Promise<StatsLineChart> {
+    const fromDate = query.from ? new Date(query.from) : undefined;
+    const toDate = query.to ? new Date(query.to) : undefined;
+    if (fromDate && toDate && fromDate > toDate && time === TIMEOPTION.CUSTOM) {
+      throw new BadRequestException('invalid date range');
+    }
+    if (!fromDate && !toDate && time === TIMEOPTION.CUSTOM) {
+      throw new BadRequestException('from and to dates are required');
+    }
+    return this.logsServ.getLineChartDataByToken(id, time, fromDate, toDate);
+  }
+
   @UseGuards(ExpireGuard)
   @Get('zip/:id')
+  @ApiParam({ name: 'id', type: String })
+  @ApiOkResponse({ schema: { type: 'string', format: 'binary' } })
+  @ApiNotFoundResponse({ type: ErrorResponse })
   async downloadAsAZip(@Param('id') id: string, @Response({ passthrough: true }) res) {
     const streamFile = await this.SFService.downloadAsZipContent(id);
     const SFReg = await this.tokenServ.getSharedFileByID(id);
@@ -72,8 +150,12 @@ export class SharedFileController {
   }
 
   @UseGuards(ExpireGuard)
-  @Get('zip/:id/*')
-  async downloadAsAZipRoute(@Param('id') id: string, @Param() path: Record<any, string>, @Response({ passthrough: true }) res) {
+  @Get('zip/:id/*path')
+  @ApiParam({ name: 'id', type: String })
+  @ApiParam({ name: 'path', type: String })
+  @ApiOkResponse({ type: StreamableFile })
+  @ApiNotFoundResponse({ type: ErrorResponse })
+  async downloadAsAZipRoute(@Param('id') id: string, @Param('path') path: Record<any, string>, @Response({ passthrough: true }) res) {
     const pathString = this.utils.processPath(path);
     const fileName = pathString.split('/').pop();
     const streamFile = await this.SFService.downloadAsZipContent(id, pathString);
@@ -85,21 +167,42 @@ export class SharedFileController {
     });
     return new StreamableFile(streamFile);
   }
-  @UseGuards(JwtAuthGuard, OwnerShipGuard)
+
   @Delete('token/:id')
+  @UseGuards(JwtAuthGuard, OwnerShipGuard)
+  @ApiSecurity('t')
+  @ScopesR(['tokens:delete'])
+  @ApiOkResponse({ type: MessageResponse })
+  @ApiNotFoundResponse({ type: ErrorResponse })
+  @ApiUnauthorizedResponse({ type: ErrorResponse })
   async deleteToken(@Param('id') id: string) {
     return this.SFService.deleteToken(id);
   }
 
   @Patch('token/delete')
   @UseGuards(JwtAuthGuard)
+  @ScopesR(['tokens:delete'])
+  @ApiSecurity('t')
+  @ApiOkResponse({ type: [String] })
+  @ApiNotFoundResponse({ type: ErrorResponse })
+  @ApiUnauthorizedResponse({ type: ErrorResponse })
   async deleteTokens(@Body() body: TokensIdsDTO, @Request() req) {
     return this.SFService.deleteTokens(body.ids, req.user);
   }
 
-  @UseGuards(ExpireGuard)
   @Get('content/:id')
-  async getSFcontent(@Param('id') id: string, @Response({ passthrough: true }) res, @Query('d') downloadOpc: number) {
+  @UseGuards(ExpireGuard)
+  @ApiParam({ name: 'id', type: String })
+  @ApiQuery({ name: 'd', type: Number, required: false, enum: [0, 1] })
+  @ApiHeader({ name: 'range', required: false })
+  @ApiOkResponse({ schema: { type: 'string', format: 'binary' } })
+  @ApiNotFoundResponse({ type: ErrorResponse })
+  async getSFcontent(
+    @Param('id') id: string,
+    @Response({ passthrough: true }) res,
+    @Headers('range') range: string,
+    @Query('d') downloadOpc: number
+  ) {
     const SFReg = await this.SFService.getSFAllInfo(id);
     if (SFReg === null) throw new NotFoundException('not found');
 
@@ -109,22 +212,39 @@ export class SharedFileController {
       const fileProps = await this.SFService.getPropsSFFile(SFReg, '');
       const CD = Number(downloadOpc) === 1 ? 'attachment' : 'inline';
       const contentTypeHeader = contentType(SFReg.name);
+      const isVideo = contentTypeHeader.toString().startsWith('video/');
+      if (range) {
+        const { start, end, headers } = this.utils.getVideoHeaders(fileProps.size, range);
+        const videoChunk = await this.SFService.getContentSFFileChunk(SFReg, '', start, end);
+        res.writeHead(206, {
+          ...headers,
+          'Content-Type': contentTypeHeader
+        });
+        return new StreamableFile(videoChunk);
+      }
       res.set({
         'Content-Type': contentTypeHeader,
-        'Content-Disposition': `${CD}; filename="${SFReg.name}";`,
+        'Content-Disposition': `${CD}; filename="${encodeURI(SFReg.name)}";`,
         'Content-Length': fileProps.size,
-        'Keep-Alive': contentTypeHeader.toString().startsWith('video/') ? 'timeout=36000' : 'timeout=10'
+        'Keep-Alive': isVideo ? 'timeout=36000' : 'timeout=10'
       });
       return new StreamableFile(await this.SFService.getContentSFFile(SFReg, ''));
     }
   }
 
+  @Get('content/:id/*path')
   @UseGuards(ExpireGuard)
-  @Get('content/:id/*')
+  @ApiParam({ name: 'id', type: String })
+  @ApiParam({ name: 'path', type: String })
+  @ApiHeader({ name: 'range', required: false })
+  @ApiQuery({ name: 'd', type: Number, required: false, enum: [0, 1] })
+  @ApiOkResponse({ schema: { type: 'string', format: 'binary' } })
+  @ApiNotFoundResponse({ type: ErrorResponse })
   async getSFcontentPath(
     @Param('id') id: string,
-    @Param() path: Record<any, string>,
+    @Param('path') path: Record<any, string>,
     @Response({ passthrough: true }) res,
+    @Headers('range') range: string,
     @Query('d') downloadOpc: number
   ) {
     const pathString = this.utils.processPath(path);
@@ -137,26 +257,47 @@ export class SharedFileController {
       const fileProps = await this.SFService.getPropsSFFile(SFReg, pathString);
       const CD = Number(downloadOpc) === 1 ? 'attachment' : 'inline';
       const contentTypeHeader = contentType(SFReg.name);
+      const isVideo = contentTypeHeader.toString().startsWith('video/');
+      if (range) {
+        const { start, end, headers } = this.utils.getVideoHeaders(fileProps.size, range);
+        const videoChunk = await this.SFService.getContentSFFileChunk(SFReg, pathString, start, end);
+        res.writeHead(206, {
+          ...headers,
+          'Content-Type': contentTypeHeader
+        });
+        return new StreamableFile(videoChunk);
+      }
       res.set({
         'Content-Type': contentType(fileProps.name),
-        'Content-Disposition': `${CD}; filename="${fileProps.name}";`,
+        'Content-Disposition': `${CD}; filename="${encodeURI(fileProps.name)}";`,
         'Content-Length': fileProps.size,
-        'Keep-Alive': contentTypeHeader.toString().startsWith('video/') ? 'timeout=36000' : 'timeout=10'
+        'Keep-Alive': isVideo ? 'timeout=36000' : 'timeout=10'
       });
       return new StreamableFile(await this.SFService.getContentSFFile(SFReg, pathString));
     }
   }
 
+  @Delete('tokens/path/*path')
   @UseGuards(JwtAuthGuard)
-  @Delete('tokens/path/*')
-  async deleteTokensPath(@Param() path: Record<any, string>, @Request() req) {
+  @ApiSecurity('t')
+  @ScopesR(['tokens:delete'])
+  @ApiOkResponse({ type: MessageResponse })
+  @ApiNotFoundResponse({ type: ErrorResponse })
+  @ApiUnauthorizedResponse({ type: ErrorResponse })
+  @ApiBadRequestResponse({ type: ErrorResponse })
+  async deleteTokensPath(@Param('path') path: Record<any, string>, @Request() req) {
     const pathString = this.utils.processPath(path);
     return this.SFService.removeTokensByPath(pathString, req.user);
   }
 
+  @Get('tokens/path/*path')
   @UseGuards(JwtAuthGuard)
-  @Get('tokens/path/*')
-  async getTokensByPath(@Param() path: Record<any, string>, @Request() req, @Response({ passthrough: true }) res) {
+  @ApiSecurity('t')
+  @ScopesR(['tokens:read'])
+  @ApiParam({ name: 'path', type: String })
+  @ApiOkResponse({ type: [TokenElementResp] })
+  @ApiUnauthorizedResponse({ type: ErrorResponse })
+  async getTokensByPath(@Param('path') path: Record<any, string>, @Request() req, @Response({ passthrough: true }) res) {
     res.set({
       'Cache-Control': 'no-store'
     });
@@ -165,6 +306,8 @@ export class SharedFileController {
   }
 
   @Get('tokens/list')
+  @ApiQuery({ name: 'page', type: Number, required: true, schema: { default: 1, minimum: 1 } })
+  @ApiOkResponse({ type: [TokenElementResp] })
   async getTokensList(@Query('page', ParseIntPipe) page: number, @Response({ passthrough: true }) res) {
     res.set({
       'Cache-Control': 'no-store'
@@ -174,6 +317,7 @@ export class SharedFileController {
   }
 
   @Get('tokens/pages')
+  @ApiOkResponse({ type: PagesTokensResp })
   async getTokensPages(@Response({ passthrough: true }) res) {
     res.set({
       'Cache-Control': 'no-store'
@@ -183,6 +327,11 @@ export class SharedFileController {
 
   @Get('tokens/user/page/:page')
   @UseGuards(JwtAuthGuard)
+  @ApiSecurity('t')
+  @ScopesR(['tokens:read'])
+  @ApiParam({ name: 'page', type: Number, required: true, schema: { default: 1, minimum: 1 } })
+  @ApiOkResponse({ type: [TokenElementResp] })
+  @ApiUnauthorizedResponse({ type: ErrorResponse })
   async getTokensByUser(@Param('page', ParseIntPipe) page: number, @Request() req, @Response({ passthrough: true }) res) {
     res.set({
       'Cache-Control': 'no-store'
@@ -192,6 +341,10 @@ export class SharedFileController {
 
   @Get('tokens/user/pages')
   @UseGuards(JwtAuthGuard)
+  @ApiSecurity('t')
+  @ScopesR(['tokens:read'])
+  @ApiOkResponse({ type: PagesTokensResp })
+  @ApiUnauthorizedResponse({ type: ErrorResponse })
   async getTokensPagesByUser(@Request() req, @Response({ passthrough: true }) res) {
     res.set({
       'Cache-Control': 'no-store'
@@ -201,13 +354,24 @@ export class SharedFileController {
   }
 
   @Post('tokens/user/:id')
+  @HttpCode(200)
   @UseGuards(JwtAuthGuard, OwnerShipGuard)
+  @ApiSecurity('t')
+  @ScopesR(['tokens:update'])
+  @ApiOkResponse({ type: MessageResponse })
+  @ApiUnauthorizedResponse({ type: ErrorResponse })
   async updateTokenByUser(@Param('id') id: string, @Body() body: ShareFileDTO) {
     return this.SFService.updateSFToken(id, body);
   }
 
   @UseGuards(JwtAuthGuard, OwnerShipGuard)
   @Get('tokens/user/info/:id')
+  @ApiSecurity('t')
+  @ScopesR(['tokens:read'])
+  @ApiParam({ name: 'id', type: String })
+  @ApiOkResponse({ type: SharedFileInfoResp })
+  @ApiUnauthorizedResponse({ type: ErrorResponse })
+  @ApiNotFoundResponse({ type: ErrorResponse })
   async getSFInfoUser(@Param('id') id: string, @Response({ passthrough: true }) res) {
     res.set({
       'Cache-Control': 'no-store'
@@ -215,9 +379,21 @@ export class SharedFileController {
     return this.SFService.getSFInfo(id);
   }
 
-  @UseGuards(JwtAuthGuard, OwnerShipGuard)
   @Get('tokens/user/content/:id')
-  async getSFcontentUser(@Param('id') id: string, @Response({ passthrough: true }) res, @Query('d') downloadOpc: number) {
+  @UseGuards(JwtAuthGuard, OwnerShipGuard)
+  @ApiSecurity('t')
+  @ScopesR(['tokens:read'])
+  @ApiParam({ name: 'id', type: String })
+  @ApiHeader({ name: 'range', description: 'Range header', required: false })
+  @ApiQuery({ name: 'd', type: Number, enum: [0, 1], required: false })
+  @ApiNotFoundResponse({ type: ErrorResponse })
+  @ApiUnauthorizedResponse({ type: ErrorResponse })
+  async getSFcontentUser(
+    @Param('id') id: string,
+    @Response({ passthrough: true }) res,
+    @Headers('range') range: string,
+    @Query('d') downloadOpc: number
+  ) {
     const SFReg = await this.SFService.getSFAllInfo(id);
     if (SFReg === null) throw new NotFoundException('not found');
 
@@ -228,11 +404,21 @@ export class SharedFileController {
       const fileProps = await this.SFService.getPropsSFFile(SFReg, '');
       const CD = Number(downloadOpc) === 1 ? 'attachment' : 'inline';
       const contentTypeHeader = contentType(filename);
+      const isVideo = contentTypeHeader.toString().startsWith('video/');
+      if (range) {
+        const { start, end, headers } = this.utils.getVideoHeaders(fileProps.size, range);
+        const videoChunk = await this.SFService.getContentSFFileChunk(SFReg, '', start, end);
+        res.writeHead(206, {
+          ...headers,
+          'Content-Type': contentTypeHeader
+        });
+        return new StreamableFile(videoChunk);
+      }
       res.set({
         'Content-Type': contentType(SFReg.name),
         'Content-Disposition': `${CD}; filename="${SFReg.name}";`,
         'Content-Length': fileProps.size,
-        'Keep-Alive': contentTypeHeader.toString().startsWith('video/') ? 'timeout=36000' : 'timeout=10',
+        'Keep-Alive': isVideo ? 'timeout=36000' : 'timeout=10',
         'Cache-Control': 'no-store'
       });
       return new StreamableFile(await this.SFService.getContentSFFile(SFReg, ''));
@@ -240,11 +426,21 @@ export class SharedFileController {
   }
 
   @UseGuards(JwtAuthGuard, OwnerShipGuard)
-  @Get('tokens/user/content/:id/*')
+  @Get('tokens/user/content/:id/*path')
+  @ApiSecurity('t')
+  @ScopesR(['tokens:read'])
+  @ApiParam({ name: 'id', type: String })
+  @ApiParam({ name: 'path', type: String })
+  @ApiHeader({ name: 'range', description: 'Range header', required: false })
+  @ApiQuery({ name: 'd', type: Number, enum: [0, 1], required: false })
+  @ApiOkResponse({ schema: { type: 'string', format: 'binary' } })
+  @ApiUnauthorizedResponse({ type: ErrorResponse })
+  @ApiNotFoundResponse({ type: ErrorResponse })
   async getSFcontentUserPath(
     @Param('id') id: string,
-    @Param() path: Record<string, any>,
+    @Param('path') path: Record<string, any>,
     @Response({ passthrough: true }) res,
+    @Headers('range') range: string,
     @Query('d') downloadOpc: number
   ) {
     const SFReg = await this.SFService.getSFAllInfo(id);
@@ -258,14 +454,37 @@ export class SharedFileController {
       const fileProps = await this.SFService.getPropsSFFile(SFReg, pathString);
       const CD = Number(downloadOpc) === 1 ? 'attachment' : 'inline';
       const contentTypeHeader = contentType(fileName);
+      const isVideo = contentTypeHeader.toString().startsWith('video/');
+      if (range) {
+        const { start, end, headers } = this.utils.getVideoHeaders(fileProps.size, range);
+        const videoChunk = await this.SFService.getContentSFFileChunk(SFReg, pathString, start, end);
+        res.writeHead(206, {
+          ...headers,
+          'Content-Type': contentTypeHeader
+        });
+        return new StreamableFile(videoChunk);
+      }
       res.set({
         'Content-Type': contentType(SFReg.name),
         'Content-Disposition': `${CD}; filename="${SFReg.name}";`,
         'Content-Length': fileProps.size,
-        'Keep-Alive': contentTypeHeader.toString().startsWith('video/') ? 'timeout=36000' : 'timeout=10',
+        'Keep-Alive': isVideo ? 'timeout=36000' : 'timeout=10',
         'Cache-Control': 'no-store'
       });
       return new StreamableFile(await this.SFService.getContentSFFile(SFReg, pathString));
     }
   }
+
+  @Get("most-viewed")
+  @ApiOkResponse({  type: [TokenElementResp] })
+  async getMostViewed(): Promise<TokenElement[]> {
+    return this.SFService.getMostVisitedTokens('popular');
+  }
+
+  @Get("recent-viewed")
+  @ApiOkResponse({  type: [TokenElementResp] })
+  async getMostDownloaded(): Promise<TokenElement[]> {
+    return this.SFService.getMostVisitedTokens('recent');
+  }
+
 }
