@@ -8,13 +8,10 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
-import { AppClusterService } from './app-cluster.service';
-import * as compression from 'compression';
-import { doubleCsrf } from 'csrf-csrf';
 import * as cookieParser from 'cookie-parser';
 import whiteList from './cors';
-import { v1 } from 'uuid';
 const cluster = process.env.APP_CLUSTER;
+const port = process.env.PORT !== undefined ? Number(process.env.PORT) : 5000
 const serveStatic = Boolean(process.env.SERVE_CLIENT);
 
 async function bootstrap() {
@@ -38,7 +35,7 @@ async function bootstrap() {
     app.setGlobalPrefix('/api');
   }
 
-  await app.listen(5000);
+  await app.listen(port);
 }
 
 // if (cluster === '1') {

@@ -14,9 +14,12 @@ import { SessionsService } from '../sessions/sessions.service';
 import { isInvalidSessionError } from '../sessions/errors/invalidsession.error';
 // interfaces
 import { UserPayload } from 'src/auth/interfaces/userPayload.interface';
-import { Interval } from '@nestjs/schedule';
 
-@WebSocketGateway(5001, { cors: true, namespace: '/', transports: ['websocket'] })
+const port = process.env.PORT !== undefined ? Number(process.env.PORT) : 5000
+
+const webSocketPort = port + 1
+
+@WebSocketGateway(webSocketPort, { cors: true, namespace: '/', transports: ['websocket'] })
 export class WebsocketGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private wsFiles: WebSocketFilesService,
