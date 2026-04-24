@@ -273,7 +273,7 @@ export class SessionsService implements OnModuleInit {
 
     const today = new Date();
     if (today > session.expire && session.doesexpire) {
-      this.revokeSession(sessionId);
+      // this.revokeSession(sessionId);
       if (websocket) {
         throw new InvalidSessionError('Session Expired');
       }
