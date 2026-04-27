@@ -45,7 +45,15 @@ export class UtilsService {
   }
 
   parseSearchCriteria(search: string) {
-    return search.replace(',', '|').replace('*', '[ a-zA-Z0-9-_]+').toLocaleLowerCase();
+    let searchR = search;
+    while (searchR.includes(',')) {
+      searchR = searchR.replace(',', '|');
+    }
+    while (searchR.includes('*')) {
+      searchR = searchR.replace('*', '[A-Za-z0-9_=. -]+');
+    }
+
+    return searchR;
   }
 
   getVideoHeaders(fileSize: number, range: string) {
