@@ -129,10 +129,11 @@ export class TreeFilesService {
   async searchInIndex(userId: string, patternStr: string): Promise<IndexList> {
     const results: IndexList = [];
     const files = await this.getIndexCache(userId);
-    const pattern = new RegExp(this.utils.parseSearchCriteria(patternStr).toLocaleLowerCase());
+    const patternSearch = this.utils.parseSearchCriteria(patternStr);
+    const pattern = new RegExp(patternSearch);
 
     files.forEach((file, i) => {
-      if (pattern.test(file.name.toLocaleLowerCase())) {
+      if (pattern.test(file.name)) {
         results.push(file);
         files.splice(i, 1);
       }
@@ -144,14 +145,14 @@ export class TreeFilesService {
 
     while (left <= right) {
       const mid = Math.floor((left + right) / 2);
-      const midName = files[mid].name.toLocaleLowerCase();
+      const midName = files[mid].name;
 
       if (pattern.test(midName)) {
         results.push(files[mid]);
 
         let i = mid - 1;
         while (i >= 0) {
-          if (pattern.test(files[i].name.toLocaleLowerCase())) {
+          if (pattern.test(files[i].name)) {
             results.push(files[i]);
           }
           i--;
@@ -159,14 +160,14 @@ export class TreeFilesService {
 
         let j = mid + 1;
         while (j < files.length) {
-          if (pattern.test(files[j].name.toLocaleLowerCase())) {
+          if (pattern.test(files[j].name)) {
             results.push(files[j]);
           }
           j++;
         }
 
         break;
-      } else if (midName < pattern.source.toLocaleLowerCase()) {
+      } else if (midName < pattern.source) {
         left = mid + 1;
       } else {
         right = mid - 1;

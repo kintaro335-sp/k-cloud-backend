@@ -12,6 +12,7 @@ import { MessageResponse } from '../responses/messageResponse.resp';
 import { UsePayloadRespose } from './reponses/userPayload.resp';
 import { AuthResponse } from './reponses/authResponse.resp';
 import { ApiKeysResponse, SessionsResponse } from './reponses/apikeysResponse.resp';
+import { ApiKeyScopesResp } from './reponses/apikeyScopes.resp';
 // services
 import { AuthService } from './auth.service';
 // guards
@@ -49,7 +50,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @ScopesR(['npr'])
   @ApiSecurity('t')
-  @ApiOkResponse({ type: [String] })
+  @ApiOkResponse({ type: ApiKeyScopesResp })
   @ApiUnauthorizedResponse({ type: ErrorResponse })
   async getScopes(@Request() req): Promise<{ type: string; scopes: string[] }> {
     return this.authService.getScopes(req.user);
