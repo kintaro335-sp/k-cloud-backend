@@ -35,7 +35,7 @@
     "@nestjs/platform-socket.io": "^11.0.11",
     "@nestjs/schedule": "^5.0.1",
     "@nestjs/serve-static": "^5.0.3",
-    "@nestjs/swagger": "^11.0.6",
+    "@nestjs/swagger": "^11.4.6",
     "@nestjs/websockets": "^11.0.11",
     "@prisma/client": "^6.4.1",
     "@types/mime-types": "^2.1.4",
@@ -58,7 +58,7 @@
     "uuid": "^11.1.0"
   },
   "devDependencies": {
-    "@nestjs/cli": "^11.0.5",
+    "@nestjs/cli": "^11.0.24",
     "@nestjs/schematics": "^11.0.2",
     "@nestjs/testing": "^11.0.11",
     "@types/cron": "^2.4.3",
@@ -72,7 +72,7 @@
     "@types/supertest": "^6.0.2",
     "@types/uniqid": "^5.3.4",
     "@types/uuid": "^10.0.0",
-    "eslint": "^9.21.0",
+    "eslint": "^10.8.0",
     "eslint-config-prettier": "^10.1.1",
     "eslint-plugin-prettier": "^5.2.3",
     "jest": "^29.7.0",
@@ -105,5 +105,13 @@
   },
   "engines": {
     "node": ">=20.14.0"
+  },
+  "allowScripts": {
+    "@nestjs/core@11.1.19": true,
+    "@prisma/client@6.4.1": true,
+    "@prisma/engines@6.4.1": true,
+    "prisma@6.4.1": true,
+    "esbuild@0.25.0": true,
+    "@scarf/scarf@1.4.0": true
   }
 }

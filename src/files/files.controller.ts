@@ -438,6 +438,17 @@ export class FilesController {
     return this.filesService.moveFileFolder(pathString, body.newpath.replace('../', ''), req.user);
   }
 
+  @Post('move/file')
+  @HttpCode(200)
+  @ApiSecurity('t')
+  @ScopesR(['files:move'])
+  @ApiOkResponse({ type: MessageResponse })
+  @ApiUnauthorizedResponse({ type: ErrorResponse })
+  async moveFileFolderNopath(@Request() req, @Body() body: MoveFileDTO) {
+    return this.filesService.moveFileFolder('', body.newpath.replace('../', ''), req.user);
+  }
+  
+
   @Post('move/files/*path')
   @HttpCode(200)
   @ApiSecurity('t')
@@ -449,4 +460,15 @@ export class FilesController {
     const pathString = this.utils.processPath(path);
     return this.filesService.moveFiles(pathString, body.newPath.replace('../', ''), body.files, req.user);
   }
+
+  @Post('move/files')
+  @HttpCode(200)
+  @ApiSecurity('t')
+  @ScopesR(['files:move'])
+  @ApiOkResponse({ type: MessageResponse })
+  @ApiUnauthorizedResponse({ type: ErrorResponse })
+  async moveFilesNoPath(@Request() req, @Body() body: MoveFilesDTO) {
+    return this.filesService.moveFiles('', body.newPath.replace('../', ''), body.files, req.user);
+  }
+
 }
