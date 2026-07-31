@@ -641,7 +641,7 @@ export class FilesService {
       files.map(async (f) => {
         const filePath = join(realPath, f);
         const newFilePath = join(realPathNew, f);
-        if (await this.existsEP(filePath)) {
+        if (await this.existsEP(filePath) && !(await this.existsEP(newFilePath))) {
           await rename(filePath, newFilePath);
           this.system.emitChangeFileEvent({ path, userId: userPayload.userId });
         }
